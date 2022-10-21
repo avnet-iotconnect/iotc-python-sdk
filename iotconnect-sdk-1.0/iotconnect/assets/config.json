@@ -1,0 +1,12 @@
+{
+    "env" : "DEV",
+    "sdk_lang" : "M_PYTHON",
+    "sdk_version" : "3.0.2",
+    "api_version" : "2016-02-03",
+    "api_path" : "/devices/{clientId}/messages/events?api-version={api_version}",
+    "api_global_prov_url": "global.azure-devices-provisioning.net",
+    "twin_pub_topic": "$iothub/twin/PATCH/properties/reported/?$rid=1",
+    "twin_sub_topic": "$iothub/twin/PATCH/properties/desired/#",
+    "twin_sub_res_topic": "$iothub/twin/res/#",
+    "twin_pub_res_topic": "$iothub/twin/GET/?$rid=0"
+}
