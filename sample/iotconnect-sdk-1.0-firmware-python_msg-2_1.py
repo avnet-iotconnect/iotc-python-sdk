@@ -2,13 +2,13 @@
   ******************************************************************************
   * @file   : iotconnect-sdk-1.0-firmware-python_msg-2_1.py
   * @author : Softweb Solutions An Avnet Company
-  * @modify : 12-October-2022
+  * @modify : 02-January-2023
   * @brief  : Firmware part for Python SDK 1.0
   ******************************************************************************
 """
 
 """
- * Hope you have installed the Python SDK v1.0 Message type 2.1 as guided in README.md file or from documentation portal. 
+ * Hope you have installed the Python SDK v1.0 as guided in README.md file or from documentation portal. 
  * Import the IoTConnect SDK package and other required packages
 """
 
@@ -31,12 +31,11 @@ import os
 """
 
 
-UniqueId = "<<Your UniqueID>>" 
-SId = "<<Your SID>>"
-
+UniqueId = "<<Your Device UniqueID>>" 
+SId = "<<Your Company SID>>"
 
 Sdk=None
-interval = 20
+interval = 30
 directmethodlist={}
 ACKdirect=[]
 device_list=[]
@@ -46,6 +45,7 @@ device_list=[]
 * 	- SSLKeyPath: your device key
 * 	- SSLCertPath: your device certificate
 * 	- SSLCaPath : Root CA certificate
+* 	- Windows + Linux OS: Use "/" forward slash (Example: Windows: "E:/folder1/folder2/certificate", Linux: "/home/folder1/folder2/certificate")
 * "offlineStorage" : Define the configuration related to the offline data storage 
 * 	- disabled : false = offline data storing, true = not storing offline data 
 * 	- availSpaceInMb : Define the file size of offline data which should be in (MB)
@@ -55,11 +55,13 @@ device_list=[]
 * Note: sdkOptions is optional but mandatory for SSL/x509 device authentication type only. Define proper setting or leave it NULL. If you not provide the offline storage it will set the default settings as per defined above. It may harm your device by storing the large data. Once memory get full may chance to stop the execution.
 """
 
+
 SdkOptions={
 	"certificate" : { 
-		"SSLKeyPath" : "<<path>>/device.key",  
-		"SSLCertPath" : "<<path>>/device.pem",
-		"SSLCaPath" : "<<path>>/ms.pem"
+		"SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+		"SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+		"SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem 
+        
 	},
     "offlineStorage":{
         "disabled": False,
@@ -67,12 +69,16 @@ SdkOptions={
 	    "fileCount": 5,
         "keepalive":60
     },
-    # "skipValidation":False,
-    # "devicePrimaryKey":"cGFyYXNwYXJhc3BhcmFzcGFyYXNwYXJhc3BhcmFzcGFyYQ==", #"Replace None with Your primaryKey in double quotes"
-    # "discoveryUrl":"https://eudiscovery.iotconnect.io"
-    "IsDebug": True
+    "skipValidation":False,
+    # "devicePrimaryKey":"<<DevicePrimaryKey>>",
+	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
+    # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
+    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
+    "discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
+    "IsDebug": False
    
 }
+
 
 """
  * Type    : Callback Function "DeviceCallback()"
@@ -108,7 +114,7 @@ def DeviceCallback(msg):
                     Sdk.sendAckCmd(data["ack"],7,"sucessfull",data["id"])  #fail=4,executed= 5,sucess=7,6=executedack
             else:
                 if "ack" in data and data["ack"]:
-                    Sdk.sendAckCmd(data["ack"],7,"sucessfull")
+                    Sdk.sendAckCmd(data["ack"],7,"sucessfull") #fail=4,executed= 5,sucess=7,6=executedack
     else:
         print("rule command",msg)
 
@@ -138,16 +144,16 @@ def DeviceFirmwareCallback(msg):
                     if "tg" in url_list:
                         for i in device_list:
                             if "tg" in i and (i["tg"] == url_list["tg"]):
-                                Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull",i["id"]) #fail=4,executed= 5,sucess=7
+                                Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull",i["id"]) #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
                     else:
-                        Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull") #fail=4,executed= 5,sucess=7
+                        Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull") #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
 
 def DeviceConectionCallback(msg):  
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
     #connection status
-    if cmdType == 16:
+    if cmdType == 116:
         #Device connection status e.g. data["command"] = true(connected) or false(disconnected)
         print(json.dumps(msg))
 
@@ -262,7 +268,7 @@ def main():
 
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
-                Sdk.GetAttributes(attributeDetails)
+                # Sdk.GetAttributes(attributeDetails)
                 while True:
                     #Sdk.GetAttributes()
                     """
@@ -272,28 +278,27 @@ def main():
 
                     
                     data = {
-                    "temperature":10,
-                    "long1":31,
-                    "integer1":55,
-                    "decimal1":0.555,
+                    "temperature":random.randint(30, 50),
+                    "long1":random.randint(6000, 9000),
+                    "integer1": random.randint(100, 200),
+                    "decimal1":random.uniform(10.5, 75.5),
                     "date1":datetime.utcnow().strftime("%Y-%m-%d"),
                     "time1":"11:55:22",
-                    "bit1":2,
-                    "boolean1": 0,
+                    "bit1":1,
                     "string1":"red",
                     "datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     "gyro": {
-                        'bit1':0.1,
+                        'bit1':0,
                         'boolean1': True,
                         'date1': datetime.utcnow().strftime("%Y-%m-%d"),
                         "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "decimal1":2.555,
-                        "integer1":884,
-                        "latlong1":78945,
-                        "long1":999,
+                        "decimal1":random.uniform(10.5, 75.5),
+                        "integer1":random.randint(60, 600),
+                        "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                        "long1":random.randint(60, 600000),
                         "string1":"green",
                         "time1":"11:44:22",
-                        "temperature":200
+                        "temperature":random.randint(50, 90)
                         }
                         }
                     dObj = [{
@@ -312,28 +317,67 @@ def main():
                     #             "uniqueId":UniqueId,
                     #             "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     #             "data": {
-                    #                     "Temperature":10,
+                    #                     "temperature":-2147483649,
+                    #                     "decimal1":8121.2,
+                    #                     "long1":9007199254740991,
                     #                     "gyro": {
-                    #                             'x':random.randint(1,10),
-                    #                             'y': random.randint(10,30),
-                    #                             'z': random.randint(1,100),
-                    #                             }
+                    #                         'bit1':0,
+                    #                         'boolean1': True,
+                    #                         'date1': datetime.utcnow().strftime("%Y-%m-%d"),
+                    #                         "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                         "decimal1":2.555,
+                    #                         "integer1":884,
+                    #                         "latlong1":78945,
+                    #                         "long1":999,
+                    #                         "string1":"green",
+                    #                         "time1":"11:44:22",
+                    #                         "temperature":22
+                    #                         }
                     #                     }
                     #             },
                     #             {
                     #             "uniqueId":UniqueId+"c",
                     #             "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     #             "data": {
-                    #                     "Temperature":32,
+                    #                     "temperature":2323,
+                    #                     "decimal1":2.555,
+                    #                     "long1":36544,
+                    #                     "gyro": {
+                    #                         'bit1':0,
+                    #                         'boolean1': True,
+                    #                         'date1': datetime.utcnow().strftime("%Y-%m-%d"),
+                    #                         "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                         "decimal1":2.555,
+                    #                         "integer1":884,
+                    #                         "latlong1":78945,
+                    #                         "long1":999,
+                    #                         "string1":"green",
+                    #                         "time1":"11:44:22",
+                    #                         "temperature":10
+                    #                         }
                     #                     }
-                    #             },
-                    #             {
-                    #             "uniqueId":UniqueId+"c1",
-                    #             "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #             "data": {
-                    #                     "Temperature":"32",
-                    #                     }
-                    #             }]
+                    #             }
+                                # {
+                                # "uniqueId":UniqueId+"c1",
+                                # "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                                # "data": {
+                                #         "Temperature":"hi",
+                                #         "gyro": {
+                                #             'bit1':0,
+                                #             'boolean1': True,
+                                #             'date1': datetime.utcnow().strftime("%Y-%m-%d"),
+                                #             "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                                #             "decimal1":2.555,
+                                #             "integer1":884,
+                                #             "latlong1":78945,
+                                #             "long1":999,
+                                #             "string1":"green",
+                                #             "time1":"11:44:22",
+                                #             "temperature":10
+                                #             }
+                                #         }
+                                # }
+                            # ]
                                 
 
                     
@@ -342,14 +386,19 @@ def main():
                     * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z" 
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
-                    #dataArray.append(dObj)     
+                    #dataArray.append(dObj)
+                    #print (dObj)      
                     sendBackToSDK(Sdk, dObj)
                     
             except KeyboardInterrupt:
-                # print ("Keyboard Interrupt Exception")
-                sys.exit(0)
+                print ("Keyboard Interrupt Exception")
+                # os.execl(sys.executable, sys.executable, *sys.argv)
+                os.abort()
+                # sys.exit(0)
+                
+                
     except Exception as ex:
-        print(ex.message)
+        # print(ex.message)
         sys.exit(0)
 
 if __name__ == "__main__":

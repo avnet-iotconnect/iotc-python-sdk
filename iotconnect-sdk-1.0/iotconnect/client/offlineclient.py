@@ -42,15 +42,18 @@ class offlineclient:
         try:
             #self._lock = False
             #return
+            time.sleep(1)
             count=0
             freqency=10
+            total_count=0
             #log_path = os.path.join(sys.path[0], "logs")
             files = self.get_log_files()
-            files=files.sort()
+            files.sort()
             self.is_timer_start= True
             self.data_rate=False
             if len(files) > 0:
                 for f in files:
+                    count=0
                     isAction = 0
                     logs = self.read_file_data(f)
                     print("\nstart Publishing offline file : " + str(f))
@@ -66,6 +69,7 @@ class offlineclient:
                                 rData.append(obj)
                             else:
                                 count=count+1
+                                total_count=total_count+1
                             if self.is_timer_start:
                                 self.start_timer(freqency)
                             if (self.data_rate == True) and (count > 0):
@@ -75,14 +79,19 @@ class offlineclient:
                                 count = 0
                                 self.data_rate=False
                                 self.is_timer_start=True
+                                files = self.get_log_files()
+                                files.sort()
                                 #time.sleep(freqency)        
                     if len(rData) > 0:
                         isAction = 1             
                     if isAction == 0: #DELETE
-                        print("\nPublish total offline data : " + str(count) +"  Time:"+ datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.000"))
+                        #print("\nPublish total offline data : " + str(count) +"  Time:"+ datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.000"))
                         self.delete_file(f)
                     if isAction == 1: #WRITE
                         self.write_file(f, rData)
+                print ("\n---------------------------------")
+                print("Publish offline data total : " + str(total_count) +"  Time:"+ datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.000"))
+                print ("---------------------------------\n")
             self._lock = False
         except:
             self._lock = False
@@ -282,7 +291,7 @@ class offlineclient:
             if len(files) >= self.file_count:
                 v=[]
                 for i in range(0,len(files)):
-                    v.append(int(files[0].replace('-','').replace('.txt','')))
+                    v.append(int(files[i].replace('-','').replace('.txt','')))
                 fpath = os.path.join(sys.path[0] + "/logs/offline/"+self._cpid_uniqid, files[v.index(min(v))])
                 os.remove(fpath)
         except:

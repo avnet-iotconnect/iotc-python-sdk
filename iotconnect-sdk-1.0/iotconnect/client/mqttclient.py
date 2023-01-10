@@ -14,6 +14,8 @@ authType = {
 	"CA_SELF_SIGNED": 3,
     "SKEY": 5
 }
+
+
 class mqttclient:
     _name = None
     _auth_type = None
@@ -53,9 +55,9 @@ class mqttclient:
     }
 
     class disconnect_msg:
-        payload=u'{"ct": 16,"data": {"cpId":"_cpId","guid": "","uniqueId":"_uniqueId","command": "False","ack": "False","ackId": "","ct": 16}}'
+        payload=u'{"ct": 116,"data": {"guid": "","uniqueId":"_uniqueId","command": "False","ack": "False","ackId": "","ct": 116}}'
     class connect_msg:
-        payload=u'{"ct": 16,"data": {"cpId":"_cpId","guid": "","uniqueId":"_uniqueId","command": "True","ack": "False","ackId": "","ct": 16}}'
+        payload=u'{"ct": 116,"data": {"guid": "","uniqueId":"_uniqueId","command": "True","ack": "False","ackId": "","ct": 116}}'
 
     def _on_connect(self, mqtt_self, client, userdata, rc):
         if rc != 0:
@@ -70,7 +72,8 @@ class mqttclient:
             mqtt_self.subscribe(self._subTopic)
             mqtt_self.subscribe(self._twin_sub_topic)
             mqtt_self.subscribe(self._twin_sub_res_topic)
-            mqtt_self.subscribe(self._direct_sub)
+            if self._config["pf"] == "az":
+                mqtt_self.subscribe(self._direct_sub)
         self._rc_status = rc
     
     # old
@@ -95,6 +98,7 @@ class mqttclient:
 
     def get_twin(self):
         if self._isConnected:
+            # print("_twin_pub_res_topic")
             self._client.publish(self._twin_pub_res_topic, payload="", qos=1)
 
     def has_key(self, data, key):
@@ -114,8 +118,12 @@ class mqttclient:
         if msg.topic.find(self._subTopic[:-1]) > -1 and self._onMessage != None:
             self._onMessage(msg_data)
         if msg.topic.find(self._twin_sub_topic[:-1]) > -1 and self._onTwinMessage != None:
+            # print ("_twin_sub_topic")
+            print(msg_data)
             self._onTwinMessage(msg_data,1)
         if msg.topic.find(self._twin_sub_res_topic[:-1]) > -1:
+            # print ("twin_sub_res_topic")
+            print(msg_data)
             self._onTwinMessage(msg_data,0)
         if msg.topic.find(self._direct_sub[:-1]) > -1 and self._onDirectMethod != None:
             method=str(msg.topic.replace(self._direct_sub[:-1],''))
@@ -141,7 +149,8 @@ class mqttclient:
                 time.sleep(0.5)
             
             if self._rc_status == 0:
-                print("Protocol Initialized...")
+                print("\n____________________\n\nProtocol Initialized\nDevice Is Connected with IoTConnect\n____________________\n")
+                # print("Device Is Connected with IoTConnect\n")
             else:
                 raise(IoTConnectSDKException("06", self._mqtt_status[self._rc_status]))
         except Exception as ex:
@@ -214,10 +223,26 @@ class mqttclient:
                     pubtopic=self._pubFlt
 
                 if self._client and pubtopic != None:
-                    _obj = self._client.publish(pubtopic, payload=json.dumps(data))
-                    
-            if _obj and _obj.rc == 0:
-                return True
+                    if pubtopic == self._pubACK:
+                        _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
+                        return True
+                    else:
+                        _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
+                        if sys.version_info >=(3,5):
+                            _obj.wait_for_publish(timeout=2)
+                        else:
+                            time.sleep(0.2)
+                            while(_obj._published==False):
+                                if count == 5:
+                                    break
+                                time.sleep(1)
+                                count+=1
+                        if _obj and _obj._published == True:
+                            return True
+                        else:
+                            return False
+            # if _obj and _obj.rc == 0:
+            #     return True
             else:
                 return False
         except:
@@ -227,6 +252,8 @@ class mqttclient:
         try:
             _obj = None
             if self._isConnected:
+                # print("_twin_pub_topic")
+                print(data)
                 if self._client and self._twin_pub_topic != None:
                     _obj = self._client.publish(self._twin_pub_topic, payload=json.dumps(data), qos=1)
             
@@ -255,14 +282,18 @@ class mqttclient:
             #Check Auth Type
             if (self._auth_type == authType["KEY"]) or (self._auth_type == authType["SKEY"]):
                 self._client.username_pw_set(self._config["un"], self._config["pwd"])
-                self._client.tls_set(self._path_to_root_cert, tls_version = ssl.PROTOCOL_TLSv1_2)
+                if self._path_to_root_cert != None:
+                    self._client.tls_set(self._path_to_root_cert, tls_version = ssl.PROTOCOL_TLSv1_2)
             elif self._auth_type == authType["CA_SIGNED"]:
                 self._client.username_pw_set(self._config["un"], password=None)
                 cert_setting = self._validateSSL(self._sdk_config["certificate"])
                 if len(cert_setting) != 3:
                     raise(IoTConnectSDKException("01", "Certificate/Key in Sdkoption"))
                 if cert_setting != None:
-                    self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                    if self._path_to_root_cert != None:
+                        self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                    else:
+                        self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)    
                     self._client.tls_insecure_set(False)
             elif self._auth_type == authType["CA_SELF_SIGNED"]:
                 self._client.username_pw_set(self._config["un"], password=None)
@@ -270,7 +301,10 @@ class mqttclient:
                 if len(cert_setting) != 3:
                     raise(IoTConnectSDKException("01", "Certificate/Key in Sdkoption"))
                 if cert_setting != None:
-                    self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                    if self._path_to_root_cert != None:
+                        self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                    else:
+                        self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)    
                     self._client.tls_insecure_set(False)
             self._client.on_connect = self._on_connect
             self._client.on_disconnect = self._on_disconnect
@@ -290,6 +324,7 @@ class mqttclient:
         return self._config["n"]
     
     def __init__(self, auth_type, config, sdk_config, onMessage,onDirectMethod,onTwinMessage = None):
+        
         self._auth_type = auth_type
         self._config = config
         self._sdk_config = sdk_config
@@ -308,12 +343,39 @@ class mqttclient:
         self._pubHB=str(config['topics']['hb'])
         self._pubDL=str(config['topics']['dl'])
         self._pubDi=str(config['topics']['di'])
-        self._twin_pub_topic = str(sdk_config['twin_pub_topic'])
-        self._twin_sub_topic = str(sdk_config['twin_sub_topic'])
-        self._twin_sub_res_topic = str(sdk_config['twin_sub_res_topic'])
-        self._twin_pub_res_topic = str(sdk_config['twin_pub_res_topic'])
-        _path = os.path.abspath(os.path.dirname(__file__))            
-        _config_path = os.path.join(_path, "assets/crt.txt")
-        _config_path=_config_path.replace("client","")
-        self._path_to_root_cert=_config_path
+        platfrom = config["pf"]
+        # print (platfrom)
+        if config["pf"] == "az":
+            print ("\n============>>>>>>>>>>>\n")
+            print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-")
+            print ("\n<<<<<<<<<<<============\n")
+            self._twin_pub_topic = str(sdk_config['az']['twin_pub_topic'])
+            self._twin_sub_topic = str(sdk_config['az']['twin_sub_topic'])
+            self._twin_sub_res_topic = str(sdk_config['az']['twin_sub_res_topic'])
+            self._twin_pub_res_topic = str(sdk_config['az']['twin_pub_res_topic'])
+            _path = os.path.abspath(os.path.dirname(__file__))            
+            _config_path = os.path.join(_path, "assets/az_crt.txt")
+            _config_path=_config_path.replace("client","")
+            self._path_to_root_cert=_config_path
+        else:
+            print ("\n============>>>>>>>>>>>\n")
+            print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
+            print ("\n<<<<<<<<<<<============\n")
+            cpid_uid = (config["id"])
+            self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic']) 
+            # print (type(self._twin_pub_topic))
+            self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
+            # print (type(self._twin_pub_topic))
+            self._twin_sub_topic = str(sdk_config['aws']['twin_sub_topic'])
+            self._twin_sub_topic = self._twin_sub_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            self._twin_sub_res_topic = str(sdk_config['aws']['twin_sub_res_topic'])
+            self._twin_sub_res_topic = self._twin_sub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            self._twin_pub_res_topic = str(sdk_config['aws']['twin_pub_res_topic'])
+            self._twin_pub_res_topic = self._twin_pub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            # _path = os.path.abspath(os.path.dirname(__file__))            
+            # _config_path = os.path.join(_path, "assets/aws_crt.txt")
+            # _config_path=_config_path.replace("client","")
+            # self._path_to_root_cert=_config_path 
+            # pass   
+        
         self._init_mqtt()

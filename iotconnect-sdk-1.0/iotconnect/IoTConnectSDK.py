@@ -68,7 +68,7 @@ CMDTYPE = {
     "STOP":109,
     "Start_Hr_beat":110,
     "Stop_Hr_beat":111,
-    "is_connect": 16,
+    "is_connect": 116,
     "SYNC": "sync",
     "RESETPWD": "resetpwd",
     "UCART": "updatecrt"
@@ -185,8 +185,17 @@ class IoTConnectSDK:
             res = urllib.urlopen(base_url).read().decode("utf-8")
             data = json.loads(res)
             #print(data)
-            return data['d']["bu"]
-        except:
+            # pf = None
+            a = (data['d'].keys())
+            if 'pf' in a:
+                # print(pf)
+                return data['d']["bu"], data['d']["pf"]
+            else:
+                pf = 'az'
+                return data['d']["bu"], pf  
+            
+        except Exception as ex:
+            print (ex.message)
             return None
     
     def generate_sas_token(self,uri, key, policy_name=None, expiry=31536000):
@@ -288,12 +297,19 @@ class IoTConnectSDK:
             self._heartbeat_timer.start()
 
     def onMessage(self, msg):
-        try:
+        # print("\n====================>>>>>>>>>>>>>>>>>>>>>>>\n")
+        # print ("Cloud To Device Message Received::\n",msg)
+        # print("\n<<<<<<<<<<<<<<<<<<<<<<<====================\n")
+        try:            
             if self._dispose == True:
                 return
             if msg == None:
                 return
             else:
+                self._is_process_started = True
+                
+                if self.has_key(msg,"data") and msg["data"]:
+                    msg=msg["data"]
                 if self.has_key(msg,"d") and msg["d"]:
                     msg=msg["d"]
                     print(msg)
@@ -344,17 +360,21 @@ class IoTConnectSDK:
                     pass
                 if "ct" in msg:
                     if msg["ct"] == CMDTYPE["is_connect"]:
-                        msg["data"]["cpId"] = self._cpId
-                        msg["data"]["uniqueId"] = self._uniqueId
-                        if msg["data"]["command"] in "False":
+                        # msg["data"]["uniqueId"] = self._uniqueId
+                        msg["uniqueId"] = self._uniqueId
+                        # if msg["data"]["command"] in "False":
+                        if msg["command"] in "False":    
                             self._offlineflag = True
                             if self._is_process_started:
                                 self.reconnect_device("reconnect")
                         
                         if self._listner_callback:
-                            self._listner_callback(msg["data"])
-                        self.write_debuglog('[INFO_CM09] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] 0x16 sdk connection status: " + msg["data"]["command"],0)
+                            # self._listner_callback(msg["data"])
+                            self._listner_callback(msg)
+                        self.write_debuglog('[INFO_CM09] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] 0x116 sdk connection status: " + msg["command"],0)
                         return
+                
+                        
             if self._is_process_started == False:
                 return
             if "ct" not in msg:
@@ -484,6 +504,7 @@ class IoTConnectSDK:
         try:
             protocol_cofig = self.protocol
             name = protocol_cofig["n"]
+            protocol_cofig["pf"] = self._pf
             auth_type = self._data_json["meta"]['at']
             if auth_type == 2 or auth_type == 3:
                 cert=self._config["certificate"]
@@ -527,6 +548,7 @@ class IoTConnectSDK:
             if option == "all":
                 url = self._base_url
                 response = self.post_call(url)
+                print (response)
                 if response == None:
                     if self._offlineflag == True:
                         isReChecking=True
@@ -572,8 +594,14 @@ class IoTConnectSDK:
                     self._is_process_started = False
                     self._data_json = response
                     self.init_protocol()
+                    if self._pf == "aws":
+                        data = { "_connectionStatus": "true" }
+                        self._client.SendTwinData(data)
+                        print("\nPublish connection status shadow sucessfully... %s" % self._time)                        
+
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
-                        self._hello_handsake({"mt":201,"sid":self._sId})
+                        # self._hello_handsake({"mt":201,"sid":self._sId})
+                        self._hello_handsake({"mt":201})
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
                         self._hello_handsake({"mt":202,"sid":self._sId})
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
@@ -606,6 +634,9 @@ class IoTConnectSDK:
                 raise(IoTConnectSDKException("00", "you are not able to call this function"))
             if self._is_process_started == False:
                 self.write_debuglog('[ERR_SD04] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device is barred SendData() method is not permitted",1)
+                return
+            if self.has_key(self._data_json,"att") == False:
+                print("\n")
                 return
             
             nowtime=datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -953,6 +984,7 @@ class IoTConnectSDK:
                 elif msgType == "FW":
                     print("\nPublish Firmware data sucessfully... %s" % self._time)
                 elif msgType == "CMD_ACK":
+                    #print (">>command acknowledge ack", data["d"]["ack"]) 
                     print("\nPublish command acknowledge data sucessfully... %s" % self._time)
                     self.write_debuglog('[INFO_CM10] '+'['+ str(self._sId)+'_'+str(self._uniqueId)+"] Command Acknowledgement sucessfull: "+self._time ,0)
                 else:
@@ -962,10 +994,10 @@ class IoTConnectSDK:
                 if self._offlineClient:
                     if self._offlineClient.Send(data):
                         self.write_debuglog('[INFO_OS02] '+'['+ str(self._sId)+'_'+str(self._uniqueId)+"] Offline data saved: "+self._time,0)
-                        print("\nStoreing offline sucessfully... %s" % self._time)
+                        print("\nStoring offline sucessfully... %s" % self._time)
                     else:
                         self.write_debuglog('[ERR_OS03] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Unable to read or write file",1)
-                        print("\nYou don't have permission to access 'offlineData.txt'.")
+                        print("\nYou Unable to store offline data.")
                 
             else:
                 if self._offlineClient:
@@ -1061,7 +1093,8 @@ class IoTConnectSDK:
         try:
             if callback:
                 self._getattribute_callback = callback
-            self._hello_handsake({"mt":201,"sid":self._sId})    
+            # self._hello_handsake({"mt":201,"sid":self._sId})    
+            self._hello_handsake({"mt":201})
         except Exception as ex:
             self.write_debuglog('[ERR_GA01] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Get Attributes Error",1)
             return None
@@ -1391,7 +1424,7 @@ class IoTConnectSDK:
 
         self._ruleEval = rule_evaluation(self.send_rule_data, self.command_sender)
 
-        self._base_url = self.get_base_url(self._sId)
+        self._base_url, self._pf = self.get_base_url(self._sId)
         if self._base_url != None:
             self.write_debuglog('[INFO_IN07] '+'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] BaseUrl received to sync the device information: "+ self._time ,0)
             self.process_sync("all")

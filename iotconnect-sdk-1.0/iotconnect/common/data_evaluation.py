@@ -273,30 +273,33 @@ class data_evaluation:
                 if dataType == DATATYPE["INT"] or dataType == DATATYPE["LONG"]:
                     value = self.parseData(value,1)
                     isValid=True
-                    if isinstance(value, (int)) and dataType == DATATYPE["INT"] and dataValidation != None and dataValidation != "" and value >= -(2**31) and value <= (2**31):
-                        isValid = False
-                        vlist = dataValidation.split(",")
-                        if len(vlist) > 0:
-                            for v in vlist:
-                                if v.find("to") > -1:
-                                    vRange = v.split("to")
-                                    if(value >= float(vRange[0].strip('')) and value <= float(vRange[1].strip(''))):
+                    if isinstance(value, (int)) and dataType == DATATYPE["INT"] and value >= -(2**31) and value <= (2**31):
+                        if dataValidation != None and dataValidation != "":
+                            isValid = False
+                            vlist = dataValidation.split(",")
+                            if len(vlist) > 0:
+                                for v in vlist:
+                                    if v.find("to") > -1:
+                                        vRange = v.split("to")
+                                        if(value >= float(vRange[0].strip('')) and value <= float(vRange[1].strip(''))):
+                                            isValid = True
+                                    elif float(value) == float(v):
                                         isValid = True
-                                elif float(value) == float(v):
-                                    isValid = True
 
-                    if isinstance(value, (int)) and dataType == DATATYPE["LONG"] and dataValidation != None and dataValidation != "" and value >= -(2**63) and value <= (2**63):
-                        isValid = False
-                        vlist = dataValidation.split(",")
-                        if len(vlist) > 0:
-                            for v in vlist:
-                                if v.find("to") > -1:
-                                    vRange = v.split("to")
-                                    if(value >= int(vRange[0].strip('')) and value <= int(vRange[1].strip(''))):
+                    elif isinstance(value, (int)) and dataType == DATATYPE["LONG"] and value >= -(2**63) and value <= (2**63):
+                        if dataValidation != None and dataValidation != "":
+                            isValid = False
+                            vlist = dataValidation.split(",")
+                            if len(vlist) > 0:
+                                for v in vlist:
+                                    if v.find("to") > -1:
+                                        vRange = v.split("to")
+                                        if(value >= int(vRange[0].strip('')) and value <= int(vRange[1].strip(''))):
+                                            isValid = True
+                                    elif int(value) == int(v):
                                         isValid = True
-                                elif int(value) == int(v):
-                                    isValid = True
-                    
+                    else:
+                        isValid = False
                     # --------------------------------
                 elif dataType == DATATYPE["STRING"]:
                     if type(value) == str:
@@ -316,18 +319,20 @@ class data_evaluation:
                 elif dataType == DATATYPE["FLOAT"]:
                     value = self.parseData(value,0)
                     isValid = True
-                    if isinstance(value, (int,float)) and dataValidation != None and dataValidation != "":
-                        isValid = False
-                        vlist = dataValidation.split(",")
-                        if len(vlist) > 0:
-                            for v in vlist:
-                                if v.find("to") > -1:
-                                    vRange = v.split("to")
-                                    if(value >= float(vRange[0].strip('')) and value <= float(vRange[1].strip(''))):
+                    if isinstance(value, (int,float)): 
+                        if dataValidation != None and dataValidation != "":
+                            isValid = False
+                            vlist = dataValidation.split(",")
+                            if len(vlist) > 0:
+                                for v in vlist:
+                                    if v.find("to") > -1:
+                                        vRange = v.split("to")
+                                        if(value >= float(vRange[0].strip('')) and value <= float(vRange[1].strip(''))):
+                                            isValid = True
+                                    elif float(value) == float(v):
                                         isValid = True
-                                elif float(value) == float(v):
-                                    isValid = True
-                
+                    else:
+                        isValid = False
                 elif dataType == DATATYPE["DateTime"]:
                     isValid=self.parseDateTime(value,"%Y-%m-%dT%H:%M:%S.000Z")
                     if  isValid and dataValidation != None and dataValidation != "":
@@ -422,6 +427,10 @@ class data_evaluation:
                     if type(value) != str:
                         _config["values"].append(value)
                         _config["current_value"] = value
+                else:
+                    data = {}
+                    data[_config["ln"]] = value
+                    return {"FLT": data}        
             
             if self._isEdge == False:
                 data = {}

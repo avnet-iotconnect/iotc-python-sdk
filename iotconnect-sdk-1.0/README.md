@@ -1,9 +1,9 @@
 # Softweb Solutions Inc
-## IOT Connect SDK : Software Development Kit 1.0
+# IOT Connect SDK : Software Development Kit 1.0
 
 **Prerequisite tools:**
 
-1. Python : Python version 2.7, 3.6, 3.7, and 3.8
+1. Python : Python version 2.7, 3.6, 3.7, and 3.8 (We suggest to use most stable Python Version 3.7.9)
 2. pip : pip is compatible to the python version
 3. setuptools : It Requires to manage the python packages.
 

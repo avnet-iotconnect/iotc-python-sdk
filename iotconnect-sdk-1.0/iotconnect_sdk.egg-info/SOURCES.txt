@@ -4,9 +4,9 @@ setup.py
 iotconnect/IoTConnectSDK.py
 iotconnect/IoTConnectSDKException.py
 iotconnect/__init__.py
-iotconnect/tempCodeRunnerFile.py
+iotconnect/assets/aws_crt.txt
+iotconnect/assets/az_crt.txt
 iotconnect/assets/config.json
-iotconnect/assets/crt.txt
 iotconnect/client/__init__.py
 iotconnect/client/httpclient.py
 iotconnect/client/mqttclient.py
@@ -19,5 +19,4 @@ iotconnect_sdk.egg-info/PKG-INFO
 iotconnect_sdk.egg-info/SOURCES.txt
 iotconnect_sdk.egg-info/dependency_links.txt
 iotconnect_sdk.egg-info/not-zip-safe
-iotconnect_sdk.egg-info/requires.txt
 iotconnect_sdk.egg-info/top_level.txt
