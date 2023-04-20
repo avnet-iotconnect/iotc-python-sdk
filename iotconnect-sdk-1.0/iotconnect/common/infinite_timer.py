@@ -11,14 +11,14 @@ class infinite_timer:
         self.target = target
         self.arg = arg
         self.thread = None
-    
+
     def _handle_target(self, arg):
         self.is_running = True
         self.target(arg)
         self.is_running = False
         #print('handled target :' + str(self.seconds))
         self._start_timer()
-    
+
     def _start_timer(self):
         # Code could have been running when cancel was called.
         if self._should_continue:
@@ -30,12 +30,12 @@ class infinite_timer:
             self.thread.daemon = True
             self.thread.name = "RTM"
             self.thread.start()
-    
+
     def start(self):
         if not self._should_continue and not self.is_running:
             self._should_continue = True
             self._start_timer()
-    
+
     def cancel(self):
         if self.thread is not None:
             # Just in case thread is running and cancel fails.
