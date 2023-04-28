@@ -15,15 +15,15 @@ class httpclient:
     _scheme = None
     _host = None
     _api_path = None
-    
+
     @property
     def isConnected(self):
         return self._isConnected
-    
+
     @property
     def name(self):
         return self._config["n"]
-    
+
     def Send(self, data):
         try:
             _client = None
@@ -31,18 +31,18 @@ class httpclient:
                 _client = httplib.HTTPSConnection(self._host)
             if self.name == "http":
                 _client = httplib.HTTPConnection(self._host)
-            
+
             if _client != None :
                 _client.request("POST", self._api_path,json.dumps(data), self._header)
                 _client.getresponse()
                 _client.close()
-            
+
             self._isConnected = True
             return True
         except:
             self._isConnected = False
             return False
-    
+
     def __init__(self, config, sdk_config):
         self._config = config
         self._sdk_config = sdk_config
