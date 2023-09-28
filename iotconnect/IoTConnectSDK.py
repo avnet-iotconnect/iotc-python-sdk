@@ -12,17 +12,6 @@ from base64 import b64encode, b64decode
 from hashlib import sha256
 from hmac import HMAC
 
-if sys.version_info >= (3, 5):
-    import http.client as httplib
-    import urllib.request as urllib
-    from urllib.parse import urlparse,quote_plus,urlencode
-
-else:
-    import httplib
-    from urllib import quote_plus,urlencode
-    import urllib2 as urllib
-    from urlparse import urlparse
-
 from iotconnect.client.mqttclient import mqttclient
 from iotconnect.client.httpclient import httpclient
 from iotconnect.client.offlineclient import offlineclient
@@ -73,6 +62,7 @@ CMDTYPE = {
     "RESETPWD": "resetpwd",
     "UCART": "updatecrt"
 }
+
 OPTION = {
     "attribute": "att",
     "setting": "set",
@@ -157,7 +147,7 @@ class IoTConnectSDK:
     def get_properties(self):
         try:
             _properties = self._property
-            if _properties != None:
+            if _properties is not None:
                 for prop in _properties:
                     if _properties[prop]:
                         self._config[prop] = _properties[prop]
@@ -227,7 +217,7 @@ class IoTConnectSDK:
                 self.write_debuglog('[INFO_DC01] '+'['+ str(self._sId)+'_'+str(self._uniqueId)+"] Device already disconnected: "+self._time,0)
                 return True
             for attr in self.attributes:
-                if self.has_key(attr, "evaluation"):
+                if "evaluation" in attr:
                     attr["evaluation"].destroyed()
                     del attr["evaluation"]
             if self._client and hasattr(self._client, 'Disconnect'):
@@ -306,9 +296,9 @@ class IoTConnectSDK:
             else:
                 self._is_process_started = True
 
-                if self.has_key(msg,"data") and msg["data"]:
+                if "data" in msg and msg["data"]:
                     msg=msg["data"]
-                if self.has_key(msg,"d") and msg["d"]:
+                if "d" in msg and msg["d"]:
                     msg=msg["d"]
                     print(msg)
                     if msg['ec'] == 0 and msg["ct"] == 201:
@@ -379,6 +369,11 @@ class IoTConnectSDK:
                 print("Command Received : " + json.dumps(msg))
                 return
             _tProcess = None
+
+            if msg["ct"] in CMDTYPE:
+                print(CMDTYPE[msg["ct"]] + " U_ATTRIBUTE command received...")
+            print(f"Message: {msg}")
+
             if msg["ct"] == CMDTYPE["U_ATTRIBUTE"]:
                 if self._listner_attchng_callback:
                     self._listner_attchng_callback(msg)
@@ -425,7 +420,7 @@ class IoTConnectSDK:
             elif msg["ct"] == CMDTYPE["DCOMM"]:
                 print(str(CMDTYPE["DCOMM"])+" DCOMM command received...")
                 print(msg)
-                if self._listner_device_callback != None:
+                if self._listner_device_callback is not None:
                     self._listner_device_callback(msg)
             elif msg["ct"] == CMDTYPE["FIRMWARE"]:
                 print(str(CMDTYPE["FIRMWARE"])+" FIRMWARE command received...")
@@ -459,7 +454,7 @@ class IoTConnectSDK:
             else:
                 print("Message : " + json.dumps(msg))
 
-            if _tProcess != None:
+            if _tProcess is not None:
                 _tProcess.setName("PSYNC")
                 _tProcess.daemon = True
                 _tProcess.start()
@@ -486,7 +481,7 @@ class IoTConnectSDK:
                 msg["uniqueId"] = self._uniqueId
             else:
                 msg["uniqueId"] = self._uniqueId
-            if self._listner_twin_callback != None:
+            if self._listner_twin_callback is not None:
                 self._listner_twin_callback(msg)
         except Exception as ex:
             print("Message process failed...",ex)
@@ -523,7 +518,7 @@ class IoTConnectSDK:
                 else:
                     raise(IoTConnectSDKException("01", "devicePrimaryKey"))
 
-            if self._client != None:
+            if self._client is not None:
                 self._client = None
 
             if name == "mqtt":
@@ -640,7 +635,7 @@ class IoTConnectSDK:
             nowtime=datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             time_zero = datetime.datetime.strptime('000000', '%H%M%S')
             edge_flt_flag = False
-            if self._dftime != None:
+            if self._dftime is not None:
                 if int(nowtime) >= self._dftime:
                     nowtime=datetime.datetime.strptime(str(nowtime),"%Y%m%d%H%M%S")
                     self._dftime = int((nowtime - time_zero + self.find_df(self._data_frequency)).strftime("%Y%m%d%H%M%S"))
@@ -706,7 +701,7 @@ class IoTConnectSDK:
                                                     sub_value=float(value)
                                                 except:
                                                     real_sensor.remove(dObj["ln"])
-                                        if value != None:
+                                        if value is not None:
                                             row_data = evaluation.process_data(dObj, attr["p"], value,self._validation)
                                             if row_data and self.has_key(row_data,"RPT"):
                                                 for key, value in row_data["RPT"].items():
@@ -718,7 +713,7 @@ class IoTConnectSDK:
                                             pass
                                             #f_attr_s[sensorData[dObj]]
                                 data = evaluation.get_rule_data()
-                                if data != None:
+                                if data is not None:
                                     rul_data.append(data)
 
                             elif attr["p"] != "" and self.has_key(attr, "evaluation") and self.has_key(sensorData, attr["p"]) == True:
@@ -743,7 +738,7 @@ class IoTConnectSDK:
                                                         sub_value=float(value)
                                                     except:
                                                         sub_sensors.remove(dObj["ln"])
-                                            if value != None:
+                                            if value is not None:
                                                 row_data = evaluation.process_data(dObj, attr["p"], value,self._validation)
 
                                                 if row_data and self.has_key(row_data, "RPT"):
@@ -764,7 +759,7 @@ class IoTConnectSDK:
                                             f_attr_s[attr["p"]] = {}
                                         f_attr_s[attr["p"]][unmatch]=sensorData[attr["p"]][unmatch]
                                     data = evaluation.get_rule_data()
-                                    if data != None:
+                                    if data is not None:
                                         rul_data.append(data)
                         unsensor=sensorData.keys()
                         unmatch_sensor= list((set(unsensor)- set(real_sensor)))
@@ -812,7 +807,7 @@ class IoTConnectSDK:
             return
         if not msg:
             print("sendAckModule: msg is empty.")
-        if ackGuid != None :
+        if ackGuid is not None :
             pass
         else:
             raise(IoTConnectSDKException("00", "sendAckModule: ackGuid not valid."))
@@ -822,7 +817,7 @@ class IoTConnectSDK:
             template["st"] = status
             template["msg"] = msg
             template["ack"] = ackGuid
-            if ackGuid != None:
+            if ackGuid is not None:
                 self.send_msg_to_broker("CMD_ACK", template)
         except Exception as ex:
             raise(ex)
@@ -833,13 +828,13 @@ class IoTConnectSDK:
         if self._is_process_started == False:
             return
         ischild = False
-        if childId != None and type(childId) == str:
+        if childId is not None and type(childId) == str:
             for d in self.devices:
                 if d["id"] == childId:
                     ischild=True
         if not msg:
             print("sendAckModule: msg is empty.")
-        if ackGuid != None :
+        if ackGuid is not None :
             pass
         else:
             raise(IoTConnectSDKException("00", "sendAckModule: ackGuid not valid."))
@@ -851,7 +846,7 @@ class IoTConnectSDK:
             template["d"]["ack"] = ackGuid
             if ischild:
                 template["d"]["cid"] = childId
-                if ackGuid != None:
+                if ackGuid is not None:
                     print(template)
                     self.send_msg_to_broker("FW", template)
             elif childId:
@@ -867,13 +862,13 @@ class IoTConnectSDK:
         if self._is_process_started == False:
             return
         ischild = False
-        if childId != None and type(childId) == str:
+        if childId is not None and type(childId) == str:
             for d in self.devices:
                 if d["id"] == childId:
                     ischild=True
         if not msg:
             print("sendAckModule: msg is empty.")
-        if ackGuid != None :
+        if ackGuid is not None :
             pass
         else:
             raise(IoTConnectSDKException("00", "sendAckModule: ackGuid not valid."))
@@ -886,7 +881,7 @@ class IoTConnectSDK:
             print(template)
             if ischild:
                 template["d"]["cid"] = childId
-                if ackGuid != None:
+                if ackGuid is not None:
                     self.send_msg_to_broker("CMD_ACK", template)
             elif childId:
                 pass
@@ -1020,12 +1015,12 @@ class IoTConnectSDK:
             if self._is_process_started == False:
                 return
             template = self._command_template
-            if self._data_json != None:
+            if self._data_json is not None:
                 for d in self.devices:
                     if (rule['con'].find(str(d["tg"])) > -1) and (d["id"] in self._live_device):
                         template["id"] = d["id"]
                         template["command"] = command_text
-                        if self._listner_device_callback != None:
+                        if self._listner_device_callback is not None:
                             self._listner_device_callback(template)
         except Exception as ex:
             print(ex)
@@ -1034,7 +1029,7 @@ class IoTConnectSDK:
         try:
             if option == "all" or option == "attribute":
                 for attr in self.attributes:
-                    if self.has_key(attr, "evaluation"):
+                    if "evaluation" in attr:
                         attr["evaluation"].destroyed()
                         del attr["evaluation"]
         except Exception as ex:
@@ -1132,29 +1127,24 @@ class IoTConnectSDK:
         }
         return error[str(errorcode)]
 
-    def has_key(self, data, key):
-        try:
-            return key in data
-        except:
-            return False
-
     def is_not_blank(self, s):
         return bool(s and s.strip())
 
     @property
     def isEdge(self):
         try:
-            if self._data_json != None and self.has_key(self._data_json["meta"], "edge") and self._data_json["meta"]["edge"] != None:
+            if self._data_json is not None and "edge" in self._data_json["meta"] and self._data_json["meta"]["edge"] is not None:
                 return (self._data_json["meta"]["edge"] == 1)
             else:
                 return False
         except:
             return False
 
+
     @property
     def _child_template(self):
         guid=""
-        if self.has_key(self._data_json["meta"],"gtw") and self.has_key(self._data_json["meta"]["gtw"],'g'):
+        if "gtw" in self._data_json["meta"] and 'g' in self._data_json["meta"]["gtw"]:
             guid=self._data_json["meta"]["gtw"]['g']
         data={
             "mt": 221,
@@ -1170,7 +1160,7 @@ class IoTConnectSDK:
     def hasRules(self):
         try:
             key = OPTION["rule"]
-            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+            if self._data_json is not None and key in self._data_json and self._data_json[key] is not None:
                 return len(self._data_json[key]) > 0
             else:
                 return False
@@ -1250,7 +1240,7 @@ class IoTConnectSDK:
     def attributes(self):
         try:
             key = OPTION["attribute"]
-            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+            if self._data_json is not None and key in self._data_json and self._data_json[key] is not None:
                 return self._data_json[key]
             else:
                 return []
@@ -1261,7 +1251,7 @@ class IoTConnectSDK:
     def devices(self):
         try:
             key = OPTION["device"]
-            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+            if self._data_json is not None and key in self._data_json and self._data_json[key] is not None:
                 return self._data_json[key]
             else:
                 return []
@@ -1272,7 +1262,7 @@ class IoTConnectSDK:
     def rules(self):
         try:
             key = OPTION["rule"]
-            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+            if self._data_json is not None and key in self._data_json and self._data_json[key] is not None:
                 return self._data_json[key]
             else:
                 return []
@@ -1283,7 +1273,7 @@ class IoTConnectSDK:
     def protocol(self):
         try:
             key = OPTION["protocol"]
-            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+            if self._data_json is not None and key in self._data_json and self._data_json[key] is not None:
                 return self._data_json[key]
             else:
                 return None
@@ -1294,7 +1284,7 @@ class IoTConnectSDK:
     def setting(self):
         try:
             key = OPTION["setting"]
-            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+            if self._data_json is not None and key in self._data_json and self._data_json[key] is not None:
                 return self._data_json[key]
             else:
                 return None
@@ -1423,7 +1413,7 @@ class IoTConnectSDK:
         self._ruleEval = rule_evaluation(self.send_rule_data, self.command_sender)
 
         self._base_url, self._pf = self.get_base_url(self._sId)
-        if self._base_url != None:
+        if self._base_url is not None:
             self.write_debuglog('[INFO_IN07] '+'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] BaseUrl received to sync the device information: "+ self._time ,0)
             self.process_sync("all")
             try:
