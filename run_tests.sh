@@ -1,0 +1,1 @@
+python3 -m pytest tests/test_sdk_init.py --full-trace -rP

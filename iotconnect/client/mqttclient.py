@@ -161,6 +161,7 @@ class mqttclient:
         if certificate == None:
             raise(IoTConnectSDKException("01", "Certificate info"))
 
+        print(certificate)
         for prop in certificate:
             if os.path.isfile(certificate[prop]) == False:
                 is_valid_path = False
