@@ -20,7 +20,7 @@ class offlineclient:
             print("\nFile Size not found")
             return
         _data = json.dumps(data) + "\n"
-        self._data_path = self.new_active_file(self._data_path)
+        self._data_path = self.new_active_file(self._data_path) 
         if self._data_path:
             try:
                 with open(self._data_path, "a") as dfile:
@@ -81,9 +81,9 @@ class offlineclient:
                                 self.is_timer_start=True
                                 files = self.get_log_files()
                                 files.sort()
-                                #time.sleep(freqency)
+                                #time.sleep(freqency)        
                     if len(rData) > 0:
-                        isAction = 1
+                        isAction = 1             
                     if isAction == 0: #DELETE
                         #print("\nPublish total offline data : " + str(count) +"  Time:"+ datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.000"))
                         self.delete_file(f)
@@ -95,7 +95,7 @@ class offlineclient:
             self._lock = False
         except:
             self._lock = False
-
+    
     def PublishData(self):
         if self._lock == False:
             self._lock = True
@@ -105,7 +105,7 @@ class offlineclient:
             p_thread.daemon = True
             p_thread.start()
             #self.send_back_to_client()
-
+    
     def get_active_file(self):
         try:
             data_path = None
@@ -122,7 +122,7 @@ class offlineclient:
                                 if os.path.isdir(log_path+"\\"+f):
                                     shutil.rmtree(log_path+"\\"+f)
                     else:
-                        os.mkdir(log_path)
+                        os.mkdir(log_path)                        
             else:
                 os.mkdir(log_path)
                 for sub_folder in ["offline",self._cpid_uniqid]:
@@ -140,13 +140,13 @@ class offlineclient:
                             os.rename(fpath, os.path.join(sys.path[0] + "/logs/offline/"+self._cpid_uniqid, f.replace("active_", "")))
             if data_path == None:
                 data_path = os.path.join(sys.path[0], "logs/offline/"+self._cpid_uniqid+"/active_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + ".txt")
-            #Remove first file if size limit exceed
+            #Remove first file if size limit exceed 
             self.remove_first_file()
             return data_path
         except Exception as ex:
             print(ex)
             return os.path.join(sys.path[0], "logs/offline/"+self._cpid_uniqid+"/active_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + ".txt")
-
+    
     def new_active_file(self, file_path):
         try:
             is_new = False
@@ -168,7 +168,7 @@ class offlineclient:
         except Exception as ex:
             print(ex)
             return os.path.join(sys.path[0], "logs/offline/"+self._cpid_uniqid+"/active_" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + ".txt")
-
+    
     def get_log_files(self):
         logs = []
         try:
@@ -194,13 +194,13 @@ class offlineclient:
                     if f.startswith("active"):
                         os.rename(fpath, fpath.replace("active_", ""))
                         fpath = fpath.replace("active_", "")
-
+                    
                     if os.path.exists(fpath):
                         logs.append(fpath)
             return logs
         except:
             return logs
-
+    
     def read_file_data(self, file_path):
         logs = []
         try:
@@ -209,10 +209,10 @@ class offlineclient:
                     _data = dfile.read()
             except:
                 _data = None
-
+            
             if _data != None:
                 _data = _data.split("\n")
-
+            
             for obj in _data:
                 try:
                     if len(obj) > 0:
@@ -222,14 +222,14 @@ class offlineclient:
             return logs
         except:
             return logs
-
+    
     def delete_file(self, file_path):
         try:
             os.remove(file_path)
             print("\nLog file deleted successfully")
         except:
             print("\nErrro while delete file")
-
+    
     def clear_all_files(self):
         try:
             log_path = os.path.join(sys.path[0], "logs/offline/"+self._cpid_uniqid)
@@ -259,7 +259,7 @@ class offlineclient:
                 self.delete_file(file_path)
         except:
             print("\nErrro while write file")
-
+    
     def convert_unit(self, size_in_bytes, unit = 0):
         try:
             if unit == 1:#KB
@@ -272,7 +272,7 @@ class offlineclient:
                 return size_in_bytes
         except:
             return size_in_bytes
-
+    
     def get_file_size(self, max_size, file_count):
         try:
             if max_size == 0:
@@ -283,7 +283,7 @@ class offlineclient:
                 return self.convert_unit(sSize, 1)
         except:
             return 0
-
+    
     def remove_first_file(self):
         try:
             log_path = os.path.join(sys.path[0], "logs/offline/"+self._cpid_uniqid)
@@ -296,27 +296,27 @@ class offlineclient:
                 os.remove(fpath)
         except:
             pass
-
+    
     def has_key(self, data, key):
         try:
             return key in data
         except:
             return False
-
+    
     def __init__(self,cpid_uniqid,sdk_config, sendBackToClient):
         self._cpid_uniqid=cpid_uniqid
         self._sdk_config = sdk_config
         self.max_size = 0 #MB
         self.file_count = 1
-
+        
         if self.has_key(sdk_config, "offlineStorage"):
             if "availSpaceInMb" in sdk_config["offlineStorage"] and sdk_config["offlineStorage"]["availSpaceInMb"]:
                 self.max_size = float(sdk_config["offlineStorage"]["availSpaceInMb"])
-
+        
         if self.has_key(sdk_config, "offlineStorage"):
             if "fileCount" in sdk_config["offlineStorage"] and sdk_config["offlineStorage"]["fileCount"]:
                 self.file_count = int(sdk_config["offlineStorage"]["fileCount"])
-
+        
         self._file_size = self.get_file_size(self.max_size, self.file_count) #KB
         self._file_unit = 1 #KB
         self._data_path = self.get_active_file()

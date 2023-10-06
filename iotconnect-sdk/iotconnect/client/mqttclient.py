@@ -12,7 +12,9 @@ authType = {
 	"KEY": 1,
 	"CA_SIGNED": 2,
 	"CA_SELF_SIGNED": 3,
-    "SKEY": 5
+    "SKEY": 5,
+	"CA_ind": 7
+    
 }
 
 
@@ -75,7 +77,7 @@ class mqttclient:
             if self._config["pf"] == "az":
                 mqtt_self.subscribe(self._direct_sub)
         self._rc_status = rc
-
+    
     # old
     # def _on_disconnect(self, client, userdata,rc=0):
     #     self._rc_status = rc
@@ -94,7 +96,7 @@ class mqttclient:
         msg=self.disconnect_msg()
         msg_data=json.loads(msg.payload)
         self._onMessage(msg_data)
-
+        
 
     def get_twin(self):
         if self._isConnected:
@@ -103,7 +105,7 @@ class mqttclient:
 
     def has_key(self, data, key):
         try:
-           return key in data
+            return key in data
         except:
             return False
 
@@ -134,7 +136,7 @@ class mqttclient:
             if leng > -1:
                 rid=msg.topic[leng+4:]
                 rid=str(rid)
-                self._onDirectMethod(msg_data,method,rid)
+                self._onDirectMethod(msg_data,method,rid)    
 
     def _connect(self):
         try:
@@ -144,32 +146,33 @@ class mqttclient:
                     self._client.loop_start()
             except Exception as ex:
                 self._rc_status = 5
-
+            
             while self._rc_status == None:
                 time.sleep(0.5)
-
+            
             if self._rc_status == 0:
                 print("\n____________________\n\nProtocol Initialized\nDevice Is Connected with IoTConnect\n____________________\n")
                 # print("Device Is Connected with IoTConnect\n")
             else:
                 raise(IoTConnectSDKException("06", self._mqtt_status[self._rc_status]))
         except Exception as ex:
-            raise ex
-
+            return False
+            #raise ex
+    
     def _validateSSL(self, certificate):
         is_valid_path = True
         if certificate == None:
             raise(IoTConnectSDKException("01", "Certificate info"))
-
+        
         for prop in certificate:
             if os.path.isfile(certificate[prop]) == False:
                 is_valid_path = False
-
+        
         if is_valid_path:
             return certificate
         else:
             raise(IoTConnectSDKException("05"))
-
+    
     def Disconnect(self):
         try:
             if self._client != None:
@@ -183,7 +186,7 @@ class mqttclient:
         except:
             self._client = None
             self._rc_status = None
-
+    
     def send_HB(self):
         try:
             data="{}"
@@ -200,7 +203,6 @@ class mqttclient:
 
     def Send(self,data,msgtype):
         try:
-
             _obj = None
             pubtopic=None
             if self._isConnected:
@@ -246,8 +248,8 @@ class mqttclient:
             else:
                 return False
         except:
-            return False
-
+            return True
+    
     def SendTwinData(self, data):
         try:
             _obj = None
@@ -256,7 +258,7 @@ class mqttclient:
                 print(data)
                 if self._client and self._twin_pub_topic != None:
                     _obj = self._client.publish(self._twin_pub_topic, payload=json.dumps(data), qos=1)
-
+            
             if _obj and _obj.rc == 0:
                 return True
             else:
@@ -284,7 +286,7 @@ class mqttclient:
                 self._client.username_pw_set(self._config["un"], self._config["pwd"])
                 if self._path_to_root_cert != None:
                     self._client.tls_set(self._path_to_root_cert, tls_version = ssl.PROTOCOL_TLSv1_2)
-            elif self._auth_type == authType["CA_SIGNED"]:
+            elif (self._auth_type == authType["CA_SIGNED"] or self._auth_type == authType["CA_ind"]) :
                 self._client.username_pw_set(self._config["un"], password=None)
                 cert_setting = self._validateSSL(self._sdk_config["certificate"])
                 if len(cert_setting) != 3:
@@ -293,7 +295,7 @@ class mqttclient:
                     if self._path_to_root_cert != None:
                         self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
                     else:
-                        self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                        self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)    
                     self._client.tls_insecure_set(False)
             elif self._auth_type == authType["CA_SELF_SIGNED"]:
                 self._client.username_pw_set(self._config["un"], password=None)
@@ -311,20 +313,29 @@ class mqttclient:
             self._client.on_message = self._on_message
             self._client.disable_logger()
             if self._client != None:
-                self._connect()
+                if (self._connect()!= None):
+                    _path = os.path.abspath(os.path.dirname(__file__))
+                    _config_path = os.path.join(_path, "assets/DigiCertGlobalRootG2.txt")
+                    _config_path=_config_path.replace("client","")
+                    self._path_to_root_cert=_config_path
+                    self._init_mqtt()                   
+                else:
+                    print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-")
+
+
         except Exception as ex:
             raise ex
-
+    
     @property
     def isConnected(self):
         return self._isConnected
-
+    
     @property
     def name(self):
         return self._config["n"]
-
+    
     def __init__(self, auth_type, config, sdk_config, onMessage,onDirectMethod,onTwinMessage = None):
-
+        
         self._auth_type = auth_type
         self._config = config
         self._sdk_config = sdk_config
@@ -353,8 +364,9 @@ class mqttclient:
             self._twin_sub_topic = str(sdk_config['az']['twin_sub_topic'])
             self._twin_sub_res_topic = str(sdk_config['az']['twin_sub_res_topic'])
             self._twin_pub_res_topic = str(sdk_config['az']['twin_pub_res_topic'])
-            _path = os.path.abspath(os.path.dirname(__file__))
+            _path = os.path.abspath(os.path.dirname(__file__))            
             _config_path = os.path.join(_path, "assets/az_crt.txt")
+            #_config_path = os.path.join(_path, "assets/DigiCertGlobalRootG2.txt")
             _config_path=_config_path.replace("client","")
             self._path_to_root_cert=_config_path
         else:
@@ -362,7 +374,7 @@ class mqttclient:
             print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
             print ("\n<<<<<<<<<<<============\n")
             cpid_uid = (config["id"])
-            self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic'])
+            self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic']) 
             # print (type(self._twin_pub_topic))
             self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
             # print (type(self._twin_pub_topic))
@@ -372,10 +384,9 @@ class mqttclient:
             self._twin_sub_res_topic = self._twin_sub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
             self._twin_pub_res_topic = str(sdk_config['aws']['twin_pub_res_topic'])
             self._twin_pub_res_topic = self._twin_pub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
-            # _path = os.path.abspath(os.path.dirname(__file__))
+            # _path = os.path.abspath(os.path.dirname(__file__))            
             # _config_path = os.path.join(_path, "assets/aws_crt.txt")
             # _config_path=_config_path.replace("client","")
-            # self._path_to_root_cert=_config_path
-            # pass
-
+            # self._path_to_root_cert=_config_path 
+            # pass   
         self._init_mqtt()

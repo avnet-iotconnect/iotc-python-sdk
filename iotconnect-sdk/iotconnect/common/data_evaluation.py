@@ -32,7 +32,7 @@ class data_evaluation:
     _isEdge = False
     _attribute = None
     _data = {}
-
+    
     def parseNum(self, x,sign):
         try:
             if type(x) == str:
@@ -46,7 +46,7 @@ class data_evaluation:
                 return float(x)
         except ValueError:
             return x
-
+    
     def parseData(self, value,sign):
         try:
             if value != None:
@@ -85,13 +85,13 @@ class data_evaluation:
                 return False
         else:
             return False
-
+    
     def get_interval(self, config):
         try:
             tumblingWindow = ""
             if config["tw"] != None and config["tw"] != "":
                 tumblingWindow = config["tw"]
-
+            
             duration = 0
             if tumblingWindow != "":
                 time = tumblingWindow[:-1]
@@ -104,11 +104,11 @@ class data_evaluation:
                     duration = int(time) * 60 * 60
                 else:
                     duration = 0
-
+            
             return duration
         except:
             return 0
-
+    
     def twin_validate(self,dataType,validation,value):
         try:
             dataValidation=validation
@@ -139,7 +139,7 @@ class data_evaluation:
                                     isValid = True
                             elif int(value) == int(v):
                                 isValid = True
-
+                
                 # --------------------------------
             elif dataType == DATATYPE["STRING"]:
                 if type(value) == str:
@@ -170,7 +170,7 @@ class data_evaluation:
                                     isValid = True
                             elif float(value) == float(v):
                                 isValid = True
-
+            
             elif dataType == DATATYPE["DateTime"]:
                 isValid=self.parseDateTime(value,"%Y-%m-%dT%H:%M:%S.000Z")
                 if  isValid and dataValidation != None and dataValidation != "":
@@ -245,7 +245,7 @@ class data_evaluation:
                                 v=True
                             elif v == "false" or v == "False":
                                 v=False
-                            try:
+                            try:    
                                 if value == bool(v):
                                     isValid = True
                             except:
@@ -263,7 +263,7 @@ class data_evaluation:
             key = self.get_data_key(config, parent)
             if self.has_key(self._data, key) == False:
                 return None
-
+            
             _config = self._data[key]
             dataType = _config["dt"]
             dataValidation = _config["dv"]
@@ -319,7 +319,7 @@ class data_evaluation:
                 elif dataType == DATATYPE["FLOAT"]:
                     value = self.parseData(value,0)
                     isValid = True
-                    if isinstance(value, (int,float)):
+                    if isinstance(value, (int,float)): 
                         if dataValidation != None and dataValidation != "":
                             isValid = False
                             vlist = dataValidation.split(",")
@@ -407,7 +407,7 @@ class data_evaluation:
                                     v=True
                                 elif v == "false" or v == "False":
                                     v=False
-                                try:
+                                try:    
                                     if value == bool(v):
                                         isValid = True
                                 except:
@@ -418,7 +418,7 @@ class data_evaluation:
                     else:
                         isValid = False
             else:
-                isValid=True
+                isValid=True        
                 # --------------------------------
             # --------------------------------
             if self._isEdge:
@@ -430,8 +430,8 @@ class data_evaluation:
                 else:
                     data = {}
                     data[_config["ln"]] = value
-                    return {"FLT": data}
-
+                    return {"FLT": data}        
+            
             if self._isEdge == False:
                 data = {}
                 if isValid:
@@ -444,16 +444,16 @@ class data_evaluation:
                 return None
         except:
             raise(IoTConnectSDKException("09","dataevaluation"))
-
+    
     def callBackTimer(self, arg):
         self.process_edge_data(arg["key"], arg["p"], arg["tg"])
-
+    
     def data_count(self, values):
         try:
             return len(values)
         except:
             return 0
-
+    
     def data_min(self, values):
         try:
             if len(values) > 0:
@@ -462,7 +462,7 @@ class data_evaluation:
                 return None
         except:
             return None
-
+    
     def data_max(self, values):
         try:
             if len(values) > 0:
@@ -471,7 +471,7 @@ class data_evaluation:
                 return None
         except:
             return None
-
+    
     def data_avg(self, values):
         try:
             if len(values) > 0:
@@ -480,7 +480,7 @@ class data_evaluation:
                 return None
         except:
             return None
-
+    
     def data_sum(self, values):
         try:
             if len(values) > 0:
@@ -489,7 +489,7 @@ class data_evaluation:
                 return None
         except:
             return None
-
+    
     def data_lv(self, values):
         try:
             if len(values) > 0:
@@ -498,12 +498,12 @@ class data_evaluation:
                 return None
         except:
             return None
-
+    
     def process_aggregate(self, config):
         values = []
         if self.has_key(config, "values") and len(config["values"]) > 0:
             values = config["values"]
-
+        
         if len(values) == 0:
             return None
 
@@ -514,9 +514,9 @@ class data_evaluation:
             name = atype["name"]
             if value:
                 final.append(getattr(self, 'data_%s' % name)(values))
-
+        
         return final
-
+    
     def process_edge_data(self, key, p, tg):
         edgeData = []
         final = {}
@@ -532,7 +532,7 @@ class data_evaluation:
                 if len(final[p]) > 0:
                         pass
                 else:
-                    final={}
+                    final={} 
             else:
                 for config in self._data:
                     if config == key:
@@ -540,7 +540,7 @@ class data_evaluation:
                         data = self.process_aggregate(self._data[config])
                         if data != None:
                             final[ln] = data
-                        self._data[config]["values"] = []
+                        self._data[config]["values"] = []       
         except:
             print("Error while process aggregate...")
         if len(final) > 0:
@@ -557,15 +557,15 @@ class data_evaluation:
         try:
             if self._isEdge == False:
                 return None
-
+            
             obj = {
-                "p": self._attribute["p"],
+                "p": self._attribute["p"],                
                 "st": "",
                 "d": []
             }
             for data in self._attribute["d"]:
                 if data["current_value"] != None :
-                    child = {
+                    child = {                    
                         "ln": data["ln"],
                         "v": data["current_value"],
                         "tg":data["tg"] if "tg" in data else ""
@@ -574,22 +574,22 @@ class data_evaluation:
             return obj
         except:
             return None
-
+    
     def destroyed(self):
         try:
             if self.listner_callback != None:
                 self.listner_callback = None
-
+            
             if self._data != None:
                 del(self._data)
-
+            
             if self._timer != None and len(self._timer) > 0:
                 for timer in self._timer:
                     timer.cancel()
                 del(self._timer)
         except:
             print("Error while destroyed data evalution")
-
+    
     def get_data_key(self, config, parent):
         try:
             if parent == "":
@@ -604,26 +604,26 @@ class data_evaluation:
                     return parent + config["ln"]
         except:
             return "-1"
-
+    
     def has_key(self, data, key):
         try:
             return key in data
         except:
             return False
-
+    
     @property
     def _timestamp(self):
         return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
-
+    
     def __init__(self, isEdge, attribute, listner):
         self._data = {}
         self._isEdge = isEdge
         self._attribute = json.loads(json.dumps(attribute))
         self._timer = []
-
+        
         if listner != None:
             self.listner_callback = listner
-
+        
         name = self._attribute["p"]
         for data in self._attribute["d"]:
             key = self.get_data_key(data, name)
@@ -635,7 +635,7 @@ class data_evaluation:
                     self._data[key]["name"] = data["ln"]
                 else:
                     self._data[key]["name"] = name + "." + data["ln"]
-
+        
         if self._isEdge:
             if name != "":
                 _key = "1"

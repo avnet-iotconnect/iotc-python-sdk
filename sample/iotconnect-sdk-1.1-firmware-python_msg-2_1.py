@@ -23,16 +23,25 @@ import os
 
 """
 * ## Prerequisite parameter to run this sampel code
-* cpId         :: It need to get from the IoTConnect platform "Settings->Key Vault". 
 * uniqueId     :: Its device ID which register on IotConnect platform and also its status has Active and Acquired
+* cpId         :: It need to get from the IoTConnect platform "Settings->Key Vault". 
 * env          :: It need to get from the IoTConnect platform "Settings->Key Vault". 
+* SId 	       :: SId is the company code. You can get it from the IoTConnect UI portal "Settings -> Key Vault -> SDK Identities -> select language Python and Version 1.0"
 * interval     :: send data frequency in seconds
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
+#This Python SDK works with two options. Option:1 UniqueID+SId or Option:2 UniqueId+cpid+env
+#If you have Option1 details then leave cpid+env details as ""
+#If you have Option2 details then leave SId detail as ""
+#Don't Comment or remove this veriables.
 
-UniqueId = "<<Your Device UniqueID>>" 
-SId = "<<Your Company SID>>"
+UniqueId = "Your UniqueId" 
+SId = "Your SID"
+cpid = "Your cpid"
+env = "Your env"
+pf  = "your pf"
+
 
 Sdk=None
 interval = 30
@@ -58,10 +67,11 @@ device_list=[]
 
 SdkOptions={
 	"certificate" : { 
-		"SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-		"SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-		"SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem 
         
+        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem  
+ 
 	},
     "offlineStorage":{
         "disabled": False,
@@ -73,8 +83,12 @@ SdkOptions={
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
-    "discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
+    #"discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
+    #"discoveryUrl":"http://54.160.162.148:219", #AWS pre-QA Environment
+    #"discoveryUrl":"https://awsdiscovery.iotconnect.io/", #AWS pre-QA Environment http://54.160.162.148:219/
+    #"discoveryUrl":"http://54.160.162.148:219", #AWS pre-QA Environment 
+    "discoveryUrl": "https://discoveryconsole.iotconnect.io", 
+    #"discoveryUrl":"https://awsdiscovery.iotconnect.io/", #AWS pre-QA Environment
     "IsDebug": False
    
 }
@@ -176,12 +190,21 @@ def DeviceConectionCallback(msg):
 def TwinUpdateCallback(msg):
     global Sdk
     if msg:
-        print("--- Twin Message Received ---")
-        print(json.dumps(msg))
+        if pf == "az":
+            print("--- Twin Message Received ---")
+            print(json.dumps(msg))
+        if pf == "aws": 
+            print("--- Shadow Message Received ---")
+            print(json.dumps(msg))
         if ("desired" in msg) and ("reported" not in msg):
             for j in msg["desired"]:
                 if ("version" not in j) and ("uniqueId" not in j):
                     Sdk.UpdateTwin(j,msg["desired"][j])
+
+        #if ("desired" in msg) and ("reported" in msg):
+        #    for j in msg["desired"]:
+        #        if ("version" not in j) and ("uniqueId" not in j):
+        #            Sdk.UpdateTwin(j,msg["desired"][j])
 
 """
  * Type    : Public data Method "SendData()"
@@ -230,7 +253,7 @@ def attributeDetails(data):
 
 
 def main():
-    global SId,SdkOptions,Sdk,ACKdirect,device_list
+    global SId,cpid,env,SdkOptions,Sdk,ACKdirect,device_list
     
     try:
         """
@@ -250,7 +273,7 @@ def main():
         * Input   : cpId, uniqueId, sdkOptions, env as explained above and DeviceCallback and TwinUpdateCallback is callback functions
         * Output  : Callback methods for device command and twin properties
         """
-        with IoTConnectSDK(UniqueId,SId,SdkOptions,DeviceConectionCallback) as Sdk:
+        with IoTConnectSDK(UniqueId,SId,cpid,env,pf,SdkOptions,DeviceConectionCallback) as Sdk:
             try:
                 """
                 * Type    : Public Method "GetAllTwins()"
@@ -276,7 +299,7 @@ def main():
 					
                     """
 
-                    
+                    """"
                     data = {
                     "temperature":random.randint(30, 50),
                     "long1":random.randint(6000, 9000),
@@ -298,7 +321,7 @@ def main():
                         "long1":random.randint(60, 600000),
                         "string1":"green",
                         "time1":"11:44:22",
-                        "temperature":random.randint(50, 90)
+                        "Temperature":random.randint(50, 90)
                         }
                         }
                     dObj = [{
@@ -306,12 +329,27 @@ def main():
                         "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                         "data": data
                     }]
-                    
+                    """
 
                     """
                     * Gateway device input data format Example:
                     """
-                    
+                    dObj = [ {
+                                 "uniqueId":UniqueId,
+                                 "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                                 "data": {
+                                         "temperature":random.randint(30, 50)
+                                         }
+                                 }#,
+                                 #{
+                                 #   "uniqueId":"NPPCH1",
+                                 #   "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                                 #   "data": {
+                                 #        "Temperature":2323
+                                 #        }
+                                 #  }
+                                ]
+
                     
                     # dObj = [{
                     #             "uniqueId":UniqueId,

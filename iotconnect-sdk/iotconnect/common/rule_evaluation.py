@@ -3,9 +3,9 @@ import copy
 import time
 from datetime import datetime
 
-class rule_evaluation:
+class rule_evaluation:    
     _command_sender = None
-
+    
     def replace_conditional_operator(self, condition):
         try:
             condition = condition.replace(" = ", " == ")
@@ -15,13 +15,13 @@ class rule_evaluation:
         except Exception as ex:
             print("replace_operator : " + ex)
             return condition
-
+            
     def eval_exp(self,exp):
         try:
             return eval(exp)
         except Exception as ex:
             return False
-
+    
     def evalRules(self, rule, rule_data):
         try:
             if rule == None:
@@ -30,7 +30,7 @@ class rule_evaluation:
             condition = ""
             if self.has_key(rule, "con") and rule["con"] != None:
                 condition = self.replace_conditional_operator(str(rule["con"]))
-
+            
             command_text = ""
             if self.has_key(rule, "cmd") and rule["cmd"] != None:
                 command_text = str(rule["cmd"])
@@ -60,13 +60,13 @@ class rule_evaluation:
                                 f_condition=condition[condition.find(str(prop)):]
                                 f_condition = f_condition.replace(prop, str(data["v"]))
                                 d[data["ln"]] = data["v"]
-
+                    
                     if len(pdata) > 0:
                         full_data[prnt]=pdata
 
                     if len(d) > 0:
                         rdata["valid"] = d
-
+                
                 if self.eval_exp(f_condition) == True:
                     print("\n---- Rule Matched ---")
                     if self._command_sender and command_text != "":
@@ -81,7 +81,7 @@ class rule_evaluation:
                                 d={}
                                 d[rdata["p"]]=rdata["valid"]
                                 sdata["cv"]=d
-
+                                
                     if len(sdata) > 0:
                         sdata["d"]=[full_data]
                         sdata["rg"] = rule["g"]
@@ -96,20 +96,20 @@ class rule_evaluation:
                     pass
         except Exception as ex:
             print("evalRules : " + ex)
-
+    
     def has_key(self, data, key):
         try:
             return key in data
         except :
             return False
-
+    
     @property
     def _timestamp(self):
         return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
-
+    
     def __init__(self, listner, command_sender):
         if listner != None:
             self.listner_callback = listner
-
+        
         if command_sender != None:
             self._command_sender = command_sender

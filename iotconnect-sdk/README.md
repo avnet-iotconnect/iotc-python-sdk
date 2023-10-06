@@ -56,12 +56,20 @@ from iotconnect import IoTConnectSDK
 
 Prerequisite configuration
 ```python
+#This Python SDK works with two options. Option:1 UniqueID+SId or Option:2 UniqueId+cpid+env
+#If you have Option1 details then leave cpid+env details as ""
+#If you have Option2 details then leave SId detail as ""
+#Don't Comment or remove this veriables.
 UniqueId = "<<Device UniqueID>>"
-SId = "<<Your SID>>"
+SId = ""
+cpid = ""
+env = ""
 interval = 30
 ```
 "UniqueId": Your device uniqueId
 "SId" 	  : SId is the company code. You can get it from the IoTConnect UI portal "Settings -> Key Vault -> SDK Identities -> select language Python and Version 1.0"
+"cpid"    : Company ID
+"env"     : Environment
 "interval": Set telemtetry data interval as per yuor device use case
 
 SdkOptions
