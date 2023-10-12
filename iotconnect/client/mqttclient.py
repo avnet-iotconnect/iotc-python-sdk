@@ -7,6 +7,7 @@ if ('linux' in sys.platform) and (sys.version_info >=(3,5)):
     import jsonlib
 import time
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
+import iotconnect.config as config
 
 authType = {
 	"KEY": 1,
@@ -15,6 +16,10 @@ authType = {
     "SKEY": 5
 }
 
+prettyPrint = {
+    'aws': 'AWS Cloud',
+    'az': 'Microsoft Azure Cloud'
+}
 
 class mqttclient:
     _name = None
@@ -32,6 +37,7 @@ class mqttclient:
     _pubERm=None
     _pubDL=None
     _pubDi=None
+    _pubTopics = None
     _twin_pub_topic = None
     _twin_sub_topic = None
     _twin_sub_res_topic = None
@@ -76,15 +82,6 @@ class mqttclient:
                 mqtt_self.subscribe(self._direct_sub)
         self._rc_status = rc
 
-    # old
-    # def _on_disconnect(self, client, userdata,rc=0):
-    #     self._rc_status = rc
-    #     msg=self.disconnect_msg()
-    #     msg_data=json.loads(msg.payload)
-    #     self._onMessage(msg_data)
-    #     self._isConnected = False
-    #     self._client.loop_stop()
-
     # change with Python 3.0.4 SDK
     def _on_disconnect(self, client, userdata,rc=0):
         self._rc_status = rc
@@ -95,20 +92,13 @@ class mqttclient:
         msg_data=json.loads(msg.payload)
         self._onMessage(msg_data)
 
-
     def get_twin(self):
         if self._isConnected:
             # print("_twin_pub_res_topic")
             self._client.publish(self._twin_pub_res_topic, payload="", qos=1)
 
-    def has_key(self, data, key):
-        try:
-           return key in data
-        except:
-            return False
-
     def _on_message(self, client, userdatam, msg):
-        if self.has_key("payload", msg) == False and msg.payload == None:
+        if not "payload" in msg:
             return
         else:
             msg_data = msg.payload.decode("utf-8")
@@ -172,6 +162,7 @@ class mqttclient:
             raise(IoTConnectSDKException("05"))
 
     def Disconnect(self):
+        """Disconnects the MQTT client object."""
         try:
             if self._client != None:
                 self._client.disconnect()
@@ -190,8 +181,8 @@ class mqttclient:
             data="{}"
             _obj=None
             if self._isConnected:
-                if self._client and self._pubHB != None:
-                    _obj = self._client.publish(self._pubHB, payload=data)
+                if self._client and self._pubTopics["HB"] != None:
+                    _obj = self._client.publish(self._pubTopics["HB"], payload=data)
             if _obj and _obj.rc == 0:
                 return True
             else:
@@ -199,53 +190,29 @@ class mqttclient:
         except:
             return False
 
+    # Sends the data
+    # Returns True if online
     def Send(self,data,msgtype):
+        """Sends a message via MQTT. Topic is selected based on specified msgtype."""
         try:
-
-            _obj = None
-            pubtopic=None
             if self._isConnected:
-                if msgtype == "RPTEDGE":
-                    print(data)
-                    pubtopic=self._pubERpt
-                elif msgtype == "RMEdge":
-                    pubtopic=self._pubERm
-                elif msgtype == "CMD_ACK" or msgtype == "FW":
-                    pubtopic=self._pubACK
-                elif msgtype == "OD":
-                    pubtopic=self._pubOfline
-                elif msgtype ==  "RPT":
-                    pubtopic=self._pubRpt
-                elif msgtype == "DL":
-                    pubtopic=self._pubDL
-                elif msgtype == "Di":
-                    pubtopic=self._pubDi
+                if msgtype in self._pubTopics:
+                    pubtopic = self._pubTopics[msgtype]
                 else:
-                    pubtopic=self._pubFlt
+                    # Not sure if this is needed but it was a previous catch all
+                    pubtopic = self._pubTopics['FLT']
 
-                if self._client and pubtopic != None:
-                    if pubtopic == self._pubACK:
-                        _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
+                _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
+                if pubtopic == self._pubTopics["CMD_ACK"]:
+                    return True
+                else:
+                    _obj.wait_for_publish(timeout=2)
+                    if _obj and _obj._published == True:
                         return True
                     else:
-                        _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
-                        if sys.version_info >=(3,5):
-                            _obj.wait_for_publish(timeout=2)
-                        else:
-                            time.sleep(0.2)
-                            while(_obj._published==False):
-                                if count == 5:
-                                    break
-                                time.sleep(1)
-                                count+=1
-                        if _obj and _obj._published == True:
-                            return True
-                        else:
-                            return False
-            # if _obj and _obj.rc == 0:
-            #     return True
+                        return False
             else:
-                return False
+                raise Exception("Can't send a message before client is connected.")
         except:
             return False
 
@@ -325,7 +292,7 @@ class mqttclient:
         return self._config["n"]
 
     def __init__(self, auth_type, config, sdk_config, onMessage,onDirectMethod,onTwinMessage = None):
-
+        print(f"MQTT Config: {config}")
         self._auth_type = auth_type
         self._config = config
         self._sdk_config = sdk_config
@@ -334,22 +301,27 @@ class mqttclient:
         self._onTwinMessage = onTwinMessage
         self._onDirectMethod=onDirectMethod
         self._subTopic = str(config['topics']['c2d'])
-        self._pubACK = str(config['topics']['ack'])
-        self._pubOfline=str(config['topics']['od'])
-        self._pubRpt=str(config['topics']['rpt'])
+
+        self._pubTopics = {
+            "CMD_ACK": config['topics']['ack'],
+            "FW": config['topics']['ack'],
+            "OD": config['topics']['od'],
+            "RPT": config['topics']['rpt'],
+            "DL": config['topics']['dl'],
+            "Di": config['topics']['di'],
+            "FLT": config['topics']['flt'],
+            "HB": config['topics']['hb']
+        }
         if 'erpt' in config['topics']:
-            self._pubERpt=str(config['topics']['erpt'])
-            self._pubERm=str(config['topics']['erm'])
-        self._pubFlt=str(config['topics']['flt'])
-        self._pubHB=str(config['topics']['hb'])
-        self._pubDL=str(config['topics']['dl'])
-        self._pubDi=str(config['topics']['di'])
-        platfrom = config["pf"]
+            self._pubTopics["RPTEDGE"] = config['topics']['erpt']
+            self._pubTopics["RMEdge"] = config['topics']['erm']
+
+        platform = config["pf"]
         # print (platfrom)
+        print ("\n============>>>>>>>>>>>\n")
+        print (f"IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> {prettyPrint[platform]} <-")
+        print ("\n<<<<<<<<<<<============\n")
         if config["pf"] == "az":
-            print ("\n============>>>>>>>>>>>\n")
-            print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-")
-            print ("\n<<<<<<<<<<<============\n")
             self._twin_pub_topic = str(sdk_config['az']['twin_pub_topic'])
             self._twin_sub_topic = str(sdk_config['az']['twin_sub_topic'])
             self._twin_sub_res_topic = str(sdk_config['az']['twin_sub_res_topic'])
@@ -359,9 +331,6 @@ class mqttclient:
             _config_path=_config_path.replace("client","")
             self._path_to_root_cert=_config_path
         else:
-            print ("\n============>>>>>>>>>>>\n")
-            print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
-            print ("\n<<<<<<<<<<<============\n")
             cpid_uid = (config["id"])
             self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic'])
             # print (type(self._twin_pub_topic))
