@@ -19,8 +19,7 @@ classifiers = [
 ]
 dependencies = [
   "paho-mqtt",
-  "ntplib",
-  "jsonlib-python3"
+  "ntplib"
 ]
 
 [project.optional-dependencies]

@@ -149,10 +149,8 @@ class IoTConnectSDK:
 
     # Loads the config.json file from the assets folder
     def _get_config(self):
-        config_path = Path("iotconnect/assets/config.json")
         try:
-            with open(config_path) as config_file:
-                self._config = json.loads(config_file.read())
+            self._config = config.config_json
             self._config.update(self._property)
         except:
             raise IOError("Missing config.json file in assets folder.")
