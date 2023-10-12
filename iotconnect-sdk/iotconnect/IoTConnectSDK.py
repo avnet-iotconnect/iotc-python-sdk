@@ -178,7 +178,8 @@ class IoTConnectSDK:
     def reconnect_device(self,msg):
         # print(msg)
         try:
-            self.process_sync("all")   
+            print(msg)
+            #self.process_sync("all")   
         except:
             self._offlineflag = True
                 
