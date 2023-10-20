@@ -70,7 +70,7 @@ pf = ""
 "SId" 	  : SId is the company code. You can get it from the IoTConnect UI portal "Settings -> Key Vault -> SDK Identities -> select language Python and Version"
 "cpid"    : It need to get from the IoTConnect platform "Settings->Key Vault". 
 "env"     : It need to get from the IoTConnect platform "Settings->Key Vault". 
-"pf"      : Set service AZ/AWS
+"pf"      : Set service az/aws
 
 SdkOptions
 - SdkOptions is for the SDK configuration. It needs to parse in SDK object initialize call. Manage the below configuration as per your device authentication type.
