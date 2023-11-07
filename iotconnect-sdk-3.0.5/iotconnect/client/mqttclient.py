@@ -221,7 +221,10 @@ class mqttclient:
                 if len(cert_setting) != 3:
                     raise(IoTConnectSDKException("01", "Certificate/Key in Sdkoption"))
                 if cert_setting != None:
-                    self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                    if self._path_to_root_cert != None:
+                        self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                    else:
+                        self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)    
                     self._client.tls_insecure_set(False)
             elif self._auth_type == authType["CA_SELF_SIGNED"]:
                 self._client.username_pw_set(self._config["un"], password=None)
@@ -229,7 +232,10 @@ class mqttclient:
                 if len(cert_setting) != 3:
                     raise(IoTConnectSDKException("01", "Certificate/Key in Sdkoption"))
                 if cert_setting != None:
-                    self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                    if self._path_to_root_cert != None:
+                        self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+                    else:
+                        self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
                     self._client.tls_insecure_set(False)
             self._client.on_connect = self._on_connect
             self._client.on_disconnect = self._on_disconnect
