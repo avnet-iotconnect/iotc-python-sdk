@@ -26,7 +26,7 @@ elif 'linux' in sys.platform :
  
 setup(
     name="iotconnect-sdk",
-    version="3.0.4",
+    version="3.0.5",
     python_requires=">=2.7,>=3.6,<3.9",
     description='SDK for D2C and C2D communication',
     license="MIT",

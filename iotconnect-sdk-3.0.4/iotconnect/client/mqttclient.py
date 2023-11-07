@@ -125,7 +125,8 @@ class mqttclient:
             else:
                 raise(IoTConnectSDKException("06", self._mqtt_status[self._rc_status]))
         except Exception as ex:
-            raise ex
+            return False
+            #raise ex
     
     def _validateSSL(self, certificate):
         is_valid_path = True
@@ -235,7 +236,15 @@ class mqttclient:
             self._client.on_message = self._on_message
             self._client.disable_logger()
             if self._client != None:
-                self._connect()
+                if (self._connect()!= None):
+                    _path = os.path.abspath(os.path.dirname(__file__))
+                    _config_path = os.path.join(_path, "assets/DigiCertGlobalRootG2.txt")
+                    _config_path=_config_path.replace("client","")
+                    self._path_to_root_cert=_config_path
+                    self._init_mqtt()                   
+                else:
+                    print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-")
+
         except Exception as ex:
             raise ex
     
