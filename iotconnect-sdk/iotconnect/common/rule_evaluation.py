@@ -83,11 +83,11 @@ class rule_evaluation:
                                 sdata["cv"]=d
                                 
                     if len(sdata) > 0:
-                        sdata["d"]=[full_data]
+                        sdata["d"]=full_data
                         sdata["rg"] = rule["g"]
                         sdata["ct"] = rule["con"]
                         sdata["sg"] = rule["es"]
-                        sdata["id"] = rule["id"]
+                        #sdata["id"] = rule["id"]
                         sdata["dt"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
                         if self.listner_callback != None:
                             self.listner_callback(sdata)

@@ -988,7 +988,7 @@ class IoTConnectSDK:
     #need to change in 2.1 format 
     def send_rule_data(self, data):
         try:
-            id = data["id"]
+            #id = data["id"]
             if self._data_json['has']['d']:
                 for d in self.devices:
                     if id == d["id"]:
@@ -1017,6 +1017,7 @@ class IoTConnectSDK:
                     print("\nPublish edge data sucessfully... %s" % self._time)
                 elif msgType == "RMEdge":
                     print("\nPublish rule matched data sucessfully... %s" % self._time)
+                    print("\nPublish data  %s" % data)
                 elif msgType == "CMD":
                     print("\nPublish Command data sucessfully... %s" % self._time)
                 elif msgType == "FW":
