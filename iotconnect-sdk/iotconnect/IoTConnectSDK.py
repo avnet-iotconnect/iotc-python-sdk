@@ -637,7 +637,12 @@ class IoTConnectSDK:
                         
                                            
                     else:
-                        self._data_json['d']=[{'tg': '','id': self._uniqueId}]
+                        if self._data_json['meta']['gtw'] != None:
+                            self._data_json['d']=[{'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId}]
+                        else:
+                            self._data_json['d']=[{'tg': '','id': self._uniqueId}]
+
+                        
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["ota"]:
                         self._hello_handsake({"mt":205,"sid":self._sId})
@@ -988,11 +993,12 @@ class IoTConnectSDK:
     #need to change in 2.1 format 
     def send_rule_data(self, data):
         try:
-            #id = data["id"]
-            if self._data_json['has']['d']:
+            id = self._uniqueId
+            if self._data_json['meta']['gtw'] :
                 for d in self.devices:
-                    if id == d["id"]:
-                        data["tg"] = d["tg"] 
+                        if id == d["id"]:
+                            data["id"] = d["id"]
+                            data["tg"] = d["tg"] 
             tdata = {
                 "dt": "",
                 "d": [data],
