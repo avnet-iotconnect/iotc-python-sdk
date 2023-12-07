@@ -245,6 +245,9 @@ def InitCallback(response):
 def delete_child_callback(msg):
     print(msg)
 
+def create_child_callback(msg):
+    print(msg)
+
 def attributeDetails(data):
     print ("attribute received in firmware")
     print (data)
@@ -281,6 +284,7 @@ def main():
                 * Input   : 
                 * Output  : 
                 """
+                device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
                 Sdk.onOTACommand(DeviceFirmwareCallback)
@@ -288,7 +292,7 @@ def main():
                 Sdk.getTwins()
                 device_list=Sdk.Getdevice()
                 #Sdk.delete_chield("childid",delete_child_callback)
-
+                #Sdk.createChildDevice("childid", "deviceTag", "childid", create_child_callback)
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)

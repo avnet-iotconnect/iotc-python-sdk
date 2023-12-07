@@ -226,7 +226,7 @@ class mqttclient:
 
                 if self._client and pubtopic != None:
                     if pubtopic == self._pubACK:
-                        _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
+                        _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=1)
                         return True
                     else:
                         _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)

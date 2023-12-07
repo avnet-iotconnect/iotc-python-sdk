@@ -345,7 +345,10 @@ class IoTConnectSDK:
                         self._data_json["set"] = msg["set"]
                     if msg['ec'] == 0 and msg["ct"] == 203:
                         self._data_json["r"] = msg["r"]
-                    if msg['ec'] == 0 and msg["ct"] == 204 and len(msg['d']) != 0:
+                    #if msg['ec'] == 0 and msg["ct"] == 204 and len(msg['d']) != 0:
+                    if msg['ec'] == 0 and msg["ct"] == 204 != 0:
+                        if len(msg['d']) == 0:
+                            self._data_json["has"]["d"] = 0
                         self._data_json['d']=[]
                         self._data_json['d'].append({'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId})
                         for i in msg["d"]:
@@ -358,6 +361,8 @@ class IoTConnectSDK:
                         if self._listner_creatchild_callback:
                             if msg["ec"] == 0:
                                 self._listner_creatchild_callback({"status":True,"message":self.__child_error_log(msg["ec"])})
+                                self._hello_handsake({"mt":204,"sid":self._sId})
+                                time.sleep(10)
                             else:
                                 self._listner_creatchild_callback({"status":False,"message":self.__child_error_log(msg["ec"])})
                     if msg["ct"] == 222: 
@@ -365,9 +370,12 @@ class IoTConnectSDK:
                             if msg["ec"] == 0:
                                 self._listner_deletechild_callback({"status":True,"message":"sucessfuly delete child device"})
                                 for i in range(0,len(self._data_json["d"])):
-                                    if self._data_json["d"][i]["ename"] == self.deletechild:
+                                    #if self._data_json["d"][i]["ename"] == self.deletechild:
+                                    if self._data_json["d"][i] == self.deletechild:
                                         self._data_json["d"].pop(i)
-                                        break
+                                        break    
+                                self._hello_handsake({"mt":204,"sid":self._sId})
+                                time.sleep(10)
                             else:
                                 self._listner_deletechild_callback({"status":True,"message":"fail to delete child device"})
                         self._listner_deletechild_callback=None
@@ -625,24 +633,21 @@ class IoTConnectSDK:
                     
                                                                     
 
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
-                        # self._hello_handsake({"mt":201,"sid":self._sId})
-                        self._hello_handsake({"mt":201})
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
-                        self._hello_handsake({"mt":202,"sid":self._sId})
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
-                        self._hello_handsake({"mt":203 ,"sid":self._sId})
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["d"]:
                         self._hello_handsake({"mt":204,"sid":self._sId})
-                        
-                                           
+                        time.sleep(10)                       
                     else:
                         if self._data_json['meta']['gtw'] != None:
                             self._data_json['d']=[{'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId}]
                         else:
                             self._data_json['d']=[{'tg': '','id': self._uniqueId}]
 
-                        
+                    if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
+                        self._hello_handsake({"mt":201})
+                    if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
+                        self._hello_handsake({"mt":202,"sid":self._sId})
+                    if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
+                        self._hello_handsake({"mt":203 ,"sid":self._sId})    
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["ota"]:
                         self._hello_handsake({"mt":205,"sid":self._sId})
@@ -1101,7 +1106,7 @@ class IoTConnectSDK:
         _thread.setName(name)
         _thread.start()
 
-    def delete_chield(self,child_id,callback):
+    def delete_child(self,child_id,callback):
         try:
             if self._dispose == True:
                 self.write_debuglog('[ERR_GD03] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Request failed to delete the child device",1)
@@ -1120,7 +1125,7 @@ class IoTConnectSDK:
                         "id": child_id
                         }}
                     if self._client:
-                        self._client.send("Di",template)
+                        self._client.Send(template,"Di")
                     
         except:
             return None
@@ -1150,17 +1155,20 @@ class IoTConnectSDK:
             if type(deviceId) != str and type(deviceTag) != str and type(displayName) != str:
                 raise(IoTConnectSDKException("00", "Child Device deviceId|deviceTag|displayName all should be string"))
 
-            if self._data_json["has"]["d"] != 1:
+            #if self._data_json["has"]["d"] != 1:
+            if self._data_json['meta']['gtw'] == None:
                 self.write_debuglog('[ERR_GD04] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Child device create : It is not a Gateway device",1)
                 raise(IoTConnectSDKException("00", "create child Device not posibale it is not gatway device. "))
             if (type(deviceId)) != str and (" " in deviceId):
                 raise(IoTConnectSDKException("00", "create child Device in deviceId space is not valid. "))
             template=self._child_template
-            template["dn"]=displayName
-            template["id"]=deviceId
-            template["tg"]=deviceTag
+            template["d"]["dn"]=displayName
+            template["d"]["id"]=deviceId
+            template["d"]["tg"]=deviceTag
             if callback:
                 self._listner_creatchild_callback=callback
+            if self._client:
+                self._client.Send(template,"Di")   
         except:
             self.write_debuglog('[ERR_GD01] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Create child Device Error",1)
             raise(IoTConnectSDKException("04", "createChildDevice"))
