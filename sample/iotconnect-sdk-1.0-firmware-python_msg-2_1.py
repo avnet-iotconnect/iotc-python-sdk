@@ -73,8 +73,8 @@ SdkOptions={
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
-    "discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
+    "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
+    #"discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
     "IsDebug": False
    
 }
@@ -221,6 +221,9 @@ def InitCallback(response):
 
 def delete_child_callback(msg):
     print(msg)
+    
+def create_child_callback(msg):
+    print(msg)
 
 def attributeDetails(data):
     print ("attribute received in firmware")
@@ -258,14 +261,15 @@ def main():
                 * Input   : 
                 * Output  : 
                 """
+                device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
                 Sdk.onOTACommand(DeviceFirmwareCallback)
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
                 Sdk.getTwins()
                 device_list=Sdk.Getdevice()
-                #Sdk.delete_chield("childid",delete_child_callback)
-
+                #Sdk.delete_child("childid",delete_child_callback)
+                #Sdk.createChildDevice("childid", "childtag", "childid", create_child_callback)
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
@@ -277,107 +281,57 @@ def main():
                     """
 
                     
-                    data = {
-                    "temperature":random.randint(30, 50),
-                    "long1":random.randint(6000, 9000),
-                    "integer1": random.randint(100, 200),
-                    "decimal1":random.uniform(10.5, 75.5),
-                    "date1":datetime.utcnow().strftime("%Y-%m-%d"),
-                    "time1":"11:55:22",
-                    "bit1":1,
-                    "string1":"red",
-                    "datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    "gyro": {
-                        'bit1':0,
-                        'boolean1': True,
-                        'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                        "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "decimal1":random.uniform(10.5, 75.5),
-                        "integer1":random.randint(60, 600),
-                        "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                        "long1":random.randint(60, 600000),
-                        "string1":"green",
-                        "time1":"11:44:22",
-                        "temperature":random.randint(50, 90)
-                        }
-                        }
-                    dObj = [{
-                        "uniqueId": UniqueId,
-                        "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "data": data
-                    }]
-                    
+                    #data = {
+                    #"temperature":random.randint(30, 50),
+                    #"long1":random.randint(6000, 9000),
+                    #"integer1": random.randint(100, 200),
+                    #"decimal1":random.uniform(10.5, 75.5),
+                    #"date1":datetime.utcnow().strftime("%Y-%m-%d"),
+                    #"time1":"11:55:22",
+                    #"bit1":1,
+                    #"string1":"red",
+                    #"datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #"gyro": {
+                    #    'bit1':0,
+                    #    'boolean1': True,
+                    #    'date1': datetime.utcnow().strftime("%Y-%m-%d"),
+                    #    "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #    "decimal1":random.uniform(10.5, 75.5),
+                    #    "integer1":random.randint(60, 600),
+                    #    "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                    #    "long1":random.randint(60, 600000),
+                    #    "string1":"green",
+                    #    "time1":"11:44:22",
+                    #    "temperature":random.randint(50, 90)
+                    #    }
+                    #    }
+                    #dObj = [{
+                    #    "uniqueId": UniqueId,
+                    #    "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #    "data": data
+                    #}]
+                    #
 
                     """
                     * Gateway device input data format Example:
                     """
                     
                     
-                    # dObj = [{
-                    #             "uniqueId":UniqueId,
-                    #             "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #             "data": {
-                    #                     "temperature":-2147483649,
-                    #                     "decimal1":8121.2,
-                    #                     "long1":9007199254740991,
-                    #                     "gyro": {
-                    #                         'bit1':0,
-                    #                         'boolean1': True,
-                    #                         'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                    #                         "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #                         "decimal1":2.555,
-                    #                         "integer1":884,
-                    #                         "latlong1":78945,
-                    #                         "long1":999,
-                    #                         "string1":"green",
-                    #                         "time1":"11:44:22",
-                    #                         "temperature":22
-                    #                         }
-                    #                     }
-                    #             },
-                    #             {
-                    #             "uniqueId":UniqueId+"c",
-                    #             "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #             "data": {
-                    #                     "temperature":2323,
-                    #                     "decimal1":2.555,
-                    #                     "long1":36544,
-                    #                     "gyro": {
-                    #                         'bit1':0,
-                    #                         'boolean1': True,
-                    #                         'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                    #                         "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #                         "decimal1":2.555,
-                    #                         "integer1":884,
-                    #                         "latlong1":78945,
-                    #                         "long1":999,
-                    #                         "string1":"green",
-                    #                         "time1":"11:44:22",
-                    #                         "temperature":10
-                    #                         }
-                    #                     }
-                    #             }
-                                # {
-                                # "uniqueId":UniqueId+"c1",
-                                # "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                # "data": {
-                                #         "Temperature":"hi",
-                                #         "gyro": {
-                                #             'bit1':0,
-                                #             'boolean1': True,
-                                #             'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                                #             "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                #             "decimal1":2.555,
-                                #             "integer1":884,
-                                #             "latlong1":78945,
-                                #             "long1":999,
-                                #             "string1":"green",
-                                #             "time1":"11:44:22",
-                                #             "temperature":10
-                                #             }
-                                #         }
-                                # }
-                            # ]
+                    dObj = [ {
+                                 "uniqueId":UniqueId,
+                                 "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                                 "data": {
+                                         "temperature":random.randint(30, 50)
+                                         }
+                                 },
+                                 {
+                                    "uniqueId":"NPP",
+                                    "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                                    "data": {
+                                         "temperature":random.randint(30, 50)
+                                         }
+                                   }
+                                ]
                                 
 
                     
