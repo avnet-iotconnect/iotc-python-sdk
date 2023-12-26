@@ -365,12 +365,16 @@ class mqttclient:
             print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
             print ("\n<<<<<<<<<<<============\n")
             cpid_uid = (config["id"])
-            self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic'])
+            self._twin_pub_topic = str(config['topics']['set']['pub'])
+            self._twin_sub_topic= str(config['topics']['set']['sub'])
+
+            #self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic'])
             # print (type(self._twin_pub_topic))
-            self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
+            #self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
             # print (type(self._twin_pub_topic))
-            self._twin_sub_topic = str(sdk_config['aws']['twin_sub_topic'])
-            self._twin_sub_topic = self._twin_sub_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            #self._twin_sub_topic = str(sdk_config['aws']['twin_sub_topic'])
+            #self._twin_sub_topic = self._twin_sub_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            
             self._twin_sub_res_topic = str(sdk_config['aws']['twin_sub_res_topic'])
             self._twin_sub_res_topic = self._twin_sub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
             self._twin_pub_res_topic = str(sdk_config['aws']['twin_pub_res_topic'])
