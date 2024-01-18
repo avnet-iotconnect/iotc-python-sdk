@@ -1,0 +1,4 @@
+.vscode/
+iotconnect-sdk/build
+iotconnect-sdk/dist
+iotconnect-sdk/iotconnect_sdk.egg-info
