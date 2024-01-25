@@ -323,7 +323,7 @@ class mqttclient:
                     self._path_to_root_cert=_config_path
                     self._init_mqtt()                   
                 else:
-                    print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-")
+                    print ("IoTConnect Python 1.1 SDK message version 2.1(Release Date: 24 December 2022)")
 
 
         except Exception as ex:
@@ -377,16 +377,12 @@ class mqttclient:
             print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
             print ("\n<<<<<<<<<<<============\n")
             cpid_uid = (config["id"])
-            self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic']) 
-            # print (type(self._twin_pub_topic))
-            self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
-            # print (type(self._twin_pub_topic))
-            self._twin_sub_topic = str(sdk_config['aws']['twin_sub_topic'])
-            self._twin_sub_topic = self._twin_sub_topic.replace("{Cpid_DeviceID}", cpid_uid)
-            self._twin_sub_res_topic = str(sdk_config['aws']['twin_sub_res_topic'])
-            self._twin_sub_res_topic = self._twin_sub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
-            self._twin_pub_res_topic = str(sdk_config['aws']['twin_pub_res_topic'])
-            self._twin_pub_res_topic = self._twin_pub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            self._twin_pub_topic = str(config['topics']['set']['pub'])
+            self._twin_sub_topic= str(config['topics']['set']['sub'])
+
+            self._twin_sub_res_topic =str(config['topics']['set']['subForAll'])
+            self._twin_pub_res_topic =str(config['topics']['set']['pubForAll'])
+
             # _path = os.path.abspath(os.path.dirname(__file__))            
             # _config_path = os.path.join(_path, "assets/aws_crt.txt")
             # _config_path=_config_path.replace("client","")
