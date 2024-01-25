@@ -10,3 +10,7 @@ iotconnect-sdk/iotconnect/common/__pycache__/data_evaluation.cpython-37.pyc
 iotconnect-sdk/iotconnect/common/__pycache__/infinite_timer.cpython-37.pyc
 iotconnect-sdk/iotconnect/common/__pycache__/rule_evaluation.cpython-37.pyc
 sample/logs/debug/info.txt
+.vscode/
+iotconnect-sdk/build
+iotconnect-sdk/dist
+iotconnect-sdk/iotconnect_sdk.egg-info
