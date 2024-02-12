@@ -346,7 +346,7 @@ class IoTConnectSDK:
                     if msg['ec'] == 0 and msg["ct"] == 203:
                         self._data_json["r"] = msg["r"]
                     #if msg['ec'] == 0 and msg["ct"] == 204 and len(msg['d']) != 0:
-                    if msg['ec'] == 0 and msg["ct"] == 204 != 0:
+                    if msg['ec'] == 0 and msg["ct"] == 204:
                         if len(msg['d']) == 0:
                             self._data_json["has"]["d"] = 0
                         self._data_json['d']=[]
@@ -361,7 +361,7 @@ class IoTConnectSDK:
                         if self._listner_creatchild_callback:
                             if msg["ec"] == 0:
                                 self._listner_creatchild_callback({"status":True,"message":self.__child_error_log(msg["ec"])})
-                                self._hello_handsake({"mt":204,"sid":self._sId})
+                                self._hello_handsake({"mt":204})
                                 time.sleep(10)
                             else:
                                 self._listner_creatchild_callback({"status":False,"message":self.__child_error_log(msg["ec"])})
@@ -374,7 +374,7 @@ class IoTConnectSDK:
                                     if self._data_json["d"][i] == self.deletechild:
                                         self._data_json["d"].pop(i)
                                         break    
-                                self._hello_handsake({"mt":204,"sid":self._sId})
+                                self._hello_handsake({"mt":204})
                                 time.sleep(10)
                             else:
                                 self._listner_deletechild_callback({"status":True,"message":"fail to delete child device"})
@@ -600,13 +600,13 @@ class IoTConnectSDK:
                         self.write_debuglog('[ERR_IN10] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device Information not found",1)
             else:
                 if option == "ATT":
-                    self._hello_handsake({"mt":201,"sid":self._sId})
+                    self._hello_handsake({"mt":201})
                 elif option == "SETTING":
-                    self._hello_handsake({"mt":202,"sid":self._sId})
+                    self._hello_handsake({"mt":202})
                 elif option == "DEVICE":
-                    self._hello_handsake({"mt":204,"sid":self._sId})
+                    self._hello_handsake({"mt":204})
                 elif option == "RULE":
-                    self._hello_handsake({"mt":203,"sid":self._sId})
+                    self._hello_handsake({"mt":203})
                 else:
                     pass
             if isReChecking:
@@ -635,8 +635,8 @@ class IoTConnectSDK:
                                                                     
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["d"]:
-                        self._hello_handsake({"mt":204,"sid":self._sId})
-                        time.sleep(20)                       
+                        self._hello_handsake({"mt":204})
+                        #time.sleep(20)                       
                     else:
                         if self._data_json['meta']['gtw'] != None:
                             self._data_json['d']=[{'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId}]
@@ -645,17 +645,17 @@ class IoTConnectSDK:
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
                         self._hello_handsake({"mt":201})
-                        time.sleep(10)
+                        #time.sleep(10)
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
-                        self._hello_handsake({"mt":202,"sid":self._sId})
-                        time.sleep(10)
+                        self._hello_handsake({"mt":202})
+                        #time.sleep(10)
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
-                        self._hello_handsake({"mt":203 ,"sid":self._sId})
-                        time.sleep(10)    
+                        self._hello_handsake({"mt":203})
+                        #time.sleep(10)    
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["ota"]:
-                        self._hello_handsake({"mt":205,"sid":self._sId})
-                        time.sleep(10)
+                        self._hello_handsake({"mt":205})
+                        #time.sleep(10)
                     if "df" in self._data_json['meta'] and self._data_json['meta']["df"]:
                         self._data_frequency=self._data_json['meta']["df"]
                 
