@@ -5,24 +5,9 @@ import copy
 import time
 import threading
 import ssl
-import ntplib
 import datetime
-from threading import Timer
-from base64 import b64encode, b64decode
-from hashlib import sha256
-from hmac import HMAC
 
-if sys.version_info >= (3, 5):
-    import http.client as httplib
-    import urllib.request as urllib
-    from urllib.parse import urlparse,quote_plus,urlencode
-
-else:
-    import httplib
-    from urllib import quote_plus,urlencode
-    import urllib2 as urllib
-    from urlparse import urlparse
-
+from iotconnect import IoTConnectSDKBase
 from iotconnect.client.mqttclient import mqttclient
 from iotconnect.client.httpclient import httpclient
 from iotconnect.client.offlineclient import offlineclient
@@ -44,7 +29,7 @@ MSGTYPE = {
     "OTA" : 6,
     "FIRMWARE": 11
 }
-ErorCode = {
+ERRORCODE = {
     "OK": 0,
     "DEV_NOT_REG": 1,
     "AUTO_REG": 2,
@@ -71,7 +56,14 @@ CMDTYPE = {
     "is_connect": 116,
     "SYNC": "sync",
     "RESETPWD": "resetpwd",
-    "UCART": "updatecrt"
+    "UCART": "updatecrt",
+    "GET_ATTRIBUTE": 201,
+    "GET_SETTING_TWIN": 202,
+    "GET_EDGE_RULE": 203,
+    "GET_CHILD_DEVICE": 204,
+    "GET_PENDDING_OTAs": 205,
+    "CREATE_CHILD_DEVICE": 221,
+    "DELETE_CHILD_DEVICE": 222,
 }
 OPTION = {
     "attribute": "att",
@@ -79,7 +71,9 @@ OPTION = {
     "protocol": "p",
     "device": "d",
     "sdkConfig": "sc",
-    "rule": "r"
+    "rule": "r",
+    "meta": "meta",
+    "has": "has"
 }
 DATATYPE = {
     1: "INT",
@@ -95,16 +89,15 @@ DATATYPE = {
     11:"OBJECT"
 }
 
-class IoTConnectSDK:
-    _pubRpt = None
-    _subTopic = None
-    _property=None
-    _config = None
+class IoTConnectSDK(IoTConnectSDKBase.IoTConnectSDKBase):
+    #_pubRpt = None
+    #_subTopic = None
     _cpId = None
     _env = None
     _sId =None
     _uniqueId = None
-    pf = None
+    _pf = None
+
     _listner_callback = None
     _listner_ota_callback = None
     _listner_device_callback = None
@@ -114,10 +107,14 @@ class IoTConnectSDK:
     _listner_rulechng_callback = None
     _listner_creatchild_callback=None
     _listner_twin_callback = None
+    _listner_deletechild_callback = None
+
     _data_json = None
     _client = None
+
     _is_process_started = False
     _is_dispose = False
+    
     _base_url = ""
     _thread = None
     _ruleEval = None
@@ -125,29 +122,32 @@ class IoTConnectSDK:
     _lock = None
     _dispose = False
     _live_device=[]
-    _debug=False
     _data_frequency = 60
-    _debug_error_path=None
-    _debug_output_path=None
     _dftime=None
     _offlineflag = False
     _time_s=None
     _heartbeat_timer = None
     deletechild=None
-    _listner_deletechild_callback = None
-    _validation = True
+    
     _getattribute_callback = None
     _data_evaluation = None
-    def get_config(self):
+
+    def get_config(self, option):
         try:
-            self._config = None
-            _path = os.path.abspath(os.path.dirname(__file__))
+            _config = None
+            _path = os.path.abspath(os.path.dirname(__file__))        
             _config_path = os.path.join(_path, "assets/config.json")
             with open(_config_path) as config_file:
-                self._config = json.loads(config_file.read())
-            if not self.get_properties():
-                raise(IoTConnectSDKException("01", "Config file"))
+                _config = json.loads(config_file.read())
             
+            if _config == None:
+                raise(IoTConnectSDKException("01", "Config file"))
+
+            if option != None:
+                for prop in option:
+                    _config[prop] = option[prop]
+            
+            self._config = _config
         except:
             raise(IoTConnectSDKException("01", "Config file"))
     
@@ -158,22 +158,6 @@ class IoTConnectSDK:
             return
         if self._client:
             self._client.get_twin()
-
-    def get_properties(self):
-        try:
-            _properties = self._property
-            if _properties != None:
-                for prop in _properties:
-                    if _properties[prop]:
-                        self._config[prop] = _properties[prop]
-                    else:
-                        self._config[prop] = None
-                    if prop == 'IsDebug' and _properties[prop] == True:
-                        self._debug=True
-            return True
-        except Exception as ex:
-            return False           
-            
     
     def reconnect_device(self,msg):
         # print(msg)
@@ -182,59 +166,6 @@ class IoTConnectSDK:
             #self.process_sync("all")   
         except:
             self._offlineflag = True
-                
-    def get_base_url(self, sId):
-        try:
-            if not self._cpId:
-                base_url = "/api/v2.1/dsdk/sid/" + sId
-                base_url = self._property["discoveryUrl"] + base_url
-            else:
-                if self.pf == "az":
-                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env
-                if self.pf == "aws":
-                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env + "?pf=aws"
-                else:
-                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env                        
-                base_url = self._property["discoveryUrl"] + base_url
-
-            res = urllib.urlopen(base_url).read().decode("utf-8")
-            data = json.loads(res)
-            #print(data)
-            # pf = None
-            a = (data['d'].keys())
-            if 'pf' in a:
-                # print(pf)
-                return data['d']["bu"], data['d']["pf"]
-            else:
-                pf = 'aws'
-                return data['d']["bu"], pf  
-            
-        except Exception as ex:
-            print (ex.message)
-            return None
-    
-    def generate_sas_token(self,uri, key, policy_name=None, expiry=31536000):
-        ttl = time.time() + expiry
-        sign_key = "%s\n%d" % ((quote_plus(uri)), int(ttl))
-        signature = b64encode(HMAC(b64decode(key), sign_key.encode('utf-8'), sha256).digest())
-        rawtoken = {
-            'sr' :  uri,
-            'sig': signature,
-            'se' : str(int(ttl))
-        }
-        if policy_name is not None:
-            rawtoken['skn'] = policy_name
-        return 'SharedAccessSignature ' + urlencode(rawtoken)
-
-    def post_call(self, url):
-        try:
-            url=url+"/uid/"+self._uniqueId
-            res = urllib.urlopen(url).read().decode("utf-8")
-            data = json.loads(res)
-            #print (data)
-            return data
-        except:
-            return None
     
     def Dispose(self):
         try:
@@ -251,7 +182,6 @@ class IoTConnectSDK:
                 self._client.Disconnect()
             self._is_process_started=False
             self._dispose = True
-            self._property=None
             self._config = None
             self._cpId = None
             self._uniqueId = None
@@ -266,7 +196,6 @@ class IoTConnectSDK:
             self._offlineClient = None
             self._lock = None
             self._live_device=[]
-            self._debug=False
             return True
         except:
             raise(IoTConnectSDKException("00","Dispose error.."))
@@ -312,10 +241,10 @@ class IoTConnectSDK:
             self._heartbeat_timer.start()
 
     def onMessage(self, msg):
-        # print("\n====================>>>>>>>>>>>>>>>>>>>>>>>\n")
-        # print ("Cloud To Device Message Received::\n",msg)
-        # print("\n<<<<<<<<<<<<<<<<<<<<<<<====================\n")
-        try:            
+        #print("\n====================>>>>>>>>>>>>>>>>>>>>>>>\n")
+        #print ("Cloud To Device Message Received::\n", msg)
+        #print("\n<<<<<<<<<<<<<<<<<<<<<<<====================\n")
+        try:
             if self._dispose == True:
                 return
             if msg == None:
@@ -327,26 +256,27 @@ class IoTConnectSDK:
                     msg=msg["data"]
                 if self.has_key(msg,"d") and msg["d"]:
                     msg=msg["d"]
-                    print(msg)
-                    if msg['ec'] == 0 and msg["ct"] == 201:
+                    #print(msg)
+                    if msg['ec'] == 0 and msg["ct"] == CMDTYPE["GET_ATTRIBUTE"]:
+                        print("..........Atrributes Get Successfully...........")
                         if self._getattribute_callback == None:
                             self._data_json["att"] = msg["att"]
                             for attr in self.attributes:
-                                print(self.attributes)
                                 attr["evaluation"] = data_evaluation(self.isEdge, attr, self.send_edge_data)
                             self._is_process_started = True
                             self._offlineflag=False
-                            print("..........Atrributes Get Successfully...........")
                         if self._getattribute_callback:
                             self._getattribute_callback(msg["att"])
                             self._getattribute_callback = None
-
-                    if msg['ec'] == 0 and msg["ct"] == 202:
+                    if msg['ec'] == 0 and msg["ct"] == CMDTYPE["GET_SETTING_TWIN"]:
+                        print("..........Twin Get Successfully...........")
                         self._data_json["set"] = msg["set"]
-                    if msg['ec'] == 0 and msg["ct"] == 203:
+                    if msg['ec'] == 0 and msg["ct"] == CMDTYPE["GET_EDGE_RULE"]:
+                        print("..........Edge Rule Get Successfully...........")
                         self._data_json["r"] = msg["r"]
                     #if msg['ec'] == 0 and msg["ct"] == 204 and len(msg['d']) != 0:
-                    if msg['ec'] == 0 and msg["ct"] == 204 != 0:
+                    if msg['ec'] == 0 and msg["ct"] == CMDTYPE["GET_CHILD_DEVICE"]:
+                        print("..........Child Device Get Successfully...........")
                         if len(msg['d']) == 0:
                             self._data_json["has"]["d"] = 0
                         self._data_json['d']=[]
@@ -355,17 +285,18 @@ class IoTConnectSDK:
                                 self._data_json['d'].append(i)
                         if self._listner_devicechng_callback:
                             self._listner_devicechng_callback(msg)
-                    if msg['ec'] == 0 and msg["ct"] == 205:
+                    if msg['ec'] == 0 and msg["ct"] == CMDTYPE["GET_PENDDING_OTAs"]:
+                        print("..........Pendding OTAs Get Successfully...........")
                         self._data_json["ota"] = msg["ota"]
-                    if msg["ct"] == 221:
+                    if msg["ct"] == CMDTYPE["CREATE_CHILD_DEVICE"]:
                         if self._listner_creatchild_callback:
                             if msg["ec"] == 0:
                                 self._listner_creatchild_callback({"status":True,"message":self.__child_error_log(msg["ec"])})
-                                self._hello_handsake({"mt":204,"sid":self._sId})
+                                self._hello_handsake({"mt": CMDTYPE["GET_DEVICE_CHILD"], "sid": self._sId})
                                 time.sleep(10)
                             else:
                                 self._listner_creatchild_callback({"status":False,"message":self.__child_error_log(msg["ec"])})
-                    if msg["ct"] == 222: 
+                    if msg["ct"] == CMDTYPE["DELETE_CHILD_DEVICE"]:
                         if self._listner_deletechild_callback:
                             if msg["ec"] == 0:
                                 self._listner_deletechild_callback({"status":True,"message":"sucessfuly delete child device"})
@@ -374,7 +305,7 @@ class IoTConnectSDK:
                                     if self._data_json["d"][i] == self.deletechild:
                                         self._data_json["d"].pop(i)
                                         break    
-                                self._hello_handsake({"mt":204,"sid":self._sId})
+                                self._hello_handsake({"mt": CMDTYPE["GET_DEVICE_CHILD"], "sid": self._sId})
                                 time.sleep(10)
                             else:
                                 self._listner_deletechild_callback({"status":True,"message":"fail to delete child device"})
@@ -382,12 +313,13 @@ class IoTConnectSDK:
                     return
                 else:
                     pass
+
                 if "ct" in msg:
                     if msg["ct"] == CMDTYPE["is_connect"]:
                         # msg["data"]["uniqueId"] = self._uniqueId
                         msg["uniqueId"] = self._uniqueId
                         # if msg["data"]["command"] in "False":
-                        if msg["command"] in "False":    
+                        if msg["command"] in "False":
                             self._offlineflag = True
                             if self._is_process_started:
                                 self.reconnect_device("reconnect")
@@ -397,10 +329,10 @@ class IoTConnectSDK:
                             self._listner_callback(msg)
                         self.write_debuglog('[INFO_CM09] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] 0x116 sdk connection status: " + msg["command"],0)
                         return
-                
-                        
+            
             if self._is_process_started == False:
                 return
+            
             if "ct" not in msg:
                 print("Command Received : " + json.dumps(msg))
                 return
@@ -519,7 +451,7 @@ class IoTConnectSDK:
         except Exception as ex:
             print("Message process failed...",ex)
 
-    def onDirectMethodMessage(self,msg,methodname,requestId):
+    def onDirectMethodMessage(self, msg, methodname, requestId):
         try:
             if self._listner_direct_callback_list :
                 self._listner_direct_callback_list[str(methodname)](msg,methodname,requestId)
@@ -528,28 +460,27 @@ class IoTConnectSDK:
 
     def init_protocol(self):
         try:
+            meta_config = self.meta
             protocol_cofig = self.protocol
             name = protocol_cofig["n"]
-            self._subTopic = protocol_cofig["topics"]["c2d"]
-            self._pubRpt= protocol_cofig['topics']['rpt']
+            #elf._subTopic = protocol_cofig["topics"]["c2d"]
+            #self._pubRpt= protocol_cofig['topics']['rpt']
             protocol_cofig["pf"] = self._pf
-            auth_type = self._data_json["meta"]['at']
+            auth_type = meta_config['at']
+            
             if auth_type == 2 or auth_type == 3:
-                cert=self._config["certificate"]
-                if len(cert) == 3:
-                    for prop in cert:
-                        if os.path.isfile(cert[prop]) == True:
-                            pass
-                        else:
-                            self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: set proper certificate file path and try again",1)
-                            raise(IoTConnectSDKException("05"))
-                else:
+                status = self.valid_certificate()
+                if status == 1: # not found
                     self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: set proper certificate file path and try again",1)
                     raise(IoTConnectSDKException("01","Certificate/Key in Sdkoption"))
-
+                
+                if status == 5: # invalid file path
+                    self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: set proper certificate file path and try again",1)
+                    raise(IoTConnectSDKException("05"))
+            
             if auth_type == 5:
-                if ("devicePrimaryKey" in self._property) and self._property["devicePrimaryKey"]:
-                    protocol_cofig["pwd"]=self.generate_sas_token(protocol_cofig["h"],self._property["devicePrimaryKey"])
+                if self._devicePrimaryKey:
+                    protocol_cofig["pwd"] = self.generate_sas_token(protocol_cofig["h"], self._config["devicePrimaryKey"])
                 else:
                     raise(IoTConnectSDKException("01", "devicePrimaryKey"))
 
@@ -562,52 +493,46 @@ class IoTConnectSDK:
                 self._client = httpclient(protocol_cofig, self._config)
             else:
                 self._client = None
-
-            
-
+        
         except Exception as ex:
             raise(ex)
     
-    def _hello_handsake(self,data):
+    def _hello_handsake(self, data):
         if self._client:
-            self._client.Send(data,"Di")
+            self._client.Send(data, "Di")
 
     def process_sync(self, option):
         try:
             self._time_s=10
             isReChecking = False
             if option == "all":
-                url = self._base_url
-                response = self.post_call(url)
+                response = self.post_call(self._base_url, self._uniqueId)
                 print (response)
                 if response == None:
                     if self._offlineflag == True:
                         isReChecking=True
                     else:
-                        raise(IoTConnectSDKException("01", "Sync response"))
+                        raise(IoTConnectSDKException("01", "Sync response Or Device information"))
                 else:
-                    if self.has_key(response, "d"):
-                        response = response["d"]
-                        self.write_debuglog('[INFO_IN01] '+'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device information received successfully: "+ self._time ,0)
-                        self._offlineflag = False
-                    else:
-                        raise(IoTConnectSDKException("03", response["message"]))
-                    if response["ec"] != ErorCode["OK"]:
+                    #response = response["d"]
+                    self._offlineflag = False
+                    self.write_debuglog('[INFO_IN01] '+'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device information received successfully: "+ self._time ,0)
+                    
+                    # if self.has_key(response, "d"):
+                    #     response = response["d"]
+                    #     self.write_debuglog('[INFO_IN01] '+'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device information received successfully: "+ self._time ,0)
+                    #     self._offlineflag = False
+                    # else:
+                    #     raise(IoTConnectSDKException("03", response["message"]))
+                    
+                    if response["ec"] != ERRORCODE["OK"]:
                         isReChecking = True
                         self._time_s=60
-                    if response["ec"] == ErorCode["DEV_NOT_FOUND"] or response["ec"] == ErorCode["CPID_NOT_FOUND"] :
+                    if response["ec"] == ERRORCODE["DEV_NOT_FOUND"] or response["ec"] == ERRORCODE["CPID_NOT_FOUND"] :
                         self.write_debuglog('[ERR_IN10] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device Information not found",1)
             else:
-                if option == "ATT":
-                    self._hello_handsake({"mt":201,"sid":self._sId})
-                elif option == "SETTING":
-                    self._hello_handsake({"mt":202,"sid":self._sId})
-                elif option == "DEVICE":
-                    self._hello_handsake({"mt":204,"sid":self._sId})
-                elif option == "RULE":
-                    self._hello_handsake({"mt":203,"sid":self._sId})
-                else:
-                    pass
+                self.process_post_sync(option)
+            
             if isReChecking:
                 print("\nDisConnected...")
                 print("\nTrying to Connect...")
@@ -625,48 +550,80 @@ class IoTConnectSDK:
                 if option == "all":
                     self._is_process_started = False
                     self._data_json = response
+
+
                     self.init_protocol()
-                    if self._pf == "aws":
-                        data = { "_connectionStatus": "true" }
-                        self._client.SendTwinData(data)
-                        print("\nPublish connection status shadow sucessfully... %s" % self._time)
+                    self.process_post_sync(option)
+                    # if self._pf == "aws":
+                    #     data = { "_connectionStatus": "true" }
+                    #     self._client.SendTwinData(data)
+                    #     print("\nPublish connection status shadow sucessfully... %s" % self._time)
                     
-                                                                    
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["d"]:
+                    #     self._hello_handsake({"mt":204,"sid":self._sId})
+                    #     time.sleep(10)                       
+                    # else:
+                    #     if self._data_json['meta']['gtw'] != None:
+                    #         self._data_json['d']=[{'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId}]
+                    #     else:
+                    #         self._data_json['d']=[{'tg': '','id': self._uniqueId}]
 
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["d"]:
-                        self._hello_handsake({"mt":204,"sid":self._sId})
-                        time.sleep(10)                       
-                    else:
-                        if self._data_json['meta']['gtw'] != None:
-                            self._data_json['d']=[{'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId}]
-                        else:
-                            self._data_json['d']=[{'tg': '','id': self._uniqueId}]
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
+                    #     self._hello_handsake({"mt":201})
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
+                    #     self._hello_handsake({"mt":202,"sid":self._sId})
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
+                    #     self._hello_handsake({"mt":203 ,"sid":self._sId})    
 
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
-                        self._hello_handsake({"mt":201})
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
-                        self._hello_handsake({"mt":202,"sid":self._sId})
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
-                        self._hello_handsake({"mt":203 ,"sid":self._sId})    
-
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["ota"]:
-                        self._hello_handsake({"mt":205,"sid":self._sId})
-                    if "df" in self._data_json['meta'] and self._data_json['meta']["df"]:
-                        self._data_frequency=self._data_json['meta']["df"]
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["ota"]:
+                    #     self._hello_handsake({"mt":205,"sid":self._sId})
+                    # if "df" in self._data_json['meta'] and self._data_json['meta']["df"]:
+                    #     self._data_frequency=self._data_json['meta']["df"]
                 
         except Exception as ex:
             raise ex
     
-    def find_df(self,seconds): 
-        seconds = seconds % (24 * 3600) 
-        hour = seconds // 3600
-        seconds %= 3600
-        minutes = seconds // 60
-        seconds %= 60
-        times= datetime.datetime.strptime("%02d%02d%02d" % (hour, minutes, seconds),'%H%M%S')
-        return times
+    def process_post_sync(self, option):
+        meta_config = self.meta
+        has_config = self.has
 
-    def SendData(self,jsonArray):
+        if option == "all":
+            if self._pf == "aws":
+                self._client.SendTwinData({ "_connectionStatus": "true" })
+                print("\nPublish connection status shadow sucessfully... %s" % self._time)
+            
+            if "df" in meta_config and meta_config["df"]:
+                self._data_frequency = meta_config["df"]
+
+            if has_config["d"] == 0:
+                if meta_config['gtw'] != None:
+                    self._data_json['d']=[{'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId}]
+                else:
+                    self._data_json['d']=[{'tg': '','id': self._uniqueId}]
+            
+            if has_config["d"]:
+                self._hello_handsake({"mt": CMDTYPE["GET_CHILD_DEVICE"] })
+            if has_config["attr"]:
+                self._hello_handsake({"mt": CMDTYPE["GET_ATTRIBUTE"] })
+            if has_config["set"]:
+                self._hello_handsake({"mt": CMDTYPE["GET_SETTING_TWIN"] })
+            if has_config["r"]:
+                self._hello_handsake({"mt": CMDTYPE["GET_EDGE_RULE"] })
+            if has_config["ota"]:
+                self._hello_handsake({"mt": CMDTYPE["GET_PENDDING_OTAs"] })
+        
+        elif option == "ATT":
+            self._hello_handsake({"mt": CMDTYPE["GET_ATTRIBUTE"] })
+        elif option == "SETTING":
+            self._hello_handsake({"mt": CMDTYPE["GET_SETTING_TWIN"] })
+        elif option == "RULE":
+            self._hello_handsake({"mt": CMDTYPE["GET_EDGE_RULE"] })
+        elif option == "DEVICE":
+            self._hello_handsake({"mt": CMDTYPE["GET_CHILD_DEVICE"] })
+        else:
+            pass
+    
+    def SendData(self, jsonArray):
         try:
             if self._dispose == True:
                 raise(IoTConnectSDKException("00", "you are not able to call this function"))
@@ -677,23 +634,23 @@ class IoTConnectSDK:
                 print("\n")
                 return
             
-            nowtime=datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+            nowtime = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
             time_zero = datetime.datetime.strptime('000000', '%H%M%S')
             edge_flt_flag = False
             if self._dftime != None:
                 if int(nowtime) >= self._dftime:
-                    nowtime=datetime.datetime.strptime(str(nowtime),"%Y%m%d%H%M%S")
+                    nowtime = datetime.datetime.strptime(str(nowtime),"%Y%m%d%H%M%S")
                     self._dftime = int((nowtime - time_zero + self.find_df(self._data_frequency)).strftime("%Y%m%d%H%M%S"))
                     if self.isEdge:
-                        edge_flt_flag=True
+                        edge_flt_flag = True
                 else:
                     if not self.isEdge:
                         return
             else:
-                nowtime=datetime.datetime.strptime(str(nowtime),"%Y%m%d%H%M%S")
+                nowtime = datetime.datetime.strptime(str(nowtime),"%Y%m%d%H%M%S")
                 self._dftime = int((nowtime - time_zero + self.find_df(self._data_frequency)).strftime("%Y%m%d%H%M%S"))
                 if self.isEdge:
-                    edge_flt_flag=True
+                    edge_flt_flag = True
             #--------------------------------
             rul_data = []
             rpt_data = self._data_template
@@ -747,7 +704,7 @@ class IoTConnectSDK:
                                                 except:
                                                     real_sensor.remove(dObj["ln"])     
                                         if value != None:
-                                            row_data = evaluation.process_data(dObj, attr["p"], value,self._validation)
+                                            row_data = evaluation.process_data(dObj, attr["p"], value, self._validation)
                                             if row_data and self.has_key(row_data,"RPT"):
                                                 for key, value in row_data["RPT"].items():
                                                     r_attr_s[key] = value
@@ -784,7 +741,7 @@ class IoTConnectSDK:
                                                     except:
                                                         sub_sensors.remove(dObj["ln"]) 
                                             if value != None:
-                                                row_data = evaluation.process_data(dObj, attr["p"], value,self._validation)
+                                                row_data = evaluation.process_data(dObj, attr["p"], value, self._validation)
                                                 
                                                 if row_data and self.has_key(row_data, "RPT"):
                                                     if self.has_key(r_attr_s, attr["p"]) == False:
@@ -1105,7 +1062,51 @@ class IoTConnectSDK:
         #_thread.daemon = True
         _thread.setName(name)
         _thread.start()
+    
+    def Getdevice(self):
+        try:
+            if self._dispose == True:
+                raise(IoTConnectSDKException("00", "you are not able to call this function"))
+            if self._is_process_started == False:
+                return None
+            return self.devices
+        except:
+            return None
+    
+    def GetAttributes(self,callback):
+        try:
+            if callback:
+                self._getattribute_callback = callback
+            # self._hello_handsake({"mt":201,"sid":self._sId})    
+            self._hello_handsake({"mt": CMDTYPE["GET_ATTRIBUTE"] })
+        except Exception as ex:
+            self.write_debuglog('[ERR_GA01] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Get Attributes Error",1)
+            return None
 
+    def createChildDevice(self, deviceId, deviceTag, displayName, callback=None):
+        try:
+            if type(deviceId) != str and type(deviceTag) != str and type(displayName) != str:
+                raise(IoTConnectSDKException("00", "Child Device deviceId|deviceTag|displayName all should be string"))
+
+            #if self._data_json["has"]["d"] != 1:
+            if self._data_json['meta']['gtw'] == None:
+                self.write_debuglog('[ERR_GD04] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Child device create : It is not a Gateway device",1)
+                raise(IoTConnectSDKException("00", "create child Device not posibale it is not gatway device. "))
+            if (type(deviceId)) != str and (" " in deviceId):
+                raise(IoTConnectSDKException("00", "create child Device in deviceId space is not valid. "))
+            
+            template=self._child_template
+            template["d"]["dn"]=displayName
+            template["d"]["id"]=deviceId
+            template["d"]["tg"]=deviceTag
+            if callback:
+                self._listner_creatchild_callback=callback
+            if self._client:
+                self._client.Send(template,"Di")   
+        except:
+            self.write_debuglog('[ERR_GD01] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Create child Device Error",1)
+            raise(IoTConnectSDKException("04", "createChildDevice"))
+    
     def delete_child(self,child_id,callback):
         try:
             if self._dispose == True:
@@ -1129,84 +1130,7 @@ class IoTConnectSDK:
                     
         except:
             return None
-
-    def Getdevice(self):
-        try:
-            if self._dispose == True:
-                raise(IoTConnectSDKException("00", "you are not able to call this function"))
-            if self._is_process_started == False:
-                return None
-            return self.devices
-        except:
-            return None
     
-    def GetAttributes(self,callback):
-        try:
-            if callback:
-                self._getattribute_callback = callback
-            # self._hello_handsake({"mt":201,"sid":self._sId})    
-            self._hello_handsake({"mt":201})
-        except Exception as ex:
-            self.write_debuglog('[ERR_GA01] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Get Attributes Error",1)
-            return None
-
-    def createChildDevice(self, deviceId, deviceTag, displayName, callback=None):
-        try:
-            if type(deviceId) != str and type(deviceTag) != str and type(displayName) != str:
-                raise(IoTConnectSDKException("00", "Child Device deviceId|deviceTag|displayName all should be string"))
-
-            #if self._data_json["has"]["d"] != 1:
-            if self._data_json['meta']['gtw'] == None:
-                self.write_debuglog('[ERR_GD04] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Child device create : It is not a Gateway device",1)
-                raise(IoTConnectSDKException("00", "create child Device not posibale it is not gatway device. "))
-            if (type(deviceId)) != str and (" " in deviceId):
-                raise(IoTConnectSDKException("00", "create child Device in deviceId space is not valid. "))
-            template=self._child_template
-            template["d"]["dn"]=displayName
-            template["d"]["id"]=deviceId
-            template["d"]["tg"]=deviceTag
-            if callback:
-                self._listner_creatchild_callback=callback
-            if self._client:
-                self._client.Send(template,"Di")   
-        except:
-            self.write_debuglog('[ERR_GD01] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Create child Device Error",1)
-            raise(IoTConnectSDKException("04", "createChildDevice"))
-    
-    def __child_error_log(self,errorcode):
-        error={ 
-            "0": "OK – No Error. Child Device created successfully",
-            "1": "Message missing child tag",
-            "2": "Message missing child device uniqueid",
-            "3": "Message missing child device display name",
-            "4": "Gateway device not found",
-            "5": "Could not create device, something went wrong",
-            "6": "Child device tag is not valid",
-            "7": "Child device tag name cannot be same as Gateway device",
-            "8": "Child uniqueid is already exists.",
-            "9": "Child uniqueid should not exceed 128 characters"
-        }
-        return error[str(errorcode)]
-
-    def has_key(self, data, key):
-        try:
-            return key in data
-        except:
-            return False
-    
-    def is_not_blank(self, s):
-        return bool(s and s.strip())
-    
-    @property
-    def isEdge(self):
-        try:
-            if self._data_json != None and self.has_key(self._data_json["meta"], "edge") and self._data_json["meta"]["edge"] != None:
-                return (self._data_json["meta"]["edge"] == 1)
-            else:
-                return False
-        except:
-            return False
-
     @property
     def _child_template(self):
         guid=""
@@ -1222,24 +1146,6 @@ class IoTConnectSDK:
                 }
         }
         return data
-    @property
-    def hasRules(self):
-        try:
-            key = OPTION["rule"]
-            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
-                return len(self._data_json[key]) > 0
-            else:
-                return False
-        except:
-            return False
-    
-    @property
-    def _timestamp(self):
-        return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    
-    @property
-    def _time(self):
-        return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.000")
     
     @property
     def _data_template(self):
@@ -1269,26 +1175,7 @@ class IoTConnectSDK:
             return data
         except:
             raise(IoTConnectSDKException("07", "telementry"))
-    # @property
-    def get_file(self):
-        debug_path = os.path.join(sys.path[0], "logs")
-        path_staus=os.path.exists(debug_path)
-        if path_staus:
-            for sub_folder in ["debug"]:
-                debug_path = os.path.join(debug_path,sub_folder)                    
-                path_staus=os.path.exists(debug_path)
-                if path_staus:
-                    pass
-                else:
-                    os.mkdir(debug_path)
-        else:
-            os.mkdir(debug_path)
-            for sub_folder in ["debug"]:
-                debug_path = os.path.join(debug_path,sub_folder)
-                os.mkdir(debug_path)
-        self._debug_output_path = os.path.join(debug_path,"info.txt")
-        self._debug_error_path = os.path.join(debug_path,"error.txt")
-
+    
     @property
     def _command_template(self):
         try:
@@ -1301,6 +1188,16 @@ class IoTConnectSDK:
             return data
         except:
             raise(IoTConnectSDKException("07", "command"))
+    
+    @property
+    def isEdge(self):
+        try:
+            if self._data_json != None and self.has_key(self._data_json["meta"], "edge") and self._data_json["meta"]["edge"] != None:
+                return (self._data_json["meta"]["edge"] == 1)
+            else:
+                return False
+        except:
+            return False
     
     @property
     def attributes(self):
@@ -1357,6 +1254,39 @@ class IoTConnectSDK:
         except:
             raise(IoTConnectSDKException("04", "protocol"))
 
+    @property
+    def meta(self):
+        try:
+            key = OPTION["meta"]
+            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+                return self._data_json[key]
+            else:
+                return None
+        except:
+            raise(IoTConnectSDKException("04", "meta"))
+    
+    @property
+    def has(self):
+        try:
+            key = OPTION["has"]
+            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+                return self._data_json[key]
+            else:
+                return None
+        except:
+            raise(IoTConnectSDKException("04", "has"))
+    
+    @property
+    def hasRules(self):
+        try:
+            key = OPTION["rule"]
+            if self._data_json != None and self.has_key(self._data_json, key) and self._data_json[key] != None:
+                return len(self._data_json[key]) > 0
+            else:
+                return False
+        except:
+            return False
+    
     def __enter__(self):
         return self
     
@@ -1373,17 +1303,21 @@ class IoTConnectSDK:
         except:
             raise(IoTConnectSDKException("00", "Exit"))
 
-    def write_debuglog(self,msg,is_error):
-        if self._debug:
-            if is_error:
-                if self._debug_error_path:
-                    with open(self._debug_error_path, "a") as dfile:
-                        dfile.write(msg+'\n')
-            else:
-                if self._debug_output_path:
-                    with open(self._debug_output_path,"a") as dfile:
-                        dfile.write(msg+'\n')
-
+    def __child_error_log(self, errorcode):
+        error = {
+            "0": "OK - No Error. Child Device created successfully",
+            "1": "Message missing child tag",
+            "2": "Message missing child device uniqueid",
+            "3": "Message missing child device display name",
+            "4": "Gateway device not found",
+            "5": "Could not create device, something went wrong",
+            "6": "Child device tag is not valid",
+            "7": "Child device tag name cannot be same as Gateway device",
+            "8": "Child uniqueid is already exists.",
+            "9": "Child uniqueid should not exceed 128 characters"
+        }
+        return error[str(errorcode)]
+    
     def win_user(self):
         import win32api
         import ntplib
@@ -1410,7 +1344,7 @@ class IoTConnectSDK:
         ts.tv_nsec=0 * 1000000
         librt.clock_settime(CLOCK_REALTIME,ctypes.byref(ts))
 
-    def __init__(self, uniqueId, sId,cpid,env,pf,sdkOptions=None,initCallback=None):
+    def __init__(self, uniqueId, sId, cpid, env, pf, sdkOptions=None, initCallback=None):
         self._lock = threading.Lock()
 
 #        if sys.platform == 'win32':
@@ -1422,27 +1356,14 @@ class IoTConnectSDK:
         if (not os.environ.get('PYTHONHTTPSVERIFY', '') and getattr(ssl, '_create_unverified_context', None)):
             ssl._create_default_https_context = ssl._create_unverified_context
         
-        if sdkOptions == None:
-            self._property = {
-            	"certificate" : None,
-                "offlineStorage":
-                    {
-                    "disabled":False,
-	                "availSpaceInMb": None,
-	                "fileCount": 1
-                    },
-                "IsDebug":False,
-                "keepalive":60
-                }
-        else:
-            self._property = sdkOptions
-        
         if initCallback:
             self._listner_callback=initCallback
 
-        self.get_config()
+        self.get_config(sdkOptions)
+
         if self._debug:
             self.get_file()
+        
         if not self.is_not_blank(sId) and not self.is_not_blank(cpid) and not self.is_not_blank(env):
             self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(sId or cpid)+'_'+ str(uniqueId)+']:'+'SId, CPID, ENV can not be blank',1)
             raise(IoTConnectSDKException("01", "SId , CPID, ENV can not be blank"))
@@ -1450,40 +1371,26 @@ class IoTConnectSDK:
         if not self.is_not_blank(uniqueId):
             self.write_debuglog('[ERR_IN05] '+ self._time +'['+ str(sId or cpid)+'_'+ str(uniqueId)+']:'+'uniqueId can not be blank',1)
             raise(IoTConnectSDKException("01", "Unique Id can not be blank"))
-
-        if self._config == None:
-            raise(IoTConnectSDKException("01", "Config settings"))
+        
+        if self._discoveryUrl == False:
+            self.write_debuglog('[ERR_IN02] '+ self._time +'['+ str(sId or cpid) +'_'+ str(uniqueId)+ "] Discovery URL can not be blank",1)
+            raise(IoTConnectSDKException("01", "discoveryUrl"))
         
         self._sId = sId
         self._cpId = cpid
         self._env = env
         self._uniqueId = uniqueId
-        self.pf = pf
-        
-        
-        if "discoveryUrl" in self._property:
-            if "http" not in self._property["discoveryUrl"] :
-                self.write_debuglog('[ERR_IN02] '+ self._time +'['+ str(sId or cpid) +'_'+ str(uniqueId)+ "] Discovery URL can not be blank",1)
-                raise(IoTConnectSDKException("01", "discoveryUrl"))
-            else:
-                pass
-        else:
-            self._property["discoveryUrl"]="https://discovery.iotconnect.io"
+        self._pf = pf
 
-        if ("offlineStorage" in self._property) and ("disabled" in self._property["offlineStorage"]) and ("availSpaceInMb" in self._property["offlineStorage"]) and ("fileCount" in self._property["offlineStorage"]) :
-            if  self._property["offlineStorage"]["disabled"] == False:
-                self._offlineClient = offlineclient((sId or cpid)+'_'+uniqueId,self._config, self.send_offline_msg_to_broker)
-                self.write_debuglog('[INFO_OS03] '+'['+ str(sId or cpid)+'_'+str(uniqueId)+"] File has been created to store offline data: "+self._time,0)
+        if self._offlineStorage:
+            self._offlineClient = offlineclient((sId or cpid)+'_'+uniqueId,self._config, self.send_offline_msg_to_broker)
+            self.write_debuglog('[INFO_OS03] '+'['+ str(sId or cpid)+'_'+str(uniqueId)+"] File has been created to store offline data: "+self._time,0)
         else:
             print("offline storage is disabled...")
 
-        if ("skipValidation" in self._property):
-            if self._property["skipValidation"]:
-                self._validation=False
-
         self._ruleEval = rule_evaluation(self.send_rule_data, self.command_sender)
 
-        self._base_url, self._pf = self.get_base_url(self._sId)
+        self._base_url, self._pf = self.get_base_url(self._sId, self._cpId, self._env)
         if self._base_url != None:
             self.write_debuglog('[INFO_IN07] '+'['+ str(self._sId or cpid)+'_'+ str(self._uniqueId) + "] BaseUrl received to sync the device information: "+ self._time ,0)
             self.process_sync("all")

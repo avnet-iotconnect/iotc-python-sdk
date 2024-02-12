@@ -135,6 +135,7 @@ def DeviceCallback(msg):
     # Firmware Upgrade
 def DeviceFirmwareCallback(msg):
     global Sdk,device_list
+    device_list = Sdk.Getdevice()
     print("\n--- firmware Command Message Received ---")
     print(json.dumps(msg))
     cmdType = None
@@ -284,13 +285,11 @@ def main():
                 * Input   : 
                 * Output  : 
                 """
-                device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
                 Sdk.onOTACommand(DeviceFirmwareCallback)
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
                 Sdk.getTwins()
-                device_list=Sdk.Getdevice()
                 #Sdk.delete_chield("childid",delete_child_callback)
                 #Sdk.createChildDevice("childid", "deviceTag", "childid", create_child_callback)
                 #Sdk.UpdateTwin("ss01","mmm")

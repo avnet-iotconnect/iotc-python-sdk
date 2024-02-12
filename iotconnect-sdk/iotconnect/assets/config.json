@@ -16,5 +16,16 @@
         "twin_sub_topic": "$aws/things/{Cpid_DeviceID}/shadow/name/{Cpid_DeviceID}_twin_shadow/property-shadow",
         "twin_sub_res_topic": "$aws/things/{Cpid_DeviceID}/shadow/name/{Cpid_DeviceID}_twin_shadow/get/all",
         "twin_pub_res_topic": "$aws/things/{Cpid_DeviceID}/shadow/name/{Cpid_DeviceID}_twin_shadow/get"
-    }
+    },
+    "certificate": null,
+    "offlineStorage": {
+        "disabled": false,
+        "availSpaceInMb": 0.01,
+        "fileCount": 5,
+        "keepalive": 60
+    },
+    "discoveryUrl": "https://discovery.iotconnect.io",
+    "skipValidation": false,
+    "devicePrimaryKey": null,
+    "IsDebug": false
 }
