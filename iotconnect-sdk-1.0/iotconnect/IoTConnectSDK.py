@@ -99,8 +99,10 @@ class IoTConnectSDK:
     _property=None
     _config = None
     _cpId = None
+    _env = None
     _sId =None
     _uniqueId = None
+    pf = None
     _listner_callback = None
     _listner_ota_callback = None
     _listner_device_callback = None
@@ -178,9 +180,18 @@ class IoTConnectSDK:
 
     def get_base_url(self, sId):
         try:
-            base_url = "/api/v2.1/dsdk/sid/{COMPANY_SID}"
-            base_url = self._property["discoveryUrl"] + base_url
-            base_url = base_url.replace("{COMPANY_SID}", sId)
+            if not self._cpId:
+                base_url = "/api/v2.1/dsdk/sid/" + sId
+                base_url = self._property["discoveryUrl"] + base_url
+            else:
+                if self.pf == "az":
+                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env
+                if self.pf == "aws":
+                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env + "?pf=aws"
+                else:
+                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env                        
+                base_url = self._property["discoveryUrl"] + base_url
+
             res = urllib.urlopen(base_url).read().decode("utf-8")
             data = json.loads(res)
             #print(data)
@@ -190,9 +201,9 @@ class IoTConnectSDK:
                 # print(pf)
                 return data['d']["bu"], data['d']["pf"]
             else:
-                pf = 'az'
-                return data['d']["bu"], pf
-
+                pf = 'aws'
+                return data['d']["bu"], pf  
+            
         except Exception as ex:
             print (ex.message)
             return None
@@ -572,13 +583,13 @@ class IoTConnectSDK:
                         self.write_debuglog('[ERR_IN10] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device Information not found",1)
             else:
                 if option == "ATT":
-                    self._hello_handsake({"mt":201,"sid":self._sId})
+                    self._hello_handsake({"mt":201})
                 elif option == "SETTING":
-                    self._hello_handsake({"mt":202,"sid":self._sId})
+                    self._hello_handsake({"mt":202})
                 elif option == "DEVICE":
-                    self._hello_handsake({"mt":204,"sid":self._sId})
+                    self._hello_handsake({"mt":204})
                 elif option == "RULE":
-                    self._hello_handsake({"mt":203,"sid":self._sId})
+                    self._hello_handsake({"mt":203})
                 else:
                     pass
             if isReChecking:
@@ -604,7 +615,7 @@ class IoTConnectSDK:
                         print("\nPublish connection status shadow sucessfully... %s" % self._time)
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["d"]:
-                        self._hello_handsake({"mt":204,"sid":self._sId})
+                        self._hello_handsake({"mt":204})
                         time.sleep(10)                       
                     else:
                         if self._data_json['meta']['gtw'] != None:
@@ -614,13 +625,16 @@ class IoTConnectSDK:
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
                         self._hello_handsake({"mt":201})
+
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
-                        self._hello_handsake({"mt":202,"sid":self._sId})
+                        self._hello_handsake({"mt":202})
+
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
-                        self._hello_handsake({"mt":203 ,"sid":self._sId})
+                        self._hello_handsake({"mt":203})
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["ota"]:
-                        self._hello_handsake({"mt":205,"sid":self._sId})
+                        self._hello_handsake({"mt":205})
+                        
                     if "df" in self._data_json['meta'] and self._data_json['meta']["df"]:
                         self._data_frequency=self._data_json['meta']["df"]
 
@@ -1366,7 +1380,7 @@ class IoTConnectSDK:
         ts.tv_nsec=0 * 1000000
         librt.clock_settime(CLOCK_REALTIME,ctypes.byref(ts))
 
-    def __init__(self, uniqueId, sId,sdkOptions=None,initCallback=None):
+    def __init__(self, uniqueId,sdkOptions=None,initCallback=None):
         self._lock = threading.Lock()
 
 #        if sys.platform == 'win32':
@@ -1399,9 +1413,9 @@ class IoTConnectSDK:
         self.get_config()
         if self._debug:
             self.get_file()
-        if not self.is_not_blank(sId):
-            self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(sId)+'_'+ str(uniqueId)+']:'+'SId can not be blank',1)
-            raise(IoTConnectSDKException("01", "SId can not be blank"))
+        #if not self.is_not_blank(sId):
+        #    self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(sId)+'_'+ str(uniqueId)+']:'+'SId can not be blank',1)
+        #    raise(IoTConnectSDKException("01", "SId can not be blank"))
 
         if not self.is_not_blank(uniqueId):
             self.write_debuglog('[ERR_IN05] '+ self._time +'['+ str(sId)+'_'+ str(uniqueId)+']:'+'uniqueId can not be blank',1)
@@ -1410,8 +1424,17 @@ class IoTConnectSDK:
         if self._config == None:
             raise(IoTConnectSDKException("01", "Config settings"))
 
-        self._sId = sId
+        
         self._uniqueId = uniqueId
+        if "sId" in self._property:
+            self._sId = self._property["sId"]
+        if "cpid" in self._property:
+            self._cpId = self._property["cpid"]
+        if "env" in self._property:
+            self._env = self._property["env"]
+        if "pf" in self._property:
+            self.pf = self._property["pf"]
+
         if "discoveryUrl" in self._property:
             if "http" not in self._property["discoveryUrl"] :
                 self.write_debuglog('[ERR_IN02] '+ self._time +'['+ str(sId)+'_'+ str(uniqueId)+ "] Discovery URL can not be blank",1)
@@ -1423,8 +1446,8 @@ class IoTConnectSDK:
 
         if ("offlineStorage" in self._property) and ("disabled" in self._property["offlineStorage"]) and ("availSpaceInMb" in self._property["offlineStorage"]) and ("fileCount" in self._property["offlineStorage"]) :
             if  self._property["offlineStorage"]["disabled"] == False:
-                self._offlineClient = offlineclient(sId+'_'+uniqueId,self._config, self.send_offline_msg_to_broker)
-                self.write_debuglog('[INFO_OS03] '+'['+ str(sId)+'_'+str(uniqueId)+"] File has been created to store offline data: "+self._time,0)
+                self._offlineClient = offlineclient(uniqueId,self._config, self.send_offline_msg_to_broker)
+                self.write_debuglog('[INFO_OS03] '+'['+str(uniqueId)+"] File has been created to store offline data: "+self._time,0)
         else:
             print("offline storage is disabled...")
 

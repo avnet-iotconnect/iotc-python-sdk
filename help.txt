@@ -57,8 +57,6 @@ from iotconnect import IoTConnectSDK
 Prerequisite configuration
 ```python
 UniqueId = "<<Device UniqueID>>"
-SId = "<<Your SID>>"
-interval = 30
 ```
 "UniqueId": Your device uniqueId
 "SId" 	  : SId is the company code. You can get it from the IoTConnect UI portal "Settings -> Key Vault -> SDK Identities -> select language Python and Version 1.0"
@@ -85,7 +83,11 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     # "discoveryUrl":"https://discovery.iotconnect.io", #Azure QA, Avnet, Prod environment 
     "discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
-    "IsDebug": False
+    "IsDebug": False,
+	"cpid" : "Your CPID ",
+    "sId" : "Your SID",
+    "env" : "Your env",
+    "pf"  : "Your pf"
    
 }
 ```
