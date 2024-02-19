@@ -1413,14 +1413,7 @@ class IoTConnectSDK:
         self.get_config()
         if self._debug:
             self.get_file()
-        #if not self.is_not_blank(sId):
-        #    self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(sId)+'_'+ str(uniqueId)+']:'+'SId can not be blank',1)
-        #    raise(IoTConnectSDKException("01", "SId can not be blank"))
-
-        if not self.is_not_blank(uniqueId):
-            self.write_debuglog('[ERR_IN05] '+ self._time +'['+ str(sId)+'_'+ str(uniqueId)+']:'+'uniqueId can not be blank',1)
-            raise(IoTConnectSDKException("01", "Unique Id can not be blank"))
-
+       
         if self._config == None:
             raise(IoTConnectSDKException("01", "Config settings"))
 
@@ -1434,10 +1427,22 @@ class IoTConnectSDK:
             self._env = self._property["env"]
         if "pf" in self._property:
             self.pf = self._property["pf"]
-
+        
+        if not self.is_not_blank(self._uniqueId):
+            self.write_debuglog('[ERR_IN05] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId)+']:'+'uniqueId can not be blank',1)
+            raise(IoTConnectSDKException("01", "Unique Id can not be blank"))
+        
+        if not self.is_not_blank(self._sId) and self._cpId == None:
+            self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId)+']:'+'SId can not be blank',1)
+            raise(IoTConnectSDKException("01", "SId can not be blank"))
+        
+        if not self.is_not_blank(self._cpId) and self._sId == None:
+            self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(self._cpId)+'_'+ str(self._uniqueId)+']:'+'CPID can not be blank',1)
+            raise(IoTConnectSDKException("01", "CPID can not be blank"))
+        
         if "discoveryUrl" in self._property:
             if "http" not in self._property["discoveryUrl"] :
-                self.write_debuglog('[ERR_IN02] '+ self._time +'['+ str(sId)+'_'+ str(uniqueId)+ "] Discovery URL can not be blank",1)
+                self.write_debuglog('[ERR_IN02] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId)+ "] Discovery URL can not be blank",1)
                 raise(IoTConnectSDKException("01", "discoveryUrl"))
             else:
                 pass
@@ -1446,8 +1451,8 @@ class IoTConnectSDK:
 
         if ("offlineStorage" in self._property) and ("disabled" in self._property["offlineStorage"]) and ("availSpaceInMb" in self._property["offlineStorage"]) and ("fileCount" in self._property["offlineStorage"]) :
             if  self._property["offlineStorage"]["disabled"] == False:
-                self._offlineClient = offlineclient(uniqueId,self._config, self.send_offline_msg_to_broker)
-                self.write_debuglog('[INFO_OS03] '+'['+str(uniqueId)+"] File has been created to store offline data: "+self._time,0)
+                self._offlineClient = offlineclient(self._uniqueId,self._config, self.send_offline_msg_to_broker)
+                self.write_debuglog('[INFO_OS03] '+'['+str(self._uniqueId)+"] File has been created to store offline data: "+self._time,0)
         else:
             print("offline storage is disabled...")
 
@@ -1467,5 +1472,5 @@ class IoTConnectSDK:
             except KeyboardInterrupt:
                 sys.exit(0)
         else:
-            self.write_debuglog('[ERR_IN08] '+ self._time +'['+ str(sId)+'_'+ str(uniqueId)+ "] Network connection error or invalid url",1)
+            self.write_debuglog('[ERR_IN08] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId)+ "] Network connection error or invalid url",1)
             raise(IoTConnectSDKException("02"))
