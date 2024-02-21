@@ -1,0 +1,12 @@
+.vscode/
+iotconnect-sdk/build
+iotconnect-sdk/dist
+iotconnect-sdk/iotconnect_sdk.egg-info
+iotconnect-sdk/*/__pycache__
+iotconnect-sdk/*/*/__pycache__
+
+iotconnect-sdk-1.0/build
+iotconnect-sdk-1.0/dist
+iotconnect-sdk-1.0/iotconnect_sdk.egg-info
+iotconnect-sdk-1.0/*/__pycache__
+iotconnect-sdk-1.0/*/*/__pycache__
