@@ -34,9 +34,9 @@ Install Wheel:
 *	Follow steps 1 and 2 from this guide:  
   https://github.com/avnet-iotconnect/iotc-python-examples/blob/main/DELL_3200_5200_Demo/README.md  
   *	Note, you will stay pointed to the instance you were given, commonly avnet.iotconnect.io
-  *	You will name the device with a unique identifier of your choosing and will be using an x.509 certificate.
-  * You will need to add an attribute to the template to get started (temp or version are fine), and you can always update your template later with the attributes you define in your script.
-  * The most important part is downloading your certificates.
+  *	Name the device with a unique identifier of your choosing and will be using an x.509 certificate.
+  * Add an attribute to the template to get started ("temp" or "version" as examples).  The template can always be updated later with the attributes defined in your script.
+  * Most importantly, ensure to download the certificates.
 
 ## Modify the sample python script
 *	The sample script is named “iotconnect-sdk-1.0-firmware-python_msg-2_1.py” and is located where you unzipped the SDK package within the sample sub directory.  
