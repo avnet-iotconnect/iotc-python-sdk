@@ -72,8 +72,7 @@ SdkOptions={
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    #"discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
-    "discoveryUrl":"http://54.160.162.148:219", #AWS pre-QA Environment
+    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": False,
     "cpid" : "Your CPID ",
     "sId" : "Your SID",

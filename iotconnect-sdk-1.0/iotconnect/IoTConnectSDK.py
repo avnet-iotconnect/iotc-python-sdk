@@ -178,20 +178,14 @@ class IoTConnectSDK:
         except:
             self._offlineflag = True
 
-    def get_base_url(self, sId):
+    def get_base_url(self):
         try:
-            if not self._cpId:
-                base_url = "/api/v2.1/dsdk/sid/" + sId
-                base_url = self._property["discoveryUrl"] + base_url
+            if not self._sId:
+                base_url = "/api/v2.1/dsdk/sid/" + self._sId + "?pf=" + self.pf
             else:
-                if self.pf == "az":
-                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env
-                if self.pf == "aws":
-                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env + "?pf=aws"
-                else:
-                    base_url = "/api/v2.1/dsdk/cpid/"+ self._cpId +"/env/" + self._env                        
-                base_url = self._property["discoveryUrl"] + base_url
-
+                base_url = "/api/v2.1/dsdk/cpid/" + self._cpId +"/env/" + self._env + "?pf=" + self.pf
+            
+            base_url = self._property["discoveryUrl"] + base_url
             res = urllib.urlopen(base_url).read().decode("utf-8")
             data = json.loads(res)
             #print(data)
@@ -1432,13 +1426,9 @@ class IoTConnectSDK:
             self.write_debuglog('[ERR_IN05] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId)+']:'+'uniqueId can not be blank',1)
             raise(IoTConnectSDKException("01", "Unique Id can not be blank"))
         
-        if not self.is_not_blank(self._sId) and self._cpId == None:
-            self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId)+']:'+'SId can not be blank',1)
-            raise(IoTConnectSDKException("01", "SId can not be blank"))
-        
-        if not self.is_not_blank(self._cpId) and self._sId == None:
-            self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(self._cpId)+'_'+ str(self._uniqueId)+']:'+'CPID can not be blank',1)
-            raise(IoTConnectSDKException("01", "CPID can not be blank"))
+        if not self.is_not_blank(self._sId) or not self.is_not_blank(self._cpId):
+            self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(self._cpId)+'_'+ str(self._uniqueId)+']:'+'SID / CPID can not be blank',1)
+            raise(IoTConnectSDKException("01", "SID / CPID can not be blank"))
         
         if "discoveryUrl" in self._property:
             if "http" not in self._property["discoveryUrl"] :
@@ -1462,7 +1452,7 @@ class IoTConnectSDK:
 
         self._ruleEval = rule_evaluation(self.send_rule_data, self.command_sender)
 
-        self._base_url, self._pf = self.get_base_url(self._sId)
+        self._base_url, self._pf = self.get_base_url()
         if self._base_url != None:
             self.write_debuglog('[INFO_IN07] '+'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] BaseUrl received to sync the device information: "+ self._time ,0)
             self.process_sync("all")
