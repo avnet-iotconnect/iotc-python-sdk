@@ -701,10 +701,13 @@ class IoTConnectSDK:
                                 "id": uniqueId,
                                 "dt": time
                             }
+                            if d["tg"] != None:
+                                r_device["tg"] = d["tg"]
+                        
                         f_device = copy.deepcopy(r_device)
                         r_attr_s = {}
                         f_attr_s = {}
-                        real_sensor=[]
+                        real_sensor = []
                         for attr in self.attributes:
                             if attr["p"] == "" and self.has_key(attr, "evaluation"):
                                 evaluation = attr["evaluation"]
