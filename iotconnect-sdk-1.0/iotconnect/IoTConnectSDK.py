@@ -1139,7 +1139,7 @@ class IoTConnectSDK:
 
     def __child_error_log(self,errorcode):
         error={
-            "0": "OK – No Error. Child Device created successfully",
+            "0": "OK - No Error. Child Device created successfully",
             "1": "Message missing child tag",
             "2": "Message missing child device uniqueid",
             "3": "Message missing child device display name",
