@@ -1426,7 +1426,7 @@ class IoTConnectSDK:
             self.write_debuglog('[ERR_IN05] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId)+']:'+'uniqueId can not be blank',1)
             raise(IoTConnectSDKException("01", "Unique Id can not be blank"))
         
-        if not self.is_not_blank(self._sId) or not self.is_not_blank(self._cpId):
+        if not self.is_not_blank(self._sId) and not self.is_not_blank(self._cpId):
             self.write_debuglog('[ERR_IN04] '+ self._time +'['+ str(self._cpId)+'_'+ str(self._uniqueId)+']:'+'SID / CPID can not be blank',1)
             raise(IoTConnectSDKException("01", "SID / CPID can not be blank"))
         
