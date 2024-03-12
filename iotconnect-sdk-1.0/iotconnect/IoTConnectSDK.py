@@ -698,6 +698,7 @@ class IoTConnectSDK:
                             }
                         else:
                             r_device = {
+                                "id": uniqueId,
                                 "dt": time
                             }
                         f_device = copy.deepcopy(r_device)
