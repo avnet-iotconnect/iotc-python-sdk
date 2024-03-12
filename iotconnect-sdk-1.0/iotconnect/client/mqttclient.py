@@ -10,7 +10,9 @@ authType = {
 	"KEY": 1,
 	"CA_SIGNED": 2,
 	"CA_SELF_SIGNED": 3,
-    "SKEY": 5
+    "SKEY": 5,
+    "CA_ind" : 7
+    
 }
 
 
@@ -283,7 +285,7 @@ class mqttclient:
                     self._client.username_pw_set(self._config["un"], self._config["pwd"])
                 if self._path_to_root_cert != None:
                     self._client.tls_set(self._path_to_root_cert, tls_version = ssl.PROTOCOL_TLSv1_2)
-            elif self._auth_type == authType["CA_SIGNED"]:
+            elif (self._auth_type == authType["CA_SIGNED"] or self._auth_type == authType["CA_ind"]) :
                 if self._config['pf'] == "az":
                     self._client.username_pw_set(self._config["un"], None)
                 cert_setting = self._validateSSL(self._sdk_config["certificate"])
@@ -363,12 +365,16 @@ class mqttclient:
             print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
             print ("\n<<<<<<<<<<<============\n")
             cpid_uid = (config["id"])
-            self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic'])
+            self._twin_pub_topic = str(config['topics']['set']['pub'])
+            self._twin_sub_topic= str(config['topics']['set']['sub'])
+
+            #self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic'])
             # print (type(self._twin_pub_topic))
-            self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
+            #self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
             # print (type(self._twin_pub_topic))
-            self._twin_sub_topic = str(sdk_config['aws']['twin_sub_topic'])
-            self._twin_sub_topic = self._twin_sub_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            #self._twin_sub_topic = str(sdk_config['aws']['twin_sub_topic'])
+            #self._twin_sub_topic = self._twin_sub_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            
             self._twin_sub_res_topic = str(sdk_config['aws']['twin_sub_res_topic'])
             self._twin_sub_res_topic = self._twin_sub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
             self._twin_pub_res_topic = str(sdk_config['aws']['twin_pub_res_topic'])

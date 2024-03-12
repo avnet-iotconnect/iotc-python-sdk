@@ -35,7 +35,7 @@ Installation
 	- cd sample/
 	
 5. Edit your firmware file (iotconnect-sdk-1.0-firmware-python_msg-2_1.py) and update the following details:
-	- Edit the required fields as explained in the below Prerequisite configuration (UniqueId, SId, interval)
+	- Edit the required fields as explained in the below Prerequisite configuration (UniqueId)
 	- If your device is secured, configure the x.509 certificate path mentioned in sdkOptions given below. Else, do not make any changes
 	- Set your discoveryUrl as per your environment as shown below in sdkOptions
 	- Configure offlineStorage in sdkOptions
@@ -57,12 +57,8 @@ from iotconnect import IoTConnectSDK
 Prerequisite configuration
 ```python
 UniqueId = "<<Device UniqueID>>"
-SId = "<<Your SID>>"
-interval = 30
 ```
 "UniqueId": Your device uniqueId
-"SId" 	  : SId is the company code. You can get it from the IoTConnect UI portal "Settings -> Key Vault -> SDK Identities -> select language Python and Version 1.0"
-"interval": Set telemtetry data interval as per yuor device use case
 
 SdkOptions
 - SdkOptions is for the SDK configuration. It needs to parse in SDK object initialize call. Manage the below configuration as per your device authentication type.
@@ -85,7 +81,11 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     # "discoveryUrl":"https://discovery.iotconnect.io", #Azure QA, Avnet, Prod environment 
     "discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
-    "IsDebug": False
+    "IsDebug": False,
+	"cpid" : "Your CPID ",
+    "sId" : "Your SID",
+    "env" : "Your env",
+    "pf"  : "Your pf"
    
 }
 ```
@@ -108,7 +108,7 @@ The extensive data storage may harm your device. Also, once memory gets full, th
 
 To initialize the SDK object and connect to the cloud
 ```python
-	with IoTConnectSDK(UniqueId,SId,SdkOptions,DeviceConectionCallback) as Sdk:
+	with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback) as Sdk:
 ```
 
 To receive the command from cloud-to-device 	
