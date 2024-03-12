@@ -1213,6 +1213,7 @@ class IoTConnectSDK:
                 "dt": ""
             }
             data["dt"] = self._timestamp
+            data["id"] = self._uniqueId
             return data
         except:
             raise(IoTConnectSDKException("07", "telementry"))
