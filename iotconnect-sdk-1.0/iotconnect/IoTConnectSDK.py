@@ -180,7 +180,7 @@ class IoTConnectSDK:
 
     def get_base_url(self):
         try:
-            if not self._sId:
+            if self.is_not_blank(self._sId):
                 base_url = "/api/v2.1/dsdk/sid/" + self._sId + "?pf=" + self.pf
             else:
                 base_url = "/api/v2.1/dsdk/cpid/" + self._cpId +"/env/" + self._env + "?pf=" + self.pf
