@@ -32,6 +32,8 @@ from iotconnect.common.rule_evaluation import rule_evaluation
 
 from iotconnect.common.infinite_timer import infinite_timer
 
+from iotconnect.common.util import util
+
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
 
 MSGTYPE = {
@@ -80,19 +82,6 @@ OPTION = {
     "device": "d",
     "sdkConfig": "sc",
     "rule": "r"
-}
-DATATYPE = {
-    1: "INT",
-    2:"LONG",
-    3:"FLOAT",
-    4:"STRING",
-    5:"Time",
-    6:"Date",
-    7:"DateTime",
-    8:"BIT",
-    9:"Boolean",
-    10:"LatLong",
-    11:"OBJECT"
 }
 
 class IoTConnectSDK:
@@ -928,7 +917,7 @@ class IoTConnectSDK:
             for i in self.setting:
                 if i["ln"] == key:
                     if len(i["dv"]):
-                        isvalid = self.data_evaluation.twin_validate(i["dt"],i["dv"],value)
+                        isvalid = util.twin_validate(i["dt"], i["dv"], value)
                     if isvalid:
                         _Online = False
                         _data = {}
