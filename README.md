@@ -88,15 +88,18 @@ SdkOptions={
 }
 ```
 sdkOptions is mandatory for "certificate" X.509 device authentication type.
+
 "certificate": It requires the path of the certificate file. Mandatory for X.509/SSL device CA-signed or self-signed authentication type.
     - SSLKeyPath: your device key
     - SSLCertPath: your device certificate
     - SSLCaPath: Root CA certificate
     - Windows + Linux OS: Use "/" forward slash (Example: Windows: "E:/folder1/folder2/certificate", Linux: "/home/folder1/folder2/certificate)
+
 "offlineStorage": Define the configuration related to the offline data storage 
     - disabled: False = offline data storing, True = not storing offline data 
     - availSpaceInMb: Define the file size of offline data in MB
     - fileCount: Number of files need to create for offline data
+
 "devicePrimaryKey": It is mandatory for the Symmetric Key Authentication support. You can get it from the IoTConnect UI portal "Device -> Select device -> info(Tab) -> Connection Info -> Device Connection"
     - "devicePrimaryKey": "<<your Key>>"
 	
