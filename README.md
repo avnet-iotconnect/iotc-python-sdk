@@ -67,8 +67,7 @@ SdkOptions={
 	"certificate" : { 
 		"SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
 		"SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-		"SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem 
-        
+		"SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -86,7 +85,6 @@ SdkOptions={
     "sId" : "Your SID",
     "env" : "Your env",
     "pf"  : "Your pf"
-   
 }
 ```
  sdkOptions is mandatory for "certificate" X.509 device authentication type.
