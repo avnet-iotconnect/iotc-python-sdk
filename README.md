@@ -64,15 +64,15 @@ SdkOptions
 - SdkOptions is for the SDK configuration. It needs to parse in SDK object initialize call. Manage the below configuration as per your device authentication type.
 ```python
 SdkOptions={
-	"certificate" : { 
-		"SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-		"SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-		"SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
-	},
+    "certificate" : { 
+        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
+    },
     "offlineStorage":{
         "disabled": False,
-	    "availSpaceInMb": 0.01,
-	    "fileCount": 5,
+        "availSpaceInMb": 0.01,
+        "fileCount": 5,
         "keepalive":60
     },
     "skipValidation":False,
@@ -81,7 +81,7 @@ SdkOptions={
     # "discoveryUrl":"https://discovery.iotconnect.io", #Azure QA, Avnet, Prod environment 
     "discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
     "IsDebug": False,
-	"cpid" : "Your CPID ",
+    "cpid" : "Your CPID ",
     "sId" : "Your SID",
     "env" : "Your env",
     "pf"  : "Your pf"
