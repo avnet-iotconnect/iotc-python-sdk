@@ -65,9 +65,9 @@ SdkOptions
 ```python
 SdkOptions={
     "certificate" : { 
-        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "",
+        "SSLCertPath" : "",
+        "SSLCaPath"   : ""
     },
     "offlineStorage":{
         "disabled": False,
@@ -76,10 +76,8 @@ SdkOptions={
         "keepalive":60
     },
     "skipValidation":False,
-    # "devicePrimaryKey":"<<DevicePrimaryKey>>",
-    # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure QA, Avnet, Prod environment 
-    "discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
+    "devicePrimaryKey":"<<your Key>>",
+    "discoveryUrl":"Your Discovery Url",
     "IsDebug": False,
     "cpid" : "Your CPID ",
     "sId" : "Your SID",
