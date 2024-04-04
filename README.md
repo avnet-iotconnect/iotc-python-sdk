@@ -162,8 +162,8 @@ To receive the twin from cloud-to-device
 To publish the data on cloud device to cloud
 ```python
 	def sendBackToSDK(sdk, dataArray):
-    sdk.SendData(dataArray)
-    time.sleep(interval)
+		sdk.SendData(dataArray)
+		time.sleep(interval)
 ```
 
 To get device attributes in firmware
@@ -182,11 +182,11 @@ Standard data input format for gateway and non-gateway device to send the data o
 ```python
 1. For non-gateway device 
 data = [{"temperature":random.randint(30, 50)}
-    dObj= [{
+dObj= [{
 	"uniqueId": UniqueId,
 	"time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
 	"data": data
-	}]
+}]
 
 2. For gateway and multiple child devices 
 dObj = [{
