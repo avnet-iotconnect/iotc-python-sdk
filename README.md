@@ -42,11 +42,11 @@ Installation
 	- Update sensor attributes (name and data type) exactly as added in the IoTConnect platform
 
 Run
-	- For the Python versions 3.6, 3.7 and 3.8: 
-		- python3 iotconnect-sdk-1.0-firmware-python_msg-2_1.py
-	- For the Python version 2.7: 
-		- python iotconnect-sdk-1.0-firmware-python_msg-2_1.py
-	The above script will send data to the cloud as per the configured device details.
+    - For the Python versions 3.6, 3.7 and 3.8: 
+        - python3 iotconnect-sdk-1.0-firmware-python_msg-2_1.py
+    - For the Python version 2.7: 
+        - python iotconnect-sdk-1.0-firmware-python_msg-2_1.py
+    The above script will send data to the cloud as per the configured device details.
 	
 Explanation
 - Import the below SDK package to initialize the SDK object.
@@ -87,19 +87,20 @@ SdkOptions={
     "pf"  : "Your pf"
 }
 ```
- sdkOptions is mandatory for "certificate" X.509 device authentication type.
- "certificate": It requires the path of the certificate file. Mandatory for X.509/SSL device CA-signed or self-signed authentication type.
- 	- SSLKeyPath: your device key
- 	- SSLCertPath: your device certificate
- 	- SSLCaPath: Root CA certificate
- 	- Windows + Linux OS: Use "/" forward slash (Example: Windows: "E:/folder1/folder2/certificate", Linux: "/home/folder1/folder2/certificate)
- "offlineStorage": Define the configuration related to the offline data storage 
- 	- disabled: False = offline data storing, True = not storing offline data 
- 	- availSpaceInMb: Define the file size of offline data in MB
- 	- fileCount: Number of files need to create for offline data
- "devicePrimaryKey": It is mandatory for the Symmetric Key Authentication support. You can get it from the IoTConnect UI portal "Device -> Select device -> info(Tab) -> Connection Info -> Device Connection"
+sdkOptions is mandatory for "certificate" X.509 device authentication type.
+"certificate": It requires the path of the certificate file. Mandatory for X.509/SSL device CA-signed or self-signed authentication type.
+    - SSLKeyPath: your device key
+    - SSLCertPath: your device certificate
+    - SSLCaPath: Root CA certificate
+    - Windows + Linux OS: Use "/" forward slash (Example: Windows: "E:/folder1/folder2/certificate", Linux: "/home/folder1/folder2/certificate)
+"offlineStorage": Define the configuration related to the offline data storage 
+    - disabled: False = offline data storing, True = not storing offline data 
+    - availSpaceInMb: Define the file size of offline data in MB
+    - fileCount: Number of files need to create for offline data
+"devicePrimaryKey": It is mandatory for the Symmetric Key Authentication support. You can get it from the IoTConnect UI portal "Device -> Select device -> info(Tab) -> Connection Info -> Device Connection"
     - "devicePrimaryKey": "<<your Key>>"
- Note: 
+	
+Note: 
 SSL/X.509 device CA-signed or self-signed authentication type requires sdkOptions. Define the proper certification path.
 If you do not provide offline storage, the firmware file will set the default settings as defined above. 
 The extensive data storage may harm your device. Also, once memory gets full, the SDK execution may stop.
