@@ -26,6 +26,73 @@ class rule_evaluation:
         try:
             if rule == None:
                 return
+            
+            condition = ""
+            if self.has_key(rule, "con") and rule["con"] != None:
+                condition = self.replace_conditional_operator(str(rule["con"]))
+            
+            command_text = ""
+            if self.has_key(rule, "cmd") and rule["cmd"] != None:
+                command_text = str(rule["cmd"])
+            
+            if condition == "":
+                return
+            
+            fdata = {}
+            cvdata = {}
+            for rdata in rule_data:
+                for data in rdata["d"]:
+                    prop = ""
+                    if rdata["p"] == "":
+                        prop = data["ln"]
+                        fdata[data["ln"]] = data["v"]
+                    else:
+                        prop = rdata["p"] + "." + data["ln"]
+                        if self.has_key(fdata, rdata["p"]) == False:
+                            fdata[rdata["p"]] = {}
+                        fdata[rdata["p"]][data["ln"]] = data["v"]
+                    
+                    if self.is_not_blank(data["tg"]):
+                        prop = data["tg"] + "#" + prop
+
+                    if (condition.find(str(prop)) > -1) and (data["v"] != None):
+                        condition = condition.replace(prop, str(data["v"]))
+                        ln = data["ln"]
+                        if rdata["p"] == "":
+                            if self.is_not_blank(data["tg"]):
+                                ln = data["tg"] + "." + ln
+                            cvdata[ln] = data["v"]
+                        else:
+                            pln = rdata["p"]
+                            if self.is_not_blank(data["tg"]):
+                                pln = data["tg"] + "." + rdata["p"]
+
+                            if self.has_key(cvdata, pln) == False:
+                                cvdata[pln] = {}
+                            cvdata[pln][ln] = data["v"]
+            
+            if self.eval_exp(condition) == True and len(cvdata) > 0:
+                if self._command_sender and command_text != "":
+                    self._command_sender(command_text,rule)
+
+                sdata = {}
+                sdata["cv"] = cvdata
+                sdata["d"] = fdata
+                sdata["rg"] = rule["g"]
+                sdata["ct"] = rule["con"]
+                sdata["sg"] = rule["es"]
+                sdata["id"] = rule["id"]
+                sdata["dt"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
+                if self.listner_callback != None:
+                    self.listner_callback(sdata)
+        
+        except Exception as ex:
+            print("evalRules : " + ex)
+    
+    def evalRules_old(self, rule, rule_data):
+        try:
+            if rule == None:
+                return
             f_condition = ''
             condition = ""
             if self.has_key(rule, "con") and rule["con"] != None:
@@ -102,7 +169,10 @@ class rule_evaluation:
             return key in data
         except :
             return False
-
+    
+    def is_not_blank(self, s):
+        return bool(s and s.strip())
+    
     @property
     def _timestamp(self):
         return datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
