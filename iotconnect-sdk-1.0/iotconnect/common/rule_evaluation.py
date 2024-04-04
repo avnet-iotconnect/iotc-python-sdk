@@ -37,6 +37,8 @@ class rule_evaluation:
             
             if condition == "":
                 return
+            
+            is_obj_rule = "." in condition
             tg = ""
             fdata = {}
             cvdata = {}
@@ -55,8 +57,16 @@ class rule_evaluation:
                     if self.is_not_blank(data["tg"]):
                         prop = data["tg"] + "#" + prop
 
-                    if (condition.find(str(prop)) > -1) and (data["v"] != None):
+                    is_replace = False
+                    if is_obj_rule:
+                        if "." in prop:
+                            is_replace = True
+                    else:
+                        is_replace = True
+                    
+                    if is_replace and (condition.find(str(prop)) > -1) and (data["v"] != None):
                         condition = condition.replace(prop, str(data["v"]))
+
                         if self.is_not_blank(data["tg"]):
                             tg = data["tg"]
                         
