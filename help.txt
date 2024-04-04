@@ -19,7 +19,7 @@ Installation
 	- Note: Ensure your pip version matches with the Python version you are uninstalling. (pip3.7,python3.7)
     - pipx.x list 
     - Find your package name (iotconnect-sdk)
-    - pipx.x uninstall <<iotconnect-sdk>>    
+    - pipx.x uninstall iotconnect-sdk
 	
 3. Use the below commands to install the required libraries:
 	- Go to SDK directory path using terminal/command prompt
@@ -41,12 +41,12 @@ Installation
 	- Configure offlineStorage in sdkOptions
 	- Update sensor attributes (name and data type) exactly as added in the IoTConnect platform
 
-Run
-	- For the Python versions 3.6, 3.7 and 3.8: 
-		- python3 iotconnect-sdk-1.0-firmware-python_msg-2_1.py
-	- For the Python version 2.7: 
-		- python iotconnect-sdk-1.0-firmware-python_msg-2_1.py
-	The above script will send data to the cloud as per the configured device details.
+6. Run
+    - For the Python versions 3.6, 3.7 and 3.8: 
+        - python3 iotconnect-sdk-1.0-firmware-python_msg-2_1.py
+    - For the Python version 2.7: 
+        - python iotconnect-sdk-1.0-firmware-python_msg-2_1.py
+    The above script will send data to the cloud as per the configured device details.
 	
 Explanation
 - Import the below SDK package to initialize the SDK object.
@@ -64,44 +64,42 @@ SdkOptions
 - SdkOptions is for the SDK configuration. It needs to parse in SDK object initialize call. Manage the below configuration as per your device authentication type.
 ```python
 SdkOptions={
-	"certificate" : { 
-		"SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-		"SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-		"SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem 
-        
-	},
+    "certificate" : { 
+        "SSLKeyPath"  : "",
+        "SSLCertPath" : "",
+        "SSLCaPath"   : ""
+    },
     "offlineStorage":{
         "disabled": False,
-	    "availSpaceInMb": 0.01,
-	    "fileCount": 5,
-        "keepalive":60
+        "availSpaceInMb": 0.01,
+        "fileCount": 5,
+        "keepalive": 60
     },
-    "skipValidation":False,
-    # "devicePrimaryKey":"<<DevicePrimaryKey>>",
-    # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure QA, Avnet, Prod environment 
-    "discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
+    "skipValidation": False,
+    "devicePrimaryKey": "Your Key",
+    "discoveryUrl": "Your Discovery Url",
     "IsDebug": False,
-	"cpid" : "Your CPID ",
+    "cpid" : "Your CPID ",
     "sId" : "Your SID",
     "env" : "Your env",
     "pf"  : "Your pf"
-   
 }
 ```
- sdkOptions is mandatory for "certificate" X.509 device authentication type.
- "certificate": It requires the path of the certificate file. Mandatory for X.509/SSL device CA-signed or self-signed authentication type.
- 	- SSLKeyPath: your device key
- 	- SSLCertPath: your device certificate
- 	- SSLCaPath: Root CA certificate
- 	- Windows + Linux OS: Use "/" forward slash (Example: Windows: "E:/folder1/folder2/certificate", Linux: "/home/folder1/folder2/certificate)
- "offlineStorage": Define the configuration related to the offline data storage 
- 	- disabled: False = offline data storing, True = not storing offline data 
- 	- availSpaceInMb: Define the file size of offline data in MB
- 	- fileCount: Number of files need to create for offline data
- "devicePrimaryKey": It is mandatory for the Symmetric Key Authentication support. You can get it from the IoTConnect UI portal "Device -> Select device -> info(Tab) -> Connection Info -> Device Connection"
-    - "devicePrimaryKey": "<<your Key>>"
- Note: 
+sdkOptions is mandatory for "certificate" X.509 device authentication type.
+
+- "certificate": It requires the path of the certificate file. Mandatory for X.509/SSL device CA-signed or self-signed authentication type.
+    - SSLKeyPath: your device key
+    - SSLCertPath: your device certificate
+    - SSLCaPath: Root CA certificate
+    - Windows + Linux OS: Use "/" forward slash (Example: Windows: "E:/folder1/folder2/certificate", Linux: "/home/folder1/folder2/certificate)
+- "offlineStorage": Define the configuration related to the offline data storage 
+    - disabled: False = offline data storing, True = not storing offline data 
+    - availSpaceInMb: Define the file size of offline data in MB
+    - fileCount: Number of files need to create for offline data
+- "devicePrimaryKey": It is mandatory for the Symmetric Key Authentication support. You can get it from the IoTConnect UI portal "Device -> Select device -> info(Tab) -> Connection Info -> Device Connection"
+    - "devicePrimaryKey": "Your Key"
+	
+Note: 
 SSL/X.509 device CA-signed or self-signed authentication type requires sdkOptions. Define the proper certification path.
 If you do not provide offline storage, the firmware file will set the default settings as defined above. 
 The extensive data storage may harm your device. Also, once memory gets full, the SDK execution may stop.
@@ -164,8 +162,8 @@ To receive the twin from cloud-to-device
 To publish the data on cloud device to cloud
 ```python
 	def sendBackToSDK(sdk, dataArray):
-    sdk.SendData(dataArray)
-    time.sleep(interval)
+		sdk.SendData(dataArray)
+		time.sleep(interval)
 ```
 
 To get device attributes in firmware
@@ -184,11 +182,11 @@ Standard data input format for gateway and non-gateway device to send the data o
 ```python
 1. For non-gateway device 
 data = [{"temperature":random.randint(30, 50)}
-    dObj= [{
+dObj= [{
 	"uniqueId": UniqueId,
 	"time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
 	"data": data
-	}]
+}]
 
 2. For gateway and multiple child devices 
 dObj = [{
@@ -214,7 +212,7 @@ To disconnect the device from the cloud
 
 To get all the twin property desired and reported
 ```python
-	sdk.GetAllTwins();
+	sdk.GetAllTwins()
 ```
 
 ## Release Note :
