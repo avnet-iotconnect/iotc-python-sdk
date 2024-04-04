@@ -37,7 +37,7 @@ class rule_evaluation:
             
             if condition == "":
                 return
-            
+            tg = ""
             fdata = {}
             cvdata = {}
             for rdata in rule_data:
@@ -57,6 +57,9 @@ class rule_evaluation:
 
                     if (condition.find(str(prop)) > -1) and (data["v"] != None):
                         condition = condition.replace(prop, str(data["v"]))
+                        if self.is_not_blank(data["tg"]):
+                            tg = data["tg"]
+                        
                         ln = data["ln"]
                         if rdata["p"] == "":
                             if self.is_not_blank(data["tg"]):
@@ -82,6 +85,7 @@ class rule_evaluation:
                 sdata["ct"] = rule["con"]
                 sdata["sg"] = rule["es"]
                 sdata["id"] = rule["id"]
+                sdata["tg"] = tg
                 sdata["dt"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z")
                 if self.listner_callback != None:
                     self.listner_callback(sdata)
