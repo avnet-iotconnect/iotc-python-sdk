@@ -220,7 +220,6 @@ class util:
         except:
             raise(IoTConnectSDKException("09","Twin Validation"))
 
-    def __init__(self):
-        print("util methods")
+
 
 

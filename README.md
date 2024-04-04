@@ -19,7 +19,7 @@ Installation
 	- Note: Ensure your pip version matches with the Python version you are uninstalling. (pip3.7,python3.7)
     - pipx.x list 
     - Find your package name (iotconnect-sdk)
-    - pipx.x uninstall <<iotconnect-sdk>>    
+    - pipx.x uninstall iotconnect-sdk
 	
 3. Use the below commands to install the required libraries:
 	- Go to SDK directory path using terminal/command prompt
@@ -73,11 +73,11 @@ SdkOptions={
         "disabled": False,
         "availSpaceInMb": 0.01,
         "fileCount": 5,
-        "keepalive":60
+        "keepalive": 60
     },
-    "skipValidation":False,
-    "devicePrimaryKey":"<<your Key>>",
-    "discoveryUrl":"Your Discovery Url",
+    "skipValidation": False,
+    "devicePrimaryKey": "<<your Key>>",
+    "discoveryUrl": "Your Discovery Url",
     "IsDebug": False,
     "cpid" : "Your CPID ",
     "sId" : "Your SID",
@@ -212,7 +212,7 @@ To disconnect the device from the cloud
 
 To get all the twin property desired and reported
 ```python
-	sdk.GetAllTwins();
+	sdk.GetAllTwins()
 ```
 
 ## Release Note :
