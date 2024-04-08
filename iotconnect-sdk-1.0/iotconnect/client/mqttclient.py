@@ -275,7 +275,7 @@ class mqttclient:
         except:
             return False
 
-    def _init_mqtt(self):
+    def _init_mqtt_old(self):
         try:
             self.Disconnect()
             self._client = mqtt.Client(client_id=self._config['id'], clean_session=True, userdata=None, protocol=mqtt.MQTTv311)
@@ -318,6 +318,42 @@ class mqttclient:
         except Exception as ex:
             raise ex
 
+    def _init_mqtt(self):
+        try:
+            self.Disconnect()
+            self._client = mqtt.Client(client_id=self._config['id'], clean_session=True, userdata=None, protocol=mqtt.MQTTv311)
+
+            if self._auth_type == authType["KEY"] or self._auth_type == authType["SKEY"]:
+                if self._config['pf'] == "az":
+                    self._client.username_pw_set(self._config["un"], self._config["pwd"])
+                
+                if self._path_to_root_cert != None:
+                    self._client.tls_set(self._path_to_root_cert, tls_version = ssl.PROTOCOL_TLSv1_2)
+            
+            if self._auth_type == authType["CA_SIGNED"] or self._auth_type == authType["CA_ind"] or self._auth_type == authType["CA_SELF_SIGNED"]:
+                if self._config['pf'] == "az":
+                    self._client.username_pw_set(self._config["un"], None)
+                
+                cert_setting = self._sdk_config["certificate"]
+                
+                if self._auth_type == authType["CA_SELF_SIGNED"]:
+                    _path_to_root_cert = self._path_to_root_cert
+                    if cert_setting["SSLCaPath"] != None:
+                        _path_to_root_cert = cert_setting["SSLCaPath"]
+                else:
+                    _path_to_root_cert = cert_setting["SSLCaPath"]
+                
+                self._client.tls_set(ca_certs=str(_path_to_root_cert), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None) 
+                self._client.tls_insecure_set(False)
+            
+            self._client.on_connect = self._on_connect
+            self._client.on_disconnect = self._on_disconnect
+            self._client.on_message = self._on_message
+            self._client.disable_logger()
+            self._connect()
+        except Exception as ex:
+            raise ex
+    
     @property
     def isConnected(self):
         return self._isConnected
@@ -357,9 +393,9 @@ class mqttclient:
             self._twin_sub_res_topic = str(sdk_config['az']['twin_sub_res_topic'])
             self._twin_pub_res_topic = str(sdk_config['az']['twin_pub_res_topic'])
             _path = os.path.abspath(os.path.dirname(__file__))
-            _config_path = os.path.join(_path, "assets/az_crt.txt")
-            _config_path=_config_path.replace("client","")
-            self._path_to_root_cert=_config_path
+            _config_path = os.path.join(_path, "assets\\az_crt.txt")
+            _config_path = _config_path.replace("\\client","")
+            self._path_to_root_cert = _config_path
         else:
             print ("\n============>>>>>>>>>>>\n")
             print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
@@ -379,10 +415,9 @@ class mqttclient:
             self._twin_sub_res_topic = self._twin_sub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
             self._twin_pub_res_topic = str(sdk_config['aws']['twin_pub_res_topic'])
             self._twin_pub_res_topic = self._twin_pub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
-            # _path = os.path.abspath(os.path.dirname(__file__))
-            # _config_path = os.path.join(_path, "assets/aws_crt.txt")
-            # _config_path=_config_path.replace("client","")
-            # self._path_to_root_cert=_config_path
-            # pass
+            _path = os.path.abspath(os.path.dirname(__file__))
+            _config_path = os.path.join(_path, "assets\\aws_crt.txt")
+            _config_path = _config_path.replace("\\client","")
+            self._path_to_root_cert = _config_path
 
         self._init_mqtt()

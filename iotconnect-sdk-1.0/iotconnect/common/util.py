@@ -1,4 +1,5 @@
 
+import os.path
 from datetime import datetime
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
 
@@ -220,6 +221,38 @@ class util:
         except:
             raise(IoTConnectSDKException("09","Twin Validation"))
 
+    @staticmethod
+    def cert_validate(cert, auth_type):
+        if cert == None:
+            return False
+        
+        isvalid = True
+        sslKeyPath = cert["SSLKeyPath"] if cert["SSLKeyPath"] else None
+        sslCertPath = cert["SSLCertPath"] if cert["SSLCertPath"] else None
+        sslCaPath = cert["SSLCaPath"] if cert["SSLCaPath"] else None
+        
+        if sslKeyPath and os.path.isfile(sslKeyPath) == True:
+            if (sslKeyPath.lower().endswith(".pem") != True or sslKeyPath.lower().endswith(".key") != True) == False:
+                isvalid = False
+        else:
+            isvalid = False
 
-
-
+        if isvalid == True and sslCertPath and os.path.isfile(sslCertPath) == True:
+            if (sslCertPath.lower().endswith(".crt") != True or sslCertPath.lower().endswith(".pem") != True) == False:
+                isvalid = False
+        else:
+            isvalid = False
+        
+        if auth_type != 3:
+            if isvalid == True and sslCaPath and os.path.isfile(sslCaPath) == True:
+                if sslCaPath.lower().endswith(".pem") != True:
+                    isvalid = False
+            else:
+                isvalid = False
+        
+        if auth_type == 3: #CA_SELF_SIGNED
+            if isvalid == True and sslCaPath and os.path.isfile(sslCaPath) == True:
+                if sslCaPath.lower().endswith(".pem") != True:
+                    isvalid = False
+        
+        return isvalid

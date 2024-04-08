@@ -504,18 +504,23 @@ class IoTConnectSDK:
             name = protocol_cofig["n"]
             protocol_cofig["pf"] = self._pf
             auth_type = self._data_json["meta"]['at']
-            if auth_type == 2 or auth_type == 3:
-                cert=self._config["certificate"]
-                if len(cert) == 3:
-                    for prop in cert:
-                        if os.path.isfile(cert[prop]) == True:
-                            pass
-                        else:
-                            self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: set proper certificate file path and try again",1)
-                            raise(IoTConnectSDKException("05"))
-                else:
-                    self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: set proper certificate file path and try again",1)
-                    raise(IoTConnectSDKException("01","Certificate/Key in Sdkoption"))
+            if auth_type == 2 or auth_type == 3 or auth_type == 7:
+                cert = self._config["certificate"]
+                
+                if util.cert_validate(cert, auth_type) == False:
+                    self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: Certificate is missing or invalid",1)
+                    raise(IoTConnectSDKException("05"))
+                
+                # if len(cert) == 3:
+                #     for prop in cert:
+                #         if os.path.isfile(cert[prop]) == True:
+                #             pass
+                #         else:
+                #             self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: set proper certificate file path and try again",1)
+                #             raise(IoTConnectSDKException("05"))
+                # else:
+                #     self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: set proper certificate file path and try again",1)
+                #     raise(IoTConnectSDKException("01","Certificate/Key in Sdkoption"))
 
             if auth_type == 5:
                 if ("devicePrimaryKey" in self._property) and self._property["devicePrimaryKey"]:
