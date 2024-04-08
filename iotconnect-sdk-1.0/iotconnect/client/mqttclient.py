@@ -318,6 +318,9 @@ class mqttclient:
         except Exception as ex:
             raise ex
 
+    def is_not_blank(self, s):
+        return bool(s and s.strip())
+    
     def _init_mqtt(self):
         try:
             self.Disconnect()
@@ -338,7 +341,7 @@ class mqttclient:
                 
                 if self._auth_type == authType["CA_SELF_SIGNED"]:
                     _path_to_root_cert = self._path_to_root_cert
-                    if cert_setting["SSLCaPath"] != None:
+                    if cert_setting["SSLCaPath"] and self.is_not_blank(cert_setting["SSLCaPath"]):
                         _path_to_root_cert = cert_setting["SSLCaPath"]
                 else:
                     _path_to_root_cert = cert_setting["SSLCaPath"]

@@ -222,6 +222,10 @@ class util:
             raise(IoTConnectSDKException("09","Twin Validation"))
 
     @staticmethod
+    def is_not_blank(s):
+        return bool(s and s.strip())
+    
+    @staticmethod
     def cert_validate(cert, auth_type):
         if cert == None:
             return False
@@ -231,27 +235,27 @@ class util:
         sslCertPath = cert["SSLCertPath"] if cert["SSLCertPath"] else None
         sslCaPath = cert["SSLCaPath"] if cert["SSLCaPath"] else None
         
-        if sslKeyPath and os.path.isfile(sslKeyPath) == True:
+        if sslKeyPath and util.is_not_blank(sslKeyPath) and os.path.isfile(sslKeyPath) == True:
             if (sslKeyPath.lower().endswith(".pem") != True or sslKeyPath.lower().endswith(".key") != True) == False:
                 isvalid = False
         else:
             isvalid = False
 
-        if isvalid == True and sslCertPath and os.path.isfile(sslCertPath) == True:
+        if isvalid == True and sslCertPath and util.is_not_blank(sslCertPath) and os.path.isfile(sslCertPath) == True:
             if (sslCertPath.lower().endswith(".crt") != True or sslCertPath.lower().endswith(".pem") != True) == False:
                 isvalid = False
         else:
             isvalid = False
         
         if auth_type != 3:
-            if isvalid == True and sslCaPath and os.path.isfile(sslCaPath) == True:
+            if isvalid == True and sslCaPath and util.is_not_blank(sslCaPath) and os.path.isfile(sslCaPath) == True:
                 if sslCaPath.lower().endswith(".pem") != True:
                     isvalid = False
             else:
                 isvalid = False
         
         if auth_type == 3: #CA_SELF_SIGNED
-            if isvalid == True and sslCaPath and os.path.isfile(sslCaPath) == True:
+            if isvalid == True and sslCaPath and util.is_not_blank(sslCaPath) and os.path.isfile(sslCaPath) == True:
                 if sslCaPath.lower().endswith(".pem") != True:
                     isvalid = False
         
