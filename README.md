@@ -215,13 +215,4 @@ To get all the twin property desired and reported
 	sdk.GetAllTwins()
 ```
 
-## Release Note :
-IOT Connect SDK: Software Development Kit 1.0, Message type 2.1
-
-** New Feature **
- SDK will work in AWS and Azure environment.
-
-** Improvements **
- SDK connection on azure and aws based on platform name received from discoveryUrl
- help.txt and help site documentation improevment
 
