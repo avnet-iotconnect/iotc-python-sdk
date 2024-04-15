@@ -5,6 +5,7 @@ Modify: 02-January-2023
 This IoTConnect Python SDK package will show you how to install and run the firmware file.
 
 Getting started
+------------
 
 Prerequisites
 Before you install and run the firmware file, we recommend to check with the following set up requirements:
@@ -12,7 +13,8 @@ Before you install and run the firmware file, we recommend to check with the fol
 2. pip: pip is compatible with the Python version
 3. setuptools: It requires to manage the Python packages
 
-Installation 
+Installation
+------------
 
 Note: If you are used multiple python version then used different python and pip to follow below installation process.
 
