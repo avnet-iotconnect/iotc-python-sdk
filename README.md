@@ -8,27 +8,26 @@ Getting started
 
 Prerequisites
 Before you install and run the firmware file, we recommend to check with the following set up requirements:
-1. Python: IoTConnect's Python SDK supports 2.7, 3.6, 3.7 and 3.8 Python versions. However, we suggest to install the most stable Python version 3.7.9
+1. Python: IoTConnect's Python SDK supports 2.7, 3.5, 3.7 to 3.9 and 3.10 Python versions. However, we suggest to install the most stable Python version 3.10.0
 2. pip: pip is compatible with the Python version
 3. setuptools: It requires to manage the Python packages
 
 Installation 
+
+Note: If you are used multiple python version then used diffrent python and pip to follow below installation process.
+
 1. Download "iotc-python-sdk" branch zip and extract.
 
 2. Use the terminal/command prompt to go to the sample folder.
 	- cd sample/
 
-3. If your device is already having previous IoTConnect Python SDK version, uninstall before going to install the latest version. 
-	- Note: Ensure your pip version matches with the Python version you are uninstalling. (pip3.7,python3.7)
-    - pipx.x list 
+3. If your device is already having previous IoTConnect Python SDK version, uninstall before going to install the latest version.
+    - pip list 
     - Find your package name (iotconnect-sdk)
-    - pipx.x uninstall iotconnect-sdk
+    - pip uninstall iotconnect-sdk
 	
 4. Use the below commands to install the required libraries:
-    - For the Python versions 3.6, 3.7 and 3.8:
-		- pip3 install iotconnect-sdk-1.0.tar.gz
-	- For the Python version 2.7:
-		- pip install iotconnect-sdk-1.0.tar.gz
+    - pip install iotconnect-sdk-1.0.tar.gz
 
 5. Edit your firmware file (iotconnect-sdk-1.0-firmware-python_msg-2_1.py) and update the following details:
 	- Edit the required fields as explained in the below Prerequisite configuration (UniqueId)
@@ -38,10 +37,7 @@ Installation
 	- Update sensor attributes (name and data type) exactly as added in the IoTConnect platform
 
 6. Run
-    - For the Python versions 3.6, 3.7 and 3.8: 
-        - python3 iotconnect-sdk-1.0-firmware-python_msg-2_1.py
-    - For the Python version 2.7: 
-        - python iotconnect-sdk-1.0-firmware-python_msg-2_1.py
+    - python iotconnect-sdk-1.0-firmware-python_msg-2_1.py
     The above script will send data to the cloud as per the configured device details.
 	
 Explanation
