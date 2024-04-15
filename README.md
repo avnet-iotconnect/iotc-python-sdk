@@ -41,9 +41,11 @@ Note: If you are used multiple python version then used different python and pip
 6. Run
     - python iotconnect-sdk-1.0-firmware-python_msg-2_1.py
     The above script will send data to the cloud as per the configured device details.
-	
+
 Explanation
-- Import the below SDK package to initialize the SDK object.
+------------
+
+Import the below SDK package to initialize the SDK object.
 ```python
 from iotconnect import IoTConnectSDK
 ```
