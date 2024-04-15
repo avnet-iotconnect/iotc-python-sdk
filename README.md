@@ -1,6 +1,6 @@
-Author: Softweb Solutions An Avnet Company
-Brief: IOT Connect SDK: Software Development Kit 1.0
-Modify: 02-January-2023
+- Author: Softweb Solutions An Avnet Company
+- Brief: IOT Connect SDK: Software Development Kit 1.0
+- Modify: 02-January-2023
 
 This IoTConnect Python SDK package will show you how to install and run the firmware file.
 
