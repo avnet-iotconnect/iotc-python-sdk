@@ -18,7 +18,7 @@ Installation
 
 Note: If you are used multiple python version then used different python and pip to follow below installation process.
 
-1. Download "iotc-python-sdk" branch zip and extract.
+1. Create sample folder in your machine, download two files sample/iotconnect-sdk-1.0.tar.gz & sample/iotconnect-sdk-1.0-firmware-python_msg-2_1.py from git
 
 2. Use the terminal/command prompt to go to the sample folder.
 	- cd sample/
