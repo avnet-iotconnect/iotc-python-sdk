@@ -102,7 +102,7 @@ The extensive data storage may harm your device. Also, once memory gets full, th
 
 To initialize the SDK object and connect to the cloud
 ```python
-	with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback) as Sdk:
+with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback) as Sdk:
 ```
 
 To receive the command from cloud-to-device 	
