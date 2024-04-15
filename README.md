@@ -152,8 +152,8 @@ To receive the twin from cloud-to-device
 		print(json.dumps(msg))
 		sdk.UpdateTwin(key, value)
 ```
-"key" 	:	Desired property key received from Twin callback message
-"value"	:	Value of the respective desired property
+- "key": Desired property key received from Twin callback message
+- "value": Value of the respective desired property
 
 To publish the data on cloud device to cloud
 ```python
