@@ -14,7 +14,7 @@ Before you install and run the firmware file, we recommend to check with the fol
 
 Installation 
 
-Note: If you are used multiple python version then used diffrent python and pip to follow below installation process.
+Note: If you are used multiple python version then used different python and pip to follow below installation process.
 
 1. Download "iotc-python-sdk" branch zip and extract.
 
