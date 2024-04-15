@@ -13,27 +13,23 @@ Before you install and run the firmware file, we recommend to check with the fol
 3. setuptools: It requires to manage the Python packages
 
 Installation 
-1. Download "iotconnect-python-sdk-v1.0.zip" and extract.
+1. Download "iotc-python-sdk" branch zip and extract.
 
-2. If your device is already having previous IoTConnect Python SDK version, uninstall before going to install the latest version. 
+2. Use the terminal/command prompt to go to the sample folder.
+	- cd sample/
+
+3. If your device is already having previous IoTConnect Python SDK version, uninstall before going to install the latest version. 
 	- Note: Ensure your pip version matches with the Python version you are uninstalling. (pip3.7,python3.7)
     - pipx.x list 
     - Find your package name (iotconnect-sdk)
     - pipx.x uninstall iotconnect-sdk
 	
-3. Use the below commands to install the required libraries:
-	- Go to SDK directory path using terminal/command prompt
-	- cd iotconnect-python-sdk-v1.0/
+4. Use the below commands to install the required libraries:
     - For the Python versions 3.6, 3.7 and 3.8:
 		- pip3 install iotconnect-sdk-1.0.tar.gz
 	- For the Python version 2.7:
-		- Extract the iotconnect-sdk-1.0.tar.gz
-		- cd iotconnect-sdk-1.0/
-		- python setup.py install		
+		- pip install iotconnect-sdk-1.0.tar.gz
 
-4. Use the terminal/command prompt to go to the sample folder.
-	- cd sample/
-	
 5. Edit your firmware file (iotconnect-sdk-1.0-firmware-python_msg-2_1.py) and update the following details:
 	- Edit the required fields as explained in the below Prerequisite configuration (UniqueId)
 	- If your device is secured, configure the x.509 certificate path mentioned in sdkOptions given below. Else, do not make any changes
