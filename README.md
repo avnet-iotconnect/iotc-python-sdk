@@ -176,29 +176,29 @@ To request the list of attributes with the respective device type
 
 Standard data input format for gateway and non-gateway device to send the data on IoTConnect
 ```python
-1. For non-gateway device 
-data = [{"temperature":random.randint(30, 50)}
-dObj= [{
-	"uniqueId": UniqueId,
-	"time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-	"data": data
-}]
+	1. For non-gateway device 
+	data = [{"temperature":random.randint(30, 50)}
+	dObj= [{
+		"uniqueId": UniqueId,
+		"time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+		"data": data
+	}]
 
-2. For gateway and multiple child devices 
-dObj = [{
-	"uniqueId": "<< Gateway Device UniqueId >>",
-	"time": "<< date >>",
-	"data": {"temperature":random.randint(30, 50)}
-},
-{
-	"uniqueId":"<< Child DeviceId >>", 
-	"time": "<< date >>",
-	"data": {"temperature":random.randint(30, 50)}
-}]
-sendBackToSDK(Sdk, dObj)
+	2. For gateway and multiple child devices 
+	dObj = [{
+		"uniqueId": "<< Gateway Device UniqueId >>",
+		"time": "<< date >>",
+		"data": {"temperature":random.randint(30, 50)}
+	},
+	{
+		"uniqueId":"<< Child DeviceId >>", 
+		"time": "<< date >>",
+		"data": {"temperature":random.randint(30, 50)}
+	}]
+	sendBackToSDK(Sdk, dObj)
 ```
-"time": Date format should be #"2021-01-24T10:06:17.857Z" 
-"data": JSON data type format # {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
+- "time": Date format should be #"2021-01-24T10:06:17.857Z" 
+- "data": JSON data type format # {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
 
 
 To disconnect the device from the cloud
