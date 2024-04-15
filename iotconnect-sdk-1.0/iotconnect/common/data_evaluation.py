@@ -1,8 +1,7 @@
-import sys
-import string
 from datetime import datetime
 import json
 
+from iotconnect.common.util import *
 from iotconnect.common.infinite_timer import infinite_timer
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
 
@@ -14,77 +13,11 @@ aggrigate_type = [
     { "name": "count", "value": 16 },
     { "name": "lv", "value": 32 }
 ]
-DATATYPE = {
-    "INT"     : 1,
-    "LONG"    : 2,
-    "FLOAT"   : 3,
-    "STRING"  : 4,
-    "Time"    : 5,
-    "Date"    : 6,
-    "DateTime": 7,
-    "BIT"     : 8,
-    "Boolean" : 9,
-    "LatLong" : 10,
-    "OBJECT"  : 12
-}
 
 class data_evaluation:
     _isEdge = False
     _attribute = None
     _data = {}
-
-    def parseNum(self, x,sign):
-        try:
-            if type(x) == str:
-                if sign and '.' in x:
-                    return float(x)
-                else:
-                    return int(x)
-            elif type(x) == int:
-                return int(x)
-            else:
-                return float(x)
-        except ValueError:
-            return x
-
-    def parseData(self, value,sign):
-        try:
-            if value != None:
-                if type(value) == str:
-                    value = value.rstrip()
-            else:
-                value = ""
-            return self.parseNum(value,sign)
-        except:
-            return value
-
-    def DateTimeConversion(self,value,min_value,max_value,format,r_format):
-        try:
-            if min_value:
-                min_value=min_value.replace(" ","")
-                min_value=datetime.strptime(min_value, r_format)
-                min_value=int(min_value.strftime(format))
-            if max_value:
-                max_value=max_value.replace(" ","")
-                max_value=datetime.strptime(max_value, r_format)
-                max_value=int(max_value.strftime(format))
-            if value:
-                t_value=datetime.strptime(value, r_format)
-                t_value=int(t_value.strftime(format))
-
-            return t_value,min_value,max_value
-        except Exception as ex:
-            print(ex)
-            return None,None,None
-
-    def parseDateTime(self,date_time,format):
-        if type(date_time) == str:
-            try:
-                return bool(datetime.strptime(date_time, format))
-            except:
-                return False
-        else:
-            return False
 
     def get_interval(self, config):
         try:
@@ -108,156 +41,7 @@ class data_evaluation:
             return duration
         except:
             return 0
-
-    def twin_validate(self,dataType,validation,value):
-        try:
-            dataValidation=validation
-            isValid = False
-            if dataType == DATATYPE["INT"] or dataType == DATATYPE["LONG"]:
-                value = self.parseData(value,1)
-                isValid=True
-                if isinstance(value, (int)) and dataType == DATATYPE["INT"] and dataValidation != None and dataValidation != "" and value >= -(2**31) and value <= (2**31):
-                    isValid = False
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if v.find("to") > -1:
-                                vRange = v.split("to")
-                                if(value >= float(vRange[0].strip('')) and value <= float(vRange[1].strip(''))):
-                                    isValid = True
-                            elif float(value) == float(v):
-                                isValid = True
-
-                if isinstance(value, (int)) and dataType == DATATYPE["LONG"] and dataValidation != None and dataValidation != "" and value >= -(2**63) and value <= (2**63):
-                    isValid = False
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if v.find("to") > -1:
-                                vRange = v.split("to")
-                                if(value >= int(vRange[0].strip('')) and value <= int(vRange[1].strip(''))):
-                                    isValid = True
-                            elif int(value) == int(v):
-                                isValid = True
-
-                # --------------------------------
-            elif dataType == DATATYPE["STRING"]:
-                if type(value) == str:
-                    isValid = True
-                if isinstance(value, str) and dataValidation != None and dataValidation != "":
-                    isValid = False
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if v.find("to") > -1:
-                                vRange = v.split("to")
-                                if(value >= int(vRange[0].strip()) and value <= int(vRange[1].strip())):
-                                    isValid = True
-                            elif str(value) == v.strip():
-                                isValid = True
-
-            elif dataType == DATATYPE["FLOAT"]:
-                value = self.parseData(value,0)
-                isValid = True
-                if isinstance(value, (int,float)) and dataValidation != None and dataValidation != "":
-                    isValid = False
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if v.find("to") > -1:
-                                vRange = v.split("to")
-                                if(value >= float(vRange[0].strip('')) and value <= float(vRange[1].strip(''))):
-                                    isValid = True
-                            elif float(value) == float(v):
-                                isValid = True
-
-            elif dataType == DATATYPE["DateTime"]:
-                isValid=self.parseDateTime(value,"%Y-%m-%dT%H:%M:%S.000Z")
-                if  isValid and dataValidation != None and dataValidation != "":
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if v.find("to") > -1:
-                                vRange = v.split("to")
-                                t_value,min_value,max_value=self.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%Y%m%d%H%M%S","%Y-%m-%dT%H:%M:%S.000Z")
-                                if t_value and min_value and max_value:
-                                    if( t_value >= min_value and t_value <= max_value):
-                                        isValid= True
-                            else:
-                                t_value,min_value,_=self.DateTimeConversion(value,str(v.strip('')),0,"%Y%m%d%H%M%S","%Y-%m-%dT%H:%M:%S.000Z")
-                                if t_value == min_value:
-                                    isValid = True
-
-            elif dataType == DATATYPE["Date"]:
-                isValid=self.parseDateTime(value,"%Y-%m-%d")
-                if  isValid and dataValidation != None and dataValidation != "":
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if v.find("to") > -1:
-                                vRange = v.split("to")
-                                t_value,min_value,max_value=self.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%Y%m%d","%Y-%m-%d")
-                                if t_value and min_value and max_value:
-                                    if( t_value >= min_value and t_value <= max_value):
-                                        isValid= True
-                            else:
-                                t_value,min_value,_=self.DateTimeConversion(value,str(v.strip('')),0,"%H%M%S","%Y-%m-%d")
-                                if t_value == min_value:
-                                    isValid = True
-
-            elif dataType == DATATYPE["Time"]:
-                isValid=self.parseDateTime(value,"%H:%M:%S")
-                if  isValid and dataValidation != None and dataValidation != "":
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if v.find("to") > -1:
-                                vRange = v.split("to")
-                                t_value,min_value,max_value=self.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%H%M%S","%H:%M:%S")
-                                if t_value and min_value and max_value:
-                                    if( t_value >= min_value and t_value <= max_value):
-                                        isValid= True
-                            else:
-                                t_value,min_value,_=self.DateTimeConversion(value,str(v.strip('')),0,"%H%M%S","%H:%M:%S")
-                                if t_value == min_value:
-                                    isValid = True
-
-            elif dataType == DATATYPE["BIT"]:
-                if type(value) == int and (value == 0 or value == 1):
-                    isValid = True
-                if dataValidation != None and dataValidation != "":
-                    isValid = False
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if value == int(v):
-                                isValid = True
-
-            elif dataType == DATATYPE["Boolean"]:
-                if type(value) == bool and (value == True or value == False):
-                    isValid = True
-                if dataValidation != None and dataValidation != "":
-                    isValid = False
-                    vlist = dataValidation.split(",")
-                    if len(vlist) > 0:
-                        for v in vlist:
-                            if v == "true" or v == "True":
-                                v=True
-                            elif v == "false" or v == "False":
-                                v=False
-                            try:
-                                if value == bool(v):
-                                    isValid = True
-                            except:
-                                isValid = False
-            return isValid
-        except:
-            raise(IoTConnectSDKException("09","dataevaluation"))
-
-    @classmethod
-    def twin_validate_data(cls,dataType,validation,value):
-        return cls.twin_validate(dataType,validation,value)
-
+    
     def process_data(self, config, parent, value,do_validation):
         try:
             key = self.get_data_key(config, parent)
@@ -271,7 +55,7 @@ class data_evaluation:
             if do_validation:
                 # --------------------------------
                 if dataType == DATATYPE["INT"] or dataType == DATATYPE["LONG"]:
-                    value = self.parseData(value,1)
+                    value = util.parseData(value,1)
                     isValid=True
                     if isinstance(value, (int)) and dataType == DATATYPE["INT"] and value >= -(2**31) and value <= (2**31):
                         if dataValidation != None and dataValidation != "":
@@ -317,7 +101,7 @@ class data_evaluation:
                                     isValid = True
 
                 elif dataType == DATATYPE["FLOAT"]:
-                    value = self.parseData(value,0)
+                    value = util.parseData(value,0)
                     isValid = True
                     if isinstance(value, (int,float)):
                         if dataValidation != None and dataValidation != "":
@@ -334,53 +118,53 @@ class data_evaluation:
                     else:
                         isValid = False
                 elif dataType == DATATYPE["DateTime"]:
-                    isValid=self.parseDateTime(value,"%Y-%m-%dT%H:%M:%S.000Z")
+                    isValid=util.parseDateTime(value,"%Y-%m-%dT%H:%M:%S.000Z")
                     if  isValid and dataValidation != None and dataValidation != "":
                         vlist = dataValidation.split(",")
                         if len(vlist) > 0:
                             for v in vlist:
                                 if v.find("to") > -1:
                                     vRange = v.split("to")
-                                    t_value,min_value,max_value=self.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%Y%m%d%H%M%S","%Y-%m-%dT%H:%M:%S.000Z")
+                                    t_value,min_value,max_value=util.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%Y%m%d%H%M%S","%Y-%m-%dT%H:%M:%S.000Z")
                                     if t_value and min_value and max_value:
                                         if( t_value >= min_value and t_value <= max_value):
                                             isValid= True
                                 else:
-                                    t_value,min_value,_=self.DateTimeConversion(value,str(v.strip('')),0,"%Y%m%d%H%M%S","%Y-%m-%dT%H:%M:%S.000Z")
+                                    t_value,min_value,_=util.DateTimeConversion(value,str(v.strip('')),0,"%Y%m%d%H%M%S","%Y-%m-%dT%H:%M:%S.000Z")
                                     if t_value == min_value:
                                         isValid = True
 
                 elif dataType == DATATYPE["Date"]:
-                    isValid=self.parseDateTime(value,"%Y-%m-%d")
+                    isValid=util.parseDateTime(value,"%Y-%m-%d")
                     if  isValid and dataValidation != None and dataValidation != "":
                         vlist = dataValidation.split(",")
                         if len(vlist) > 0:
                             for v in vlist:
                                 if v.find("to") > -1:
                                     vRange = v.split("to")
-                                    t_value,min_value,max_value=self.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%Y%m%d","%Y-%m-%d")
+                                    t_value,min_value,max_value=util.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%Y%m%d","%Y-%m-%d")
                                     if t_value and min_value and max_value:
                                         if( t_value >= min_value and t_value <= max_value):
                                             isValid= True
                                 else:
-                                    t_value,min_value,_=self.DateTimeConversion(value,str(v.strip('')),0,"%H%M%S","%Y-%m-%d")
+                                    t_value,min_value,_=util.DateTimeConversion(value,str(v.strip('')),0,"%H%M%S","%Y-%m-%d")
                                     if t_value == min_value:
                                         isValid = True
 
                 elif dataType == DATATYPE["Time"]:
-                    isValid=self.parseDateTime(value,"%H:%M:%S")
+                    isValid=util.parseDateTime(value,"%H:%M:%S")
                     if  isValid and dataValidation != None and dataValidation != "":
                         vlist = dataValidation.split(",")
                         if len(vlist) > 0:
                             for v in vlist:
                                 if v.find("to") > -1:
                                     vRange = v.split("to")
-                                    t_value,min_value,max_value=self.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%H%M%S","%H:%M:%S")
+                                    t_value,min_value,max_value=util.DateTimeConversion(value,str(vRange[0].strip('')),str(vRange[1].strip('')),"%H%M%S","%H:%M:%S")
                                     if t_value and min_value and max_value:
                                         if( t_value >= min_value and t_value <= max_value):
                                             isValid= True
                                 else:
-                                    t_value,min_value,_=self.DateTimeConversion(value,str(v.strip('')),0,"%H%M%S","%H:%M:%S")
+                                    t_value,min_value,_=util.DateTimeConversion(value,str(v.strip('')),0,"%H%M%S","%H:%M:%S")
                                     if t_value == min_value:
                                         isValid = True
 
@@ -423,7 +207,7 @@ class data_evaluation:
             # --------------------------------
             if self._isEdge:
                 if isValid and (dataType == DATATYPE["INT"] or dataType == DATATYPE["LONG"] or dataType == DATATYPE["FLOAT"]) and self.has_key(_config, "values"):
-                    value=self.parseNum(value,1)
+                    value=util.parseNum(value,1)
                     if type(value) != str:
                         _config["values"].append(value)
                         _config["current_value"] = value

@@ -5,7 +5,7 @@ ERROR_CODE = {
     "02" : "Unable to read base URL.",
     "03" : "Sync response # {msg}",
     "04" : "Unable to proceed without info # {msg}",
-    "05" : "Invalid certificate path, please check 'SdkOption'",
+    "05" : "Certificate is missing or invalid, please check 'SdkOption'",
     "06" : "Protocol initialization failed # {msg}",
     "07" : "Template initialization failed for # {msg}",
     "08" : "Tumbling window initialization failed for attribute # {msg}",

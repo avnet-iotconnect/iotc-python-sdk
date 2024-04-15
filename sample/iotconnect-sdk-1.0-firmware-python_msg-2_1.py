@@ -30,9 +30,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-
-UniqueId = "<<Your Device UniqueID>>" 
-SId = "<<Your Company SID>>"
+UniqueId = "Your UniqueId"
 
 Sdk=None
 interval = 30
@@ -58,9 +56,10 @@ device_list=[]
 
 SdkOptions={
 	"certificate" : { 
-		"SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-		"SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-		"SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem 
+        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
+ 
         
 	},
     "offlineStorage":{
@@ -73,9 +72,12 @@ SdkOptions={
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
-    #"discoveryUrl":"http://52.204.155.38:219", #AWS pre-QA Environment
-    "IsDebug": False
+    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
+    "IsDebug": False,
+    "cpid" : "Your CPID ",
+    "sId" : "Your SID",
+    "env" : "Your env",
+    "pf"  : "Your pf"
    
 }
 
@@ -233,7 +235,7 @@ def attributeDetails(data):
 
 
 def main():
-    global SId,SdkOptions,Sdk,ACKdirect,device_list
+    global SdkOptions,Sdk,ACKdirect,device_list
     
     try:
         """
@@ -253,7 +255,8 @@ def main():
         * Input   : cpId, uniqueId, sdkOptions, env as explained above and DeviceCallback and TwinUpdateCallback is callback functions
         * Output  : Callback methods for device command and twin properties
         """
-        with IoTConnectSDK(UniqueId,SId,SdkOptions,DeviceConectionCallback) as Sdk:
+        
+        with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback) as Sdk:
             try:
                 """
                 * Type    : Public Method "GetAllTwins()"
