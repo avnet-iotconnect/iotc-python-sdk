@@ -68,7 +68,7 @@ class mqttclient:
         payload=u'{"ct": 116,"data": {"guid": "","uniqueId":"_uniqueId","command": "True","ack": "False","ackId": "","ct": 116}}'
 
     def _on_connect(self, mqtt_self, client, userdata, rc):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(awsaws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if rc != 0:
             print("_isConnected not")
             self._isConnected = False
@@ -99,7 +99,7 @@ class mqttclient:
 
     # change with Python 3.0.4 SDK
     def _on_disconnect(self, client, userdata,rc=0):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         self._rc_status = rc
         self._isConnected = False
         if self._client != None:
@@ -110,20 +110,20 @@ class mqttclient:
         
 
     def get_twin(self):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._isConnected:
             # print("_twin_pub_res_topic")
             self._client.publish(topic = self._twin_pub_res_topic, payload="", qos= mqtt.QoS.AT_LEAST_ONCE)
 
     def has_key(self, data, key):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             return key in data
         except:
             return False
 
     def _on_message(self, topic, payload):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         print("Received message from topic '{}': {}".format(topic, payload))
         # if self.has_key("payload", payload) == False and payload.payload == None:
         #     return
@@ -157,7 +157,7 @@ class mqttclient:
                 self._onDirectMethod(msg_data,method,rid)    
 
     def _connect(self):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             try:
                 if self._isConnected == False:
@@ -179,7 +179,7 @@ class mqttclient:
             #raise ex
     
     def _validateSSL(self, certificate):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         is_valid_path = True
         if certificate == None:
             raise(IoTConnectSDKException("01", "Certificate info"))
@@ -194,7 +194,7 @@ class mqttclient:
             raise(IoTConnectSDKException("05"))
     
     def Disconnect(self):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._client != None:
                 self._client.disconnect()
@@ -209,7 +209,7 @@ class mqttclient:
             self._rc_status = None
     
     def send_HB(self):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             data="{}"
             _obj=None
@@ -224,7 +224,7 @@ class mqttclient:
             return False
 
     def Send(self,data,msgtype):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             _obj = None
             pubtopic=None
@@ -275,7 +275,7 @@ class mqttclient:
             return True
     
     def SendTwinData(self, data):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             _obj = None
             if self._isConnected:
@@ -292,7 +292,7 @@ class mqttclient:
             return False
 
     def SendDirectData(self,data,status,requestId):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._isConnected:
                 if self._direct_pub_res_topic:
@@ -304,7 +304,7 @@ class mqttclient:
             return False
 
     def _init_mqtt(self):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             # self.Disconnect()
             # self._client = mqtt.Client(client_id=self._config['id'], clean_session=True, userdata=None, protocol=mqtt.MQTTv311)
@@ -409,7 +409,7 @@ class mqttclient:
         return self._config["n"]
     
     def __init__(self, auth_type, config, sdk_config, onMessage,onDirectMethod,onTwinMessage = None):
-        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         
         self._auth_type = auth_type
         self._config = config

@@ -142,7 +142,7 @@ class aws_IoTConnectSDK:
     _data_evaluation = None
     
     def get_config(self):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             self._config = None
             _path = os.path.abspath(os.path.dirname(__file__))
@@ -156,7 +156,7 @@ class aws_IoTConnectSDK:
             raise(IoTConnectSDKException("01", "Config file"))
     
     def getTwins(self):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._dispose == True:
             raise(IoTConnectSDKException("00", "you are not able to call this function"))
         if self._is_process_started == False:
@@ -165,7 +165,7 @@ class aws_IoTConnectSDK:
             self._client.get_twin()
 
     def get_properties(self):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             _properties = self._property
             if _properties != None:
@@ -182,7 +182,7 @@ class aws_IoTConnectSDK:
             
     
     def reconnect_device(self,msg):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             print(msg)
             #self.process_sync("all")   
@@ -190,7 +190,7 @@ class aws_IoTConnectSDK:
             self._offlineflag = True
                 
     def get_base_url(self, sId):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if not self._cpId:
                 base_url = "/api/v2.1/dsdk/sid/" + sId
@@ -227,7 +227,7 @@ class aws_IoTConnectSDK:
             return None
 
     def Dispose(self):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._dispose == True:
                 self.write_debuglog('[ERR_DC02] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Connection not available",1)
@@ -263,47 +263,47 @@ class aws_IoTConnectSDK:
             raise(IoTConnectSDKException("00","Dispose error.."))
 
     def onOTACommand(self,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if callback:
             self._listner_ota_callback = callback
 
     def onModuleCommand(self,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if callback:
             self._listner_module_callback = callback
 
     def onDeviceCommand(self,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if callback:
             self._listner_device_callback = callback
 
     def onTwinChangeCommand(self,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if callback:
             self._listner_twin_callback = callback
 
     def onAttrChangeCommand(self,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if callback:
             self._listner_attchng_callback = callback
     
     def onDeviceChangeCommand(self,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if callback:
             self._listner_devicechng_callback=callback
 
     def onRuleChangeCommand(self,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         self._listner_rulechng_callback = callback
 
     def heartbeat_stop(self):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._heartbeat_timer:
             self._heartbeat_timer.cancel()
             self._heartbeat_timer = None
 
     def heartbeat_start(self,time):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._heartbeat_timer:
             self._heartbeat_timer.cancel()
         if self._client:
@@ -311,7 +311,7 @@ class aws_IoTConnectSDK:
             self._heartbeat_timer.start()
 
     def onMessage(self, msg):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         print("\n====================>>>>>>>>>>>>>>>>>>>>>>>\n")
         print ("Cloud To Device Message Received::\n",msg)
         print("\n<<<<<<<<<<<<<<<<<<<<<<<====================\n")
@@ -496,7 +496,7 @@ class aws_IoTConnectSDK:
             print("Message process failed..."+ str(ex))
     
     def onTwinMessage(self, msg,value):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._dispose == True:
                 raise(IoTConnectSDKException("00", "you are not able to call this function"))    
@@ -521,7 +521,7 @@ class aws_IoTConnectSDK:
             print("Message process failed...",ex)
 
     def onDirectMethodMessage(self,msg,methodname,requestId):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._listner_direct_callback_list :
                 self._listner_direct_callback_list[str(methodname)](msg,methodname,requestId)
@@ -530,7 +530,7 @@ class aws_IoTConnectSDK:
 
         
     def generate_sas_token(self,uri, key, policy_name=None, expiry=31536000):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         ttl = time.time() + expiry
         sign_key = "%s\n%d" % ((quote_plus(uri)), int(ttl))
         signature = b64encode(HMAC(b64decode(key), sign_key.encode('utf-8'), sha256).digest())
@@ -545,7 +545,7 @@ class aws_IoTConnectSDK:
 
 
     def init_protocol(self):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             protocol_cofig = self.protocol
             name = protocol_cofig["n"]
@@ -586,7 +586,7 @@ class aws_IoTConnectSDK:
     
     
     def _hello_handsake(self,data):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._client:
             self._client.Send(data,"Di")
 
@@ -595,7 +595,7 @@ class aws_IoTConnectSDK:
     Identity URL -->  def post_call(self, url)  --> return POST json Data
     '''
     def post_call(self, url):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             url=url+"/uid/"+self._uniqueId
             res = urllib.urlopen(url).read().decode("utf-8")
@@ -606,7 +606,7 @@ class aws_IoTConnectSDK:
             return None
     
     def process_sync(self, option):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             self._time_s=10
             isReChecking = False
@@ -701,7 +701,7 @@ class aws_IoTConnectSDK:
             raise ex
     
     def find_df(self,seconds): 
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         
         seconds = seconds % (24 * 3600) 
         hour = seconds // 3600
@@ -712,7 +712,7 @@ class aws_IoTConnectSDK:
         return times
 
     def SendData(self,jsonArray):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         
         try:
             if self._dispose == True:
@@ -893,7 +893,7 @@ class aws_IoTConnectSDK:
                 print(ex.message)
     
     def sendAckModule(self,ackGuid, status, msg):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._dispose == True:
             raise(IoTConnectSDKException("00", "you are not able to call this function"))
         if self._is_process_started == False:
@@ -916,7 +916,7 @@ class aws_IoTConnectSDK:
             raise(ex)
 
     def sendOTAAckCmd(self,ackGuid, status, msg,childId=None):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._dispose == True:
             raise(IoTConnectSDKException("00", "you are not able to call this function"))
         if self._is_process_started == False:
@@ -951,7 +951,7 @@ class aws_IoTConnectSDK:
             raise(ex)
 
     def sendAckCmd(self,ackGuid, status, msg,childId=None):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._dispose == True:
             raise(IoTConnectSDKException("00", "you are not able to call this function"))
         if self._is_process_started == False:
@@ -986,7 +986,7 @@ class aws_IoTConnectSDK:
             raise(ex)
 
     def UpdateTwin(self, key, value):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             isvalid = True
             if self._dispose == True:
@@ -1020,7 +1020,7 @@ class aws_IoTConnectSDK:
             print(ex)
 
     def send_edge_data(self, data):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._dispose == True:
                 return
@@ -1050,7 +1050,7 @@ class aws_IoTConnectSDK:
 
     #need to change in 2.1 format 
     def send_rule_data(self, data):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             id = self._uniqueId
             if self._data_json['meta']['gtw'] :
@@ -1069,7 +1069,7 @@ class aws_IoTConnectSDK:
             print(ex)
     
     def send_msg_to_broker(self, msgType, data):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             self._lock.acquire()
             #return
@@ -1115,7 +1115,7 @@ class aws_IoTConnectSDK:
             self._lock.release()
     
     def send_offline_msg_to_broker(self, data):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         _Online = False
         if self._client:
             data.update({"od":1})
@@ -1125,7 +1125,7 @@ class aws_IoTConnectSDK:
         return _Online
     
     def command_sender(self, command_text,rule):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._is_process_started == False:
                 return
@@ -1141,7 +1141,7 @@ class aws_IoTConnectSDK:
             print(ex)
     
     def clear_object(self, option):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if option == "all" or option == "attribute":
                 for attr in self.attributes:
@@ -1152,7 +1152,7 @@ class aws_IoTConnectSDK:
             raise(ex)
     
     def reset_process_sync(self, option):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             time.sleep(1)
             self.process_sync(option)
@@ -1160,14 +1160,14 @@ class aws_IoTConnectSDK:
             print(ex)
     
     def event_call(self, name, taget, arg):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         _thread = threading.Thread(target=getattr(self, taget), args=arg)
         #_thread.daemon = True
         _thread.setName(name)
         _thread.start()
 
     def delete_child(self,child_id,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._dispose == True:
                 self.write_debuglog('[ERR_GD03] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Request failed to delete the child device",1)
@@ -1192,7 +1192,7 @@ class aws_IoTConnectSDK:
             return None
 
     def Getdevice(self):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._dispose == True:
                 raise(IoTConnectSDKException("00", "you are not able to call this function"))
@@ -1203,7 +1203,7 @@ class aws_IoTConnectSDK:
             return None
     
     def GetAttributes(self,callback):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if callback:
                 self._getattribute_callback = callback
@@ -1216,7 +1216,7 @@ class aws_IoTConnectSDK:
             return None
 
     def createChildDevice(self, deviceId, deviceTag, displayName, callback=None):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if type(deviceId) != str and type(deviceTag) != str and type(displayName) != str:
                 raise(IoTConnectSDKException("00", "Child Device deviceId|deviceTag|displayName all should be string"))
@@ -1255,14 +1255,14 @@ class aws_IoTConnectSDK:
         return error[str(errorcode)]
 
     def has_key(self, data, key):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             return key in data
         except:
             return False
     
     def is_not_blank(self, s):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         return bool(s and s.strip())
     
     @property
@@ -1430,7 +1430,7 @@ class aws_IoTConnectSDK:
         return self
     
     def __exit__(self, exc_type, exc_value, exc_tb):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             self._is_process_started = False
             for attr in self.attributes:
@@ -1481,7 +1481,7 @@ class aws_IoTConnectSDK:
         librt.clock_settime(CLOCK_REALTIME,ctypes.byref(ts))
 
     def __init__(self, uniqueId, sId,cpid,env,pf,sdkOptions=None,initCallback=None):
-        print("TRIAL(Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("TRIAL(aws_Iotconnectsdk.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         self._lock = threading.Lock()
 
 #        if sys.platform == 'win32':
