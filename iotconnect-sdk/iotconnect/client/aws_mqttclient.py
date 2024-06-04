@@ -1,0 +1,463 @@
+import sys
+import os
+import ssl as ssl
+# import paho.mqtt.client as mqtt
+import json
+if ('linux' in sys.platform) and (sys.version_info >=(3,5)):
+    import jsonlib
+import time
+from iotconnect.IoTConnectSDKException import IoTConnectSDKException
+
+import inspect
+
+# new Added
+from awscrt import mqtt, http
+from awsiot import mqtt_connection_builder
+
+authType = {
+	"KEY": 1,
+	"CA_SIGNED": 2,
+	"CA_SELF_SIGNED": 3,
+    "SKEY": 5,
+	"CA_ind": 7
+    
+}
+
+
+class mqttclient:
+    _name = None
+    _auth_type = None
+    _sdk_config = None
+    _config = None
+    _subTopic = None
+    _pubTopic = None
+    _pubACK=None
+    _pubOfline=None
+    _pubRpt=None
+    _pubERpt=None
+    _pubFlt=None
+    _pubHB=None
+    _pubERm=None
+    _pubDL=None
+    _pubDi=None
+    _twin_pub_topic = None
+    _twin_sub_topic = None
+    _twin_sub_res_topic = None
+    _client = None
+    _keepalive = 60
+    _onMessage = None
+    _onTwinMessage = None
+    _isConnected = False
+    _rc_status = None
+    _path_to_root_cert=None
+    _onDirectMethod=None
+    _direct_sub="$iothub/methods/POST/#"
+    _direct_pub_res_topic="$iothub/methods/res/{status}/?$rid={request id}"
+    _mqtt_status = {
+        0: "MQTT: Connection successful",
+        1: "MQTT: Connection refused - incorrect protocol version",
+        2: "MQTT: Connection refused - invalid client identifier",
+        3: "MQTT: Connection refused - server unavailable",
+        4: "MQTT: Connection refused - bad username or password",
+        5: "MQTT: Connection refused - not authorised"
+    }
+
+    class disconnect_msg:
+        payload=u'{"ct": 116,"data": {"guid": "","uniqueId":"_uniqueId","command": "False","ack": "False","ackId": "","ct": 116}}'
+    class connect_msg:
+        payload=u'{"ct": 116,"data": {"guid": "","uniqueId":"_uniqueId","command": "True","ack": "False","ackId": "","ct": 116}}'
+
+    def _on_connect(self, mqtt_self, client, userdata, rc):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        if rc != 0:
+            print("_isConnected not")
+            self._isConnected = False
+        else:
+            print("_isConnected")
+            self._isConnected = True
+            msg =self.connect_msg()
+            msg_data=json.loads(msg.payload)
+            self._onMessage(msg_data)
+
+        if self._isConnected and mqtt_self:            
+            print("subscribe topics")
+            mqtt_self.subscribe(self._subTopic)
+            mqtt_self.subscribe(self._twin_sub_topic)
+            mqtt_self.subscribe(self._twin_sub_res_topic)
+            if self._config["pf"] == "az":
+                mqtt_self.subscribe(self._direct_sub)
+        self._rc_status = rc
+    
+    # old
+    # def _on_disconnect(self, client, userdata,rc=0):
+    #     self._rc_status = rc
+    #     msg=self.disconnect_msg()
+    #     msg_data=json.loads(msg.payload)
+    #     self._onMessage(msg_data)
+    #     self._isConnected = False
+    #     self._client.loop_stop()
+
+    # change with Python 3.0.4 SDK
+    def _on_disconnect(self, client, userdata,rc=0):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        self._rc_status = rc
+        self._isConnected = False
+        if self._client != None:
+            self._client.loop_stop()
+        msg=self.disconnect_msg()
+        msg_data=json.loads(msg.payload)
+        self._onMessage(msg_data)
+        
+
+    def get_twin(self):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        if self._isConnected:
+            # print("_twin_pub_res_topic")
+            self._client.publish(topic = self._twin_pub_res_topic, payload="", qos= mqtt.QoS.AT_LEAST_ONCE)
+
+    def has_key(self, data, key):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        try:
+            return key in data
+        except:
+            return False
+
+    def _on_message(self, topic, payload):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        print("Received message from topic '{}': {}".format(topic, payload))
+        # if self.has_key("payload", payload) == False and payload.payload == None:
+        #     return
+        # else:
+        #     msg_data = payload.payload.decode("utf-8")
+        #     if msg_data == None or len(msg_data) == 0:
+        #         return
+        
+        # msg_json = json.dumps(payload)    
+        msg_data = json.loads(payload)
+        
+        if topic.find(self._subTopic[:-1]) > -1 and self._onMessage != None:
+            self._onMessage(msg_data)
+        if topic.find(self._twin_sub_topic[:-1]) > -1 and self._onTwinMessage != None:
+            # print ("_twin_sub_topic")
+            print(msg_data)
+            self._onTwinMessage(msg_data,1)
+        if topic.find(self._twin_sub_res_topic[:-1]) > -1:
+            # print ("twin_sub_res_topic")
+            print(msg_data)
+            self._onTwinMessage(msg_data,0)
+        if topic.find(self._direct_sub[:-1]) > -1 and self._onDirectMethod != None:
+            method=str(topic.replace(self._direct_sub[:-1],''))
+            leng=method.find('/')
+            method=method.replace(method[leng:],'')
+            #print(method)
+            leng=topic.find("rid=")
+            if leng > -1:
+                rid=topic[leng+4:]
+                rid=str(rid)
+                self._onDirectMethod(msg_data,method,rid)    
+
+    def _connect(self):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        try:
+            try:
+                if self._isConnected == False:
+                    self._client.connect(self._config["h"], self._config["p"], self._keepalive)
+                    self._client.loop_start()
+            except Exception as ex:
+                self._rc_status = 5
+            
+            while self._rc_status == None:
+                time.sleep(0.5)
+            
+            if self._rc_status == 0:
+                print("\n____________________\n\nProtocol Initialized\nDevice Is Connected with IoTConnect\n____________________\n")
+                # print("Device Is Connected with IoTConnect\n")
+            else:
+                raise(IoTConnectSDKException("06", self._mqtt_status[self._rc_status]))
+        except Exception as ex:
+            return False
+            #raise ex
+    
+    def _validateSSL(self, certificate):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        is_valid_path = True
+        if certificate == None:
+            raise(IoTConnectSDKException("01", "Certificate info"))
+        
+        for prop in certificate:
+            if os.path.isfile(certificate[prop]) == False:
+                is_valid_path = False
+        
+        if is_valid_path:
+            return certificate
+        else:
+            raise(IoTConnectSDKException("05"))
+    
+    def Disconnect(self):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        try:
+            if self._client != None:
+                self._client.disconnect()
+                self._client.loop_stop()
+                while self._isConnected == True:
+                    time.sleep(1)
+                    self._isConnected = False
+                self._client = None
+            self._rc_status = None
+        except:
+            self._client = None
+            self._rc_status = None
+    
+    def send_HB(self):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        try:
+            data="{}"
+            _obj=None
+            if self._isConnected:
+                if self._client and self._pubHB != None:
+                    _obj = self._client.publish(topic=self._pubHB, payload=data, qos= mqtt.QoS.AT_LEAST_ONCE)
+            if _obj and _obj.rc == 0:
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    def Send(self,data,msgtype):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        try:
+            _obj = None
+            pubtopic=None
+            if self._isConnected:
+                if msgtype == "RPTEDGE":
+                    print(data)
+                    pubtopic=self._pubERpt
+                elif msgtype == "RMEdge":
+                    pubtopic=self._pubERm
+                elif msgtype == "CMD_ACK" or msgtype == "FW":
+                    pubtopic=self._pubACK
+                elif msgtype == "OD":
+                    pubtopic=self._pubOfline
+                elif msgtype ==  "RPT":
+                    pubtopic=self._pubRpt
+                elif msgtype == "DL":
+                    pubtopic=self._pubDL
+                elif msgtype == "Di":
+                    pubtopic=self._pubDi
+                else:
+                    pubtopic=self._pubFlt
+
+                if self._client and pubtopic != None:
+                    print("Publishing message to topic '{}': {}".format(pubtopic, data))
+                    if pubtopic == self._pubACK:
+                        _obj = self._client.publish(topic=pubtopic, payload=json.dumps(data),qos= mqtt.QoS.AT_LEAST_ONCE)
+                        return True
+                    else:
+                        _obj = self._client.publish(topic=pubtopic, payload=json.dumps(data),qos= mqtt.QoS.AT_MOST_ONCE)
+                        if sys.version_info >=(3,5):
+                            _obj.wait_for_publish(timeout=2)
+                        else:
+                            time.sleep(0.2)
+                            while(_obj._published==False):
+                                if count == 5:
+                                    break
+                                time.sleep(1)
+                                count+=1
+                        if _obj and _obj._published == True:
+                            return True
+                        else:
+                            return False
+            # if _obj and _obj.rc == 0:
+            #     return True
+            else:
+                return False
+        except:
+            return True
+    
+    def SendTwinData(self, data):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        try:
+            _obj = None
+            if self._isConnected:
+                # print("_twin_pub_topic")
+                print(data)
+                if self._client and self._twin_pub_topic != None:
+                    _obj = self._client.publish(topic=self._twin_pub_topic, payload=json.dumps(data), qos= mqtt.QoS.AT_LEAST_ONCE)
+            
+            if _obj and _obj.rc == 0:
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    def SendDirectData(self,data,status,requestId):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        try:
+            if self._isConnected:
+                if self._direct_pub_res_topic:
+                    self._direct_pub_res_topic=self._direct_pub_res_topic.replace("{status}", status)
+                    self._direct_pub_res_topic=self._direct_pub_res_topic.replace("{request id}",requestId)
+                    obj=self._client.publish(topic=self._direct_pub_res_topic, payload=json.dumps(data))
+                    #print(obj)
+        except:
+            return False
+
+    def _init_mqtt(self):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        try:
+            # self.Disconnect()
+            # self._client = mqtt.Client(client_id=self._config['id'], clean_session=True, userdata=None, protocol=mqtt.MQTTv311)
+            # #Check Auth Type
+            # if (self._auth_type == authType["KEY"]) or (self._auth_type == authType["SKEY"]):
+            #     if self._config['pf'] == "az":
+            #         self._client.username_pw_set(self._config["un"], self._config["pwd"])
+            #     if self._path_to_root_cert != None:
+            #         self._client.tls_set(self._path_to_root_cert, tls_version = ssl.PROTOCOL_TLSv1_2)
+            # elif (self._auth_type == authType["CA_SIGNED"] or self._auth_type == authType["CA_ind"]) :
+            #     if self._config['pf'] == "az":
+            #         self._client.username_pw_set(self._config["un"], None)
+            #     cert_setting = self._validateSSL(self._sdk_config["certificate"])
+            #     if len(cert_setting) != 3:
+            #         raise(IoTConnectSDKException("01", "Certificate/Key in Sdkoption"))
+            #     if cert_setting != None:
+            #         if self._path_to_root_cert != None:
+            #             self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+            #         else:
+            #             self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)    
+            #         self._client.tls_insecure_set(False)
+            # elif self._auth_type == authType["CA_SELF_SIGNED"]:
+            #     if self._config['pf'] == "az":
+            #         self._client.username_pw_set(self._config["un"], None)
+            #     cert_setting = self._validateSSL(self._sdk_config["certificate"])
+            #     if len(cert_setting) != 3:
+            #         raise(IoTConnectSDKException("01", "Certificate/Key in Sdkoption"))
+            #     if cert_setting != None:
+            #         if self._path_to_root_cert != None:
+            #             self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+            #         else:
+            #             self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
+            #         self._client.tls_insecure_set(False)
+            # self._client.on_connect = self._on_connect
+            # self._client.on_disconnect = self._on_disconnect
+            # self._client.on_message = self._on_message
+            # self._client.disable_logger()
+            # if self._client != None:
+            #     if (self._connect()!= None):
+            #         _path = os.path.abspath(os.path.dirname(__file__))
+            #         _config_path = os.path.join(_path, "assets/DigiCertGlobalRootG2.txt")
+            #         _config_path=_config_path.replace("client","")
+            #         self._path_to_root_cert=_config_path
+            #         self._init_mqtt()
+            #     else:
+            #         print ("IoTConnect Python 1.1 SDK message version 2.1(Release Date: 24 December 2022)")
+            
+            cert_setting = self._validateSSL(self._sdk_config["certificate"])
+            
+            # Create a MQTT connection from the command line data
+            self._client = mqtt_connection_builder.mtls_from_path(
+                endpoint = self._config['h'],
+                port = self._config['p'],
+                # username = "",
+                # password= "",
+                cert_filepath = str(cert_setting["SSLCertPath"]),
+                pri_key_filepath = str(cert_setting["SSLKeyPath"]),
+                ca_filepath= str(cert_setting["SSLCaPath"]),
+                # on_connection_interrupted=on_connection_interrupted,
+                # on_connection_resumed=on_connection_resumed,
+                client_id = self._config['id'],
+                clean_session = False,
+                keep_alive_secs = self._keepalive,
+                # on_connection_success = self._on_connect,
+                # on_connection_failure = self._on_disconnect,
+                # on_connection_closed = self._on_disconnect
+            )
+
+            connect_future = self._client.connect()
+
+            # Future.result() waits until a result is available
+            connection_status = connect_future.result()
+            print("connection_status : {}".format(connection_status))
+            
+            if connection_status['session_present']:
+                print("Session present: resuming previous session")
+                
+                self._isConnected = True
+                
+                msg =self.connect_msg()
+                msg_data=json.loads(msg.payload)
+                self._onMessage(msg_data)
+                
+                self._client.subscribe(topic = self._subTopic ,qos = mqtt.QoS.AT_LEAST_ONCE, callback = self._on_message)
+                self._client.subscribe(topic = self._twin_sub_topic ,qos = mqtt.QoS.AT_LEAST_ONCE, callback = self._on_message)
+                self._client.subscribe(topic = self._twin_sub_res_topic ,qos = mqtt.QoS.AT_LEAST_ONCE, callback = self._on_message)
+                
+            else:
+                print("No session present: establishing new session")
+                self._isConnected = False
+
+
+        except Exception as ex:
+            raise ex
+    
+    @property
+    def isConnected(self):
+        return self._isConnected
+    
+    @property
+    def name(self):
+        return self._config["n"]
+    
+    def __init__(self, auth_type, config, sdk_config, onMessage,onDirectMethod,onTwinMessage = None):
+        print("TRIAL(mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+        
+        self._auth_type = auth_type
+        self._config = config
+        self._sdk_config = sdk_config
+        self._keepalive= sdk_config["keepalive"] if "keepalive" in sdk_config else 60
+        self._onMessage = onMessage
+        self._onTwinMessage = onTwinMessage
+        self._onDirectMethod=onDirectMethod
+        self._subTopic = str(config['topics']['c2d'])
+        self._pubACK = str(config['topics']['ack'])
+        self._pubOfline=str(config['topics']['od'])
+        self._pubRpt=str(config['topics']['rpt'])
+        if 'erpt' in config['topics']:
+            self._pubERpt=str(config['topics']['erpt'])
+            self._pubERm=str(config['topics']['erm'])
+        self._pubFlt=str(config['topics']['flt'])
+        self._pubHB=str(config['topics']['hb'])
+        self._pubDL=str(config['topics']['dl'])
+        self._pubDi=str(config['topics']['di'])
+        platfrom = config["pf"]
+        # print (platfrom)
+        if config["pf"] == "az":
+            print ("\n============>>>>>>>>>>>\n")
+            print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-")
+            print ("\n<<<<<<<<<<<============\n")
+            self._twin_pub_topic = str(sdk_config['az']['twin_pub_topic'])
+            self._twin_sub_topic = str(sdk_config['az']['twin_sub_topic'])
+            self._twin_sub_res_topic = str(sdk_config['az']['twin_sub_res_topic'])
+            self._twin_pub_res_topic = str(sdk_config['az']['twin_pub_res_topic'])
+            _path = os.path.abspath(os.path.dirname(__file__))
+            _config_path = os.path.join(_path, "assets/az_crt.txt")
+            #_config_path = os.path.join(_path, "assets/DigiCertGlobalRootG2.txt")
+            _config_path=_config_path.replace("client","")
+            self._path_to_root_cert=_config_path
+        else:
+            print ("\n============>>>>>>>>>>>\n")
+            print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
+            print ("\n<<<<<<<<<<<============\n")
+            cpid_uid = (config["id"])
+            self._twin_pub_topic = str(config['topics']['set']['pub'])
+            self._twin_sub_topic= str(config['topics']['set']['sub'])
+
+            self._twin_sub_res_topic =str(config['topics']['set']['subForAll'])
+            self._twin_pub_res_topic =str(config['topics']['set']['pubForAll'])
+
+            # _path = os.path.abspath(os.path.dirname(__file__))            
+            # _config_path = os.path.join(_path, "assets/aws_crt.txt")
+            # _config_path=_config_path.replace("client","")
+            # self._path_to_root_cert=_config_path 
+            # pass   
+        self._init_mqtt()
