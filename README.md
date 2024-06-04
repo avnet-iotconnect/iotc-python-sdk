@@ -1,12 +1,6 @@
 # iotc-python-sdk
 
-Main branch does not contains any code, below is the branch structure for version specific IoTConnect SDK
+This branch contains the use of different MQTT clients by the IOTConnect SDK.
+1. PAHO MQTT
+2. AWSIotCore MQTT
 
-# master-std-21
-- Standard sdk to support message version 2.1
-
-# master-tpm-10
-- TPM base sdk to support message version 1.0
-
-# master-std-10
-- Standard sdk to support message version 1.0
