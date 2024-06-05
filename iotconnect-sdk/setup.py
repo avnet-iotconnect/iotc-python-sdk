@@ -6,7 +6,7 @@ packages_requires=[]
 
 if 'win' in sys.platform:
     if sys.version_info >= (3, 5):
-        packages_requires=["paho-mqtt","ntplib","pypiwin32","jsonlib-python3"]
+        packages_requires=["paho-mqtt","ntplib","pypiwin32","jsonlib-python3","awsiotsdk"]
     else:
         packages_requires=[]
         os.system('pip install paho-mqtt')
@@ -18,7 +18,7 @@ if 'win' in sys.platform:
 
 elif 'linux' in sys.platform :
     if sys.version_info >= (3, 5):
-        packages_requires=["paho-mqtt","ntplib","jsonlib-python3"]
+        packages_requires=["paho-mqtt","ntplib","jsonlib-python3","awsiotsdk"]
     else:
         packages_requires=[]
         os.system('pip install paho-mqtt')
