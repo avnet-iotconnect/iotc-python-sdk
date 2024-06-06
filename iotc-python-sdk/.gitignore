@@ -1,0 +1,7 @@
+.vscode/
+iotconnect-sdk/build
+iotconnect-sdk/dist
+iotconnect-sdk/iotconnect_sdk.egg-info
+iotconnect-sdk/*/__pycache__
+iotconnect-sdk/*/*/__pycache__
+sample/logs/debug

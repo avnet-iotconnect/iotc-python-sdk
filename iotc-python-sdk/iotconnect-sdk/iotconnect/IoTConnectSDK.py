@@ -23,7 +23,10 @@ else:
     import urllib2 as urllib
     from urlparse import urlparse
 
+
+from iotconnect.client.aws_mqttclient import aws_mqttclient
 from iotconnect.client.mqttclient import mqttclient
+
 from iotconnect.client.httpclient import httpclient
 from iotconnect.client.offlineclient import offlineclient
 
@@ -576,7 +579,16 @@ class IoTConnectSDK:
                 self._client = None
             
             if name == "mqtt":
-                self._client = mqttclient(auth_type, protocol_cofig, self._config, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage)
+                if (self._property["mqttClient"] == "PAHO"):
+                    print("MQTT client start: PAHO")
+                    self._client = mqttclient(auth_type, protocol_cofig, self._config, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage)
+                elif (self._property["mqttClient"] == "AWSIoTCore"):
+                    print("MQTT client start: AWSIoTCore")
+                    self._client = aws_mqttclient(auth_type, protocol_cofig, self._config, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage)
+                else:
+                    print("MQTT client start: PAHO (default)")
+                    self._client = mqttclient(auth_type, protocol_cofig, self._config, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage)
+                    
             elif name == "http" or name == "https":
                 self._client = httpclient(protocol_cofig, self._config)
             else:
@@ -1496,6 +1508,7 @@ class IoTConnectSDK:
         if sdkOptions == None:
             self._property = {
             	"certificate" : None,
+                "mqttClient" : "PAHO",
                 "offlineStorage":
                     {
                     "disabled":False,

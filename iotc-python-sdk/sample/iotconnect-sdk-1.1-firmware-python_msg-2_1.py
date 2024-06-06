@@ -18,9 +18,10 @@ import time
 import threading
 import random
 from iotconnect import IoTConnectSDK
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
+import inspect
 """
 * ## Prerequisite parameter to run this sampel code
 * uniqueId     :: Its device ID which register on IotConnect platform and also its status has Active and Acquired
@@ -36,11 +37,23 @@ import os
 #If you have Option2 details then leave SId detail as ""
 #Don't Comment or remove this veriables.
 
-UniqueId = "Your UniqueId" 
-SId = "Your SID"
-cpid = "Your cpid"
-env = "Your env"
-pf  = "your pf"
+# UniqueId = "Your UniqueId" 
+# SId = "Your SID"
+# cpid = "Your cpid"
+# env = "Your env"
+# pf  = "your pf"
+
+UniqueId = "iotcored2" 
+SId = ""
+cpid = "F58C630836044FC095747B01C954E1A8"
+env = "POC"
+pf  = "aws"
+
+# UniqueId = "FFD0126DEB" 
+# SId = ""
+# cpid = "7b9941c5eb2f47ae950ddc57fe3f21ab"
+# env = "avnetpoc"
+# pf  = "az"
 
 
 Sdk=None
@@ -55,6 +68,7 @@ device_list=[]
 * 	- SSLCertPath: your device certificate
 * 	- SSLCaPath : Root CA certificate
 * 	- Windows + Linux OS: Use "/" forward slash (Example: Windows: "E:/folder1/folder2/certificate", Linux: "/home/folder1/folder2/certificate")
+*   
 * "offlineStorage" : Define the configuration related to the offline data storage 
 * 	- disabled : false = offline data storing, true = not storing offline data 
 * 	- availSpaceInMb : Define the file size of offline data which should be in (MB)
@@ -65,14 +79,22 @@ device_list=[]
 """
 
 
-SdkOptions={
+SdkOptions = {
 	"certificate" : { 
+     
+        # iotcored1 Certs        
+        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/iotcored2-certificates/pk_iotcored2.pem",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/iotcored2-certificates/cert_iotcored2.crt",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/iotcored2-certificates/AmazonRootCA1.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem  
         
-        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem  
- 
+        # # Certs
+        # "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/FFD0126DEB/device.key",    #aws=pk_devicename.pem   ||   #az=device.key
+        # "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/FFD0126DEB/DeviceCertificate.pem",    #aws=cert_devicename.crt ||   #az=device.pem
+        # "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/FFD0126DEB/rootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
+    # As per your requirement use below mqtt client 
+    # Default : PAHO , Options : PAHO / AWSIoTCore / ect.
+    "mqttClient" : "AWSIoTCore",
     "offlineStorage":{
         "disabled": False,
 	    "availSpaceInMb": 0.01,
@@ -80,15 +102,19 @@ SdkOptions={
         "keepalive":60
     },
     "skipValidation":False,
-    # "devicePrimaryKey":"<<DevicePrimaryKey>>",
+    "devicePrimaryKey":"",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     #"discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     #"discoveryUrl":"http://54.160.162.148:219", #AWS pre-QA Environment
     #"discoveryUrl":"https://awsdiscovery.iotconnect.io/", #AWS pre-QA Environment http://54.160.162.148:219/
-    #"discoveryUrl":"http://54.160.162.148:219", #AWS pre-QA Environment 
-    "discoveryUrl": "https://discoveryconsole.iotconnect.io", 
-    #"discoveryUrl":"https://awsdiscovery.iotconnect.io/", #AWS pre-QA Environment
+    #"discoveryUrl":"https://jzbybwq654.execute-api.us-east-1.amazonaws.com/Prod/", #AWS pre-QA Environment 
+    #"discoveryUrl": "https://awsdiscovery.iotconnect.io/", #AWS poc Environment
+    #"discoveryUrl": "https://discoveryconsole.iotconnect.io", #AWS console Environment
+    "discoveryUrl":"https://awsdiscovery.iotconnect.io", #AWS pre-QA Environment
+    # "discoveryUrl":"https://discovery.iotconnect.io/", #AZ pre-QA Environment
+    
+    # "discoveryUrl":"https://discovery.iotconnect.io/",
     "IsDebug": False
    
 }
@@ -103,6 +129,7 @@ SdkOptions={
 
 def DeviceCallback(msg):
     global Sdk
+    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     print("\n--- Command Message Received in Firmware ---")
     print(json.dumps(msg))
     cmdType = None
@@ -133,8 +160,11 @@ def DeviceCallback(msg):
         print("rule command",msg)
 
     # Firmware Upgrade
+
+
 def DeviceFirmwareCallback(msg):
     global Sdk,device_list
+    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     print("\n--- firmware Command Message Received ---")
     print(json.dumps(msg))
     cmdType = None
@@ -162,7 +192,10 @@ def DeviceFirmwareCallback(msg):
                     else:
                         Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull") #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
 
+
+
 def DeviceConectionCallback(msg):  
+    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
@@ -188,6 +221,7 @@ def DeviceConectionCallback(msg):
  * Output  : Receive twin Desired and twin Reported properties
 """
 def TwinUpdateCallback(msg):
+    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     global Sdk
     if msg:
         if pf == "az":
@@ -213,10 +247,12 @@ def TwinUpdateCallback(msg):
  * Output  : 
 """
 def sendBackToSDK(sdk, dataArray):
+    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     sdk.SendData(dataArray)
     time.sleep(interval)
 
 def DirectMethodCallback1(msg,methodname,rId):
+    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     global Sdk,ACKdirect
     print(msg)
     print(methodname)
@@ -227,6 +263,7 @@ def DirectMethodCallback1(msg,methodname,rId):
     #Sdk.DirectMethodACK(data,200,rId)
 
 def DirectMethodCallback(msg,methodname,rId):
+    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     global Sdk,ACKdirect
     print(msg)
     print(methodname)
@@ -259,7 +296,6 @@ def main():
     global SId,cpid,env,SdkOptions,Sdk,ACKdirect,device_list
     
     try:
-        """
         if SdkOptions["certificate"]:
             for prop in SdkOptions["certificate"]:
                 if os.path.isfile(SdkOptions["certificate"][prop]):
@@ -268,15 +304,15 @@ def main():
                     print("please give proper path")
                     break
         else:
-            print("you are not use auth type CA sign or self CA sign ") 
-        """    
+            print("you are not use auth type CA sign or self CA sign ")
+            
         """
         * Type    : Object Initialization "IoTConnectSDK()"
         * Usage   : To Initialize SDK and Device cinnection
         * Input   : cpId, uniqueId, sdkOptions, env as explained above and DeviceCallback and TwinUpdateCallback is callback functions
         * Output  : Callback methods for device command and twin properties
         """
-        with IoTConnectSDK(UniqueId,SId,cpid,env,pf,SdkOptions,DeviceConectionCallback) as Sdk:
+        with IoTConnectSDK( UniqueId, SId, cpid, env, pf, SdkOptions, DeviceConectionCallback) as Sdk:
             try:
                 """
                 * Type    : Public Method "GetAllTwins()"
@@ -284,6 +320,9 @@ def main():
                 * Input   : 
                 * Output  : 
                 """
+                
+                print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+                
                 device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
@@ -302,146 +341,38 @@ def main():
                     * Non Gateway device input data format Example:
 					
                     """
+                   
+                    dObj =  [ 
+                                {
+                                    "uniqueId":UniqueId,
+                                    "time": datetime.now().astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                                    "data": 
+                                        {
+                                            "Temp": random.randint(18, 30)
+                                        }
+                                }
+                            ]
 
-                    """"
-                    data = {
-                    "temperature":random.randint(30, 50),
-                    "long1":random.randint(6000, 9000),
-                    "integer1": random.randint(100, 200),
-                    "decimal1":random.uniform(10.5, 75.5),
-                    "date1":datetime.utcnow().strftime("%Y-%m-%d"),
-                    "time1":"11:55:22",
-                    "bit1":1,
-                    "string1":"red",
-                    "datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    "gyro": {
-                        'bit1':0,
-                        'boolean1': True,
-                        'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                        "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "decimal1":random.uniform(10.5, 75.5),
-                        "integer1":random.randint(60, 600),
-                        "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                        "long1":random.randint(60, 600000),
-                        "string1":"green",
-                        "time1":"11:44:22",
-                        "Temperature":random.randint(50, 90)
-                        }
-                        }
-                    dObj = [{
-                        "uniqueId": UniqueId,
-                        "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "data": data
-                    }]
-                    """
 
-                    """
-                    * Gateway device input data format Example:
-                    """
-                    dObj = [ {
-                                 "uniqueId":UniqueId,
-                                 "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                 "data": {
-                                         "temperature":random.randint(30, 50)
-                                         }
-                                 }#,
-                                 #{
-                                 #   "uniqueId":"NPPCH1",
-                                 #   "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                 #   "data": {
-                                 #        "Temperature":2323
-                                 #        }
-                                 #  }
-                                ]
-
-                    
-                    # dObj = [{
-                    #             "uniqueId":UniqueId,
-                    #             "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #             "data": {
-                    #                     "temperature":-2147483649,
-                    #                     "decimal1":8121.2,
-                    #                     "long1":9007199254740991,
-                    #                     "gyro": {
-                    #                         'bit1':0,
-                    #                         'boolean1': True,
-                    #                         'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                    #                         "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #                         "decimal1":2.555,
-                    #                         "integer1":884,
-                    #                         "latlong1":78945,
-                    #                         "long1":999,
-                    #                         "string1":"green",
-                    #                         "time1":"11:44:22",
-                    #                         "temperature":22
-                    #                         }
-                    #                     }
-                    #             },
-                    #             {
-                    #             "uniqueId":UniqueId+"c",
-                    #             "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #             "data": {
-                    #                     "temperature":2323,
-                    #                     "decimal1":2.555,
-                    #                     "long1":36544,
-                    #                     "gyro": {
-                    #                         'bit1':0,
-                    #                         'boolean1': True,
-                    #                         'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                    #                         "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #                         "decimal1":2.555,
-                    #                         "integer1":884,
-                    #                         "latlong1":78945,
-                    #                         "long1":999,
-                    #                         "string1":"green",
-                    #                         "time1":"11:44:22",
-                    #                         "temperature":10
-                    #                         }
-                    #                     }
-                    #             }
-                                # {
-                                # "uniqueId":UniqueId+"c1",
-                                # "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                # "data": {
-                                #         "Temperature":"hi",
-                                #         "gyro": {
-                                #             'bit1':0,
-                                #             'boolean1': True,
-                                #             'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                                #             "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                #             "decimal1":2.555,
-                                #             "integer1":884,
-                                #             "latlong1":78945,
-                                #             "long1":999,
-                                #             "string1":"green",
-                                #             "time1":"11:44:22",
-                                #             "temperature":10
-                                #             }
-                                #         }
-                                # }
-                            # ]
-                                
-
-                    
                     """
                     * Add your device attributes and respective value here as per standard format defined in sdk documentation
                     * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z" 
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
-                    #dataArray.append(dObj)
-                    #print (dObj)      
+
                     sendBackToSDK(Sdk, dObj)
-                    
+                    time.sleep(10)
+
             except KeyboardInterrupt:
                 print ("Keyboard Interrupt Exception")
                 # os.execl(sys.executable, sys.executable, *sys.argv)
-                os.abort()
+                # os.abort()
                 # sys.exit(0)
-                
-                
+
+
     except Exception as ex:
-        # print(ex.message)
-        sys.exit(0)
+        print(ex.message)
+        # sys.exit(0)
 
 if __name__ == "__main__":
     main()
