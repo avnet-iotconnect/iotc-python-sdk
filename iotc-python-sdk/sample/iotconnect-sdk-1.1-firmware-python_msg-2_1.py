@@ -37,23 +37,12 @@ import inspect
 #If you have Option2 details then leave SId detail as ""
 #Don't Comment or remove this veriables.
 
-# UniqueId = "Your UniqueId" 
-# SId = "Your SID"
-# cpid = "Your cpid"
-# env = "Your env"
-# pf  = "your pf"
+UniqueId = "Your UniqueId" 
+SId = "Your SID"
+cpid = "Your cpid"
+env = "Your env"
+pf  = "your pf"
 
-UniqueId = "iotcored2" 
-SId = ""
-cpid = "F58C630836044FC095747B01C954E1A8"
-env = "POC"
-pf  = "aws"
-
-# UniqueId = "FFD0126DEB" 
-# SId = ""
-# cpid = "7b9941c5eb2f47ae950ddc57fe3f21ab"
-# env = "avnetpoc"
-# pf  = "az"
 
 
 Sdk=None
@@ -83,14 +72,10 @@ SdkOptions = {
 	"certificate" : { 
      
         # iotcored1 Certs        
-        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/iotcored2-certificates/pk_iotcored2.pem",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/iotcored2-certificates/cert_iotcored2.crt",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/iotcored2-certificates/AmazonRootCA1.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem  
-        
-        # # Certs
-        # "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/FFD0126DEB/device.key",    #aws=pk_devicename.pem   ||   #az=device.key
-        # "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/FFD0126DEB/DeviceCertificate.pem",    #aws=cert_devicename.crt ||   #az=device.pem
-        # "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/FFD0126DEB/rootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem  
+
 	},
     # As per your requirement use below mqtt client 
     # Default : PAHO , Options : PAHO / AWSIoTCore / ect.
@@ -104,17 +89,8 @@ SdkOptions = {
     "skipValidation":False,
     "devicePrimaryKey":"",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    #"discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
-    #"discoveryUrl":"http://54.160.162.148:219", #AWS pre-QA Environment
-    #"discoveryUrl":"https://awsdiscovery.iotconnect.io/", #AWS pre-QA Environment http://54.160.162.148:219/
-    #"discoveryUrl":"https://jzbybwq654.execute-api.us-east-1.amazonaws.com/Prod/", #AWS pre-QA Environment 
-    #"discoveryUrl": "https://awsdiscovery.iotconnect.io/", #AWS poc Environment
-    #"discoveryUrl": "https://discoveryconsole.iotconnect.io", #AWS console Environment
     "discoveryUrl":"https://awsdiscovery.iotconnect.io", #AWS pre-QA Environment
-    # "discoveryUrl":"https://discovery.iotconnect.io/", #AZ pre-QA Environment
-    
-    # "discoveryUrl":"https://discovery.iotconnect.io/",
+
     "IsDebug": False
    
 }
