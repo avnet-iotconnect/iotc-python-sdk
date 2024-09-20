@@ -110,20 +110,17 @@ class aws_mqttclient:
         
 
     def get_twin(self):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         if self._isConnected:
             # print("_twin_pub_res_topic")
             self._client.publish(topic = self._twin_pub_res_topic, payload="", qos= mqtt.QoS.AT_LEAST_ONCE)
 
     def has_key(self, data, key):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             return key in data
         except:
             return False
 
     def _on_message(self, topic, payload):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         print("Received message from topic '{}': {}".format(topic, payload))
         # if self.has_key("payload", payload) == False and payload.payload == None:
         #     return
@@ -179,7 +176,6 @@ class aws_mqttclient:
     #         #raise ex
     
     def _validateSSL(self, certificate):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         is_valid_path = True
         if certificate == None:
             raise(IoTConnectSDKException("01", "Certificate info"))
@@ -194,7 +190,6 @@ class aws_mqttclient:
             raise(IoTConnectSDKException("05"))
     
     def Disconnect(self):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             msg=self.disconnect_msg()
             msg_data=json.loads(msg.payload)
@@ -211,7 +206,6 @@ class aws_mqttclient:
             self._rc_status = None
     
     def send_HB(self):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             data="{}"
             _obj=None
@@ -226,7 +220,6 @@ class aws_mqttclient:
             return False
 
     def Send(self,data,msgtype):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             _obj = None
             pubtopic=None
@@ -277,7 +270,6 @@ class aws_mqttclient:
             return True
     
     def SendTwinData(self, data):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             _obj = None
             if self._isConnected:
@@ -294,7 +286,6 @@ class aws_mqttclient:
             return False
 
     def SendDirectData(self,data,status,requestId):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             if self._isConnected:
                 if self._direct_pub_res_topic:
@@ -306,7 +297,6 @@ class aws_mqttclient:
             return False
 
     def _init_mqtt(self):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         try:
             # self.Disconnect()
             # self._client = mqtt.Client(client_id=self._config['id'], clean_session=True, userdata=None, protocol=mqtt.MQTTv311)
@@ -411,7 +401,6 @@ class aws_mqttclient:
         return self._config["n"]
     
     def __init__(self, auth_type, config, sdk_config, onMessage,onDirectMethod,onTwinMessage = None):
-        print("TRIAL(aws_mqttclient.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
         
         self._auth_type = auth_type
         self._config = config

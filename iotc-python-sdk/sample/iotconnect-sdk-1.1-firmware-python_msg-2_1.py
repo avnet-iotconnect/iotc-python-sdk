@@ -70,8 +70,7 @@ device_list=[]
 
 SdkOptions = {
 	"certificate" : { 
-     
-        # iotcored1 Certs        
+              
         "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
         "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
         "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem  
