@@ -105,7 +105,6 @@ SdkOptions = {
 
 def DeviceCallback(msg):
     global Sdk
-    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     print("\n--- Command Message Received in Firmware ---")
     print(json.dumps(msg))
     cmdType = None
@@ -140,7 +139,6 @@ def DeviceCallback(msg):
 
 def DeviceFirmwareCallback(msg):
     global Sdk,device_list
-    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     print("\n--- firmware Command Message Received ---")
     print(json.dumps(msg))
     cmdType = None
@@ -170,8 +168,7 @@ def DeviceFirmwareCallback(msg):
 
 
 
-def DeviceConectionCallback(msg):  
-    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
+def DeviceConectionCallback(msg):
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
@@ -197,7 +194,6 @@ def DeviceConectionCallback(msg):
  * Output  : Receive twin Desired and twin Reported properties
 """
 def TwinUpdateCallback(msg):
-    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     global Sdk
     if msg:
         if pf == "az":
@@ -223,12 +219,10 @@ def TwinUpdateCallback(msg):
  * Output  : 
 """
 def sendBackToSDK(sdk, dataArray):
-    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     sdk.SendData(dataArray)
     time.sleep(interval)
 
 def DirectMethodCallback1(msg,methodname,rId):
-    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     global Sdk,ACKdirect
     print(msg)
     print(methodname)
@@ -239,7 +233,6 @@ def DirectMethodCallback1(msg,methodname,rId):
     #Sdk.DirectMethodACK(data,200,rId)
 
 def DirectMethodCallback(msg,methodname,rId):
-    print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
     global Sdk,ACKdirect
     print(msg)
     print(methodname)
@@ -296,8 +289,6 @@ def main():
                 * Input   : 
                 * Output  : 
                 """
-                
-                print("TRIAL(main.py)::function: {}, Line : {}" .format(inspect.currentframe().f_code.co_name,inspect.currentframe().f_lineno))
                 
                 device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
