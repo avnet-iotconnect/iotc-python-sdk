@@ -21,6 +21,7 @@ class mqttclient:
     _name = None
     _auth_type = None
     _sdk_config = None
+    _isDebug = False
     _config = None
     _subTopic = None
     _pubTopic = None
@@ -119,10 +120,10 @@ class mqttclient:
         if msg.topic.find(self._subTopic[:-1]) > -1 and self._onMessage != None:
             self._onMessage(msg_data)
         if msg.topic.find(self._twin_sub_topic[:-1]) > -1 and self._onTwinMessage != None:
-            print (msg_data)
+            self.print_debuglog(msg_data, 0)
             self._onTwinMessage(msg_data,1)
         if msg.topic.find(self._twin_sub_res_topic[:-1]) > -1:
-            print(msg_data)
+            self.print_debuglog(msg_data, 0)
             self._onTwinMessage(msg_data,0)
         if msg.topic.find(self._direct_sub[:-1]) > -1 and self._onDirectMethod != None:
             method=str(msg.topic.replace(self._direct_sub[:-1],''))
@@ -147,7 +148,7 @@ class mqttclient:
                 time.sleep(0.5)
 
             if self._rc_status == 0:
-                print("\n____________________\n\nProtocol Initialized\nDevice Is Connected with IoTConnect\n____________________\n")
+                self.print_debuglog("Device Is Connected with IoTConnect", 0)
             else:
                 raise(IoTConnectSDKException("06", self._mqtt_status[self._rc_status]))
         except Exception as ex:
@@ -202,7 +203,8 @@ class mqttclient:
             pubtopic=None
             if self._isConnected:
                 if msgtype == "RPTEDGE":
-                    print(data)
+                    # print(data)
+                    self.print_debuglog(data, 0)
                     pubtopic=self._pubERpt
                 elif msgtype == "RMEdge":
                     pubtopic=self._pubERm
@@ -249,7 +251,7 @@ class mqttclient:
         try:
             _obj = None
             if self._isConnected:
-                print(data)
+                self.print_debuglog(data, 0)
                 if self._client and self._twin_pub_topic != None:
                     _obj = self._client.publish(self._twin_pub_topic, payload=json.dumps(data), qos=1)
 
@@ -310,6 +312,13 @@ class mqttclient:
         except Exception as ex:
             raise ex
     
+    def print_debuglog(self,msg,is_error):
+        if self._isDebug:
+            if is_error:
+                print("ERROR : {}".format(msg))
+            else:
+                print("SDK_MQTT_INFO : {}".format(msg))
+    
     @property
     def isConnected(self):
         return self._isConnected
@@ -318,11 +327,12 @@ class mqttclient:
     def name(self):
         return self._config["n"]
 
-    def __init__(self, auth_type, config, sdk_config, onMessage,onDirectMethod,onTwinMessage = None):
+    def __init__(self, auth_type, config, sdk_config, isDebug, onMessage, onDirectMethod, onTwinMessage = None):
 
         self._auth_type = auth_type
         self._config = config
         self._sdk_config = sdk_config
+        self._isDebug = isDebug
         self._keepalive= sdk_config["keepalive"] if "keepalive" in sdk_config else 60
         self._onMessage = onMessage
         self._onTwinMessage = onTwinMessage
@@ -340,9 +350,9 @@ class mqttclient:
         self._pubDi=str(config['topics']['di'])
         platfrom = config["pf"]
         if config["pf"] == "az":
-            print ("\n============>>>>>>>>>>>\n")
-            print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-")
-            print ("\n<<<<<<<<<<<============\n")
+            # print ("\n============>>>>>>>>>>>\n")
+            self.print_debuglog("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-", 0)
+            # print ("\n<<<<<<<<<<<============\n")
             self._twin_pub_topic = str(sdk_config['az']['twin_pub_topic'])
             self._twin_sub_topic = str(sdk_config['az']['twin_sub_topic'])
             self._twin_sub_res_topic = str(sdk_config['az']['twin_sub_res_topic'])
@@ -352,9 +362,9 @@ class mqttclient:
             _config_path = _config_path.replace("\\client","")
             self._path_to_root_cert = _config_path
         else:
-            print ("\n============>>>>>>>>>>>\n")
-            print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-")
-            print ("\n<<<<<<<<<<<============\n")
+            # print ("\n============>>>>>>>>>>>\n")
+            self.print_debuglog("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-", 0)
+            # print ("\n<<<<<<<<<<<============\n")
             cpid_uid = (config["id"])
             self._twin_pub_topic = str(config['topics']['set']['pub'])
             self._twin_sub_topic= str(config['topics']['set']['sub'])

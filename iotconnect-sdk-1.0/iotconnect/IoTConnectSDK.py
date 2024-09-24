@@ -319,7 +319,7 @@ class IoTConnectSDK:
                             self._offlineflag=False
                             self.print_debuglog("..........Atrributes Get Successfully...........",0)
                             if self._onReady != None:
-                                self._onReady()
+                                self._onReady(msg["att"])
                         if self._getattribute_callback:
                             self._getattribute_callback(msg["att"])
                             self._getattribute_callback = None
@@ -540,7 +540,7 @@ class IoTConnectSDK:
                 self._client = None
 
             if name == "mqtt":
-                self._client = mqttclient(auth_type, protocol_cofig, self._config, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage)
+                self._client = mqttclient(auth_type, protocol_cofig, self._config, self._debug, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage)
             elif name == "http" or name == "https":
                 self._client = httpclient(protocol_cofig, self._config)
             else:
@@ -1037,6 +1037,8 @@ class IoTConnectSDK:
                     self.write_debuglog('[INFO_CM10] '+'['+ str(self._sId)+'_'+str(self._uniqueId)+"] Command Acknowledgement sucessfull: "+self._time ,0)
                 else:
                     # print("\nPublish data sucessfully... %s" % self._time,data,msgType)
+                    self.print_debuglog(msgType, 0)
+                    self.print_debuglog(data, 0)
                     self.print_debuglog("Publish data sucessfully...", 0)
 
             if _Online == False:

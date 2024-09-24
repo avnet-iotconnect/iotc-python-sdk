@@ -76,8 +76,8 @@ SdkOptions={
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://jzbybwq654.execute-api.us-east-1.amazonaws.com/Prod/", #Azure All Environment 
-    # "IsDebug": True,
-    "IsDebug": False,
+    "IsDebug": True,
+    # "IsDebug": False,
     "cpid" : "mssql",
     "sId" : "",
     "env" : "preqa",
@@ -95,8 +95,8 @@ SdkOptions={
 
 def DeviceCallback(msg):
     global Sdk
-    print("\n--- Command Message Received in Firmware ---")
-    print(json.dumps(msg))
+    print("Firmware :: --- Command Message Received in Firmware ---")
+    print("Firmware :: " + json.dumps(msg))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if "ct"in msg else None
@@ -122,13 +122,13 @@ def DeviceCallback(msg):
                 if "ack" in data and data["ack"]:
                     Sdk.sendAckCmd(data["ack"],7,"sucessfull") #fail=4,executed= 5,sucess=7,6=executedack
     else:
-        print("rule command",msg)
+        print("Firmware :: rule command",msg)
 
     # Firmware Upgrade
 def DeviceFirmwareCallback(msg):
     global Sdk,device_list
-    print("\n--- firmware Command Message Received ---")
-    print(json.dumps(msg))
+    print("Firmware :: --- firmware Command Message Received ---")
+    print("Firmware :: " + json.dumps(msg))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
@@ -161,7 +161,7 @@ def DeviceConectionCallback(msg):
     #connection status
     if cmdType == 116:
         #Device connection status e.g. data["command"] = true(connected) or false(disconnected)
-        print(json.dumps(msg))
+        print("Firmware :: " + json.dumps(msg))
 
 """
  * Type    : Public Method "UpdateTwin()"
@@ -182,8 +182,8 @@ def DeviceConectionCallback(msg):
 def TwinUpdateCallback(msg):
     global Sdk
     if msg:
-        print("--- Twin Message Received ---")
-        print(json.dumps(msg))
+        print("Firmware :: --- Twin Message Received ---")
+        print("Firmware :: " + json.dumps(msg))
         if ("desired" in msg) and ("reported" not in msg):
             for j in msg["desired"]:
                 if ("version" not in j) and ("uniqueId" not in j):
@@ -197,16 +197,16 @@ def TwinUpdateCallback(msg):
 """
 def sendBackToSDK(sdk, dataArray):
     if(sdk.SendData(dataArray) == True):
-        print("def SendData(self,jsonArray): :::::::::: TRUE")
+        print("Firmware :: Data Publish Success")
     else:
-        print("def SendData(self,jsonArray): :::::::::: FALSE")
+        print("Firmware :: Data Publish Fail")
     time.sleep(interval)
 
 def DirectMethodCallback1(msg,methodname,rId):
     global Sdk,ACKdirect
-    print(msg)
-    print(methodname)
-    print(rId)
+    print("Firmware :: " + msg)
+    print("Firmware :: " + methodname)
+    print("Firmware :: " + rId)
     data={"data":"succed"}
     #return data,200,rId
     ACKdirect.append({"data":data,"status":200,"reqId":rId})
@@ -214,32 +214,32 @@ def DirectMethodCallback1(msg,methodname,rId):
 
 def DirectMethodCallback(msg,methodname,rId):
     global Sdk,ACKdirect
-    print(msg)
-    print(methodname)
-    print(rId)
+    print("Firmware :: " + msg)
+    print("Firmware :: " + methodname)
+    print("Firmware :: " + rId)
     data={"data":"fail"}
     #return data,200,rId
     ACKdirect.append({"data":data,"status":200,"reqId":rId})
     #Sdk.DirectMethodACK(data,200,rId)
 
 def DeviceChangCallback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
 
 def InitCallback(response):
-    print(response)
+    print("Firmware :: " + response)
 
 def delete_child_callback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
     
 def create_child_callback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
 
 def attributeDetails(data):
-    print ("attribute received in firmware")
-    print (data)
+    print("Firmware :: attribute received in firmware")
+    print("Firmware :: " + data)
 
 def onReady(data):
-    print("Attribute got Sync ::")
+    print("Firmware :: Attribute got Sync ::")
     global readyStatus
     readyStatus = True
 
@@ -254,10 +254,10 @@ def main():
                 if os.path.isfile(SdkOptions["certificate"][prop]):
                     pass
                 else:
-                    print("please give proper path")
+                    print("Firmware :: please give proper path")
                     break
         else:
-            print("you are not use auth type CA sign or self CA sign ") 
+            print("Firmware :: you are not use auth type CA sign or self CA sign ") 
         """    
         """
         * Type    : Object Initialization "IoTConnectSDK()"
@@ -345,22 +345,17 @@ def main():
                     #dataArray.append(dObj)
                     #print (dObj)      
                     if(readyStatus == True):
-                        print("readyStatus == True")
+                        print("Firmware :: readyStatus == True")
                         sendBackToSDK(Sdk, dObj)
                     else:
-                        print("readyStatus == False")
-
-
-                    print("****************************************************************************************************************************************************************")
-                    print(i)
-                    print("****************************************************************************************************************************************************************")
+                        print("Firmware :: readyStatus == False")
 
                     time.sleep(60)
 
                 '''
                 Client Disconnect Method
                 '''
-                Sdk.Dispose() 
+                Sdk.Dispose()
 
                 time.sleep(10)
 
