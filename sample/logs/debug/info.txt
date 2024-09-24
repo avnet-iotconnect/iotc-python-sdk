@@ -1,0 +1,188 @@
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 15:12:47.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 15:12:47.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 15:12:48.000
+[INFO_CM09] 2024-09-20 15:12:49.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 15:51:55.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 15:51:55.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 15:51:56.000
+[INFO_CM09] 2024-09-20 15:51:57.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM10] [_Sep05T2402JK01] Command Acknowledgement sucessfull: 2024-09-20 15:52:43.000
+[INFO_CM10] [_Sep05T2402JK01] Command Acknowledgement sucessfull: 2024-09-20 15:53:06.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 15:54:39.000
+[INFO_CM09] 2024-09-20 15:54:40.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 15:54:40.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 16:39:31.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 16:39:32.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 16:39:33.000
+[INFO_CM09] 2024-09-20 16:39:34.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 16:39:56.000
+[INFO_CM09] 2024-09-20 16:39:57.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 16:39:57.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:08:55.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:08:57.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:08:57.000
+[INFO_CM09] 2024-09-20 18:08:58.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM10] [_Sep05T2402JK01] Command Acknowledgement sucessfull: 2024-09-20 18:10:16.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:10:42.000
+[INFO_CM09] 2024-09-20 18:10:43.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 18:10:43.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:15:19.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:15:20.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:15:20.000
+[INFO_CM09] 2024-09-20 18:15:21.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:16:04.000
+[INFO_CM09] 2024-09-20 18:16:05.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 18:16:05.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:22:14.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:22:15.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:22:16.000
+[INFO_CM09] 2024-09-20 18:22:17.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:22:40.000
+[INFO_CM09] 2024-09-20 18:22:41.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 18:22:41.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:29:03.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:29:04.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:29:05.000
+[INFO_CM09] 2024-09-20 18:29:06.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:30:18.000
+[INFO_CM09] 2024-09-20 18:30:19.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 18:30:20.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:33:17.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:33:18.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:33:18.000
+[INFO_CM09] 2024-09-20 18:33:19.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:33:54.000
+[INFO_CM09] 2024-09-20 18:33:55.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 18:33:55.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:36:20.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:36:21.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:36:21.000
+[INFO_CM09] 2024-09-20 18:36:22.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:37:30.000
+[INFO_CM09] 2024-09-20 18:37:31.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 18:37:31.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:38:51.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:38:52.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:38:53.000
+[INFO_CM09] 2024-09-20 18:38:54.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:39:18.000
+[INFO_CM09] 2024-09-20 18:39:19.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 18:39:19.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:40:46.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:40:47.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:40:47.000
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:51:10.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:51:11.000
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-20 18:51:51.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-20 18:51:52.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:52:01.000
+[INFO_CM09] 2024-09-20 18:52:02.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-20 18:52:27.000
+[INFO_CM09] 2024-09-20 18:52:28.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-20 18:52:29.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 12:42:14.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 12:42:20.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 12:42:22.000
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 12:42:49.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 12:42:49.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 12:42:50.000
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 12:43:32.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 12:43:36.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 12:43:37.000
+[INFO_CM09] 2024-09-23 12:43:38.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 12:43:59.000
+[INFO_CM09] 2024-09-23 12:44:00.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 12:44:00.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 12:52:51.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 12:52:52.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 12:52:52.000
+[INFO_CM09] 2024-09-23 12:52:53.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 12:53:40.000
+[INFO_CM09] 2024-09-23 12:53:41.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 12:53:41.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 13:14:27.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 13:14:29.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 13:14:31.000
+[INFO_CM09] 2024-09-23 13:14:32.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 13:19:11.000
+[INFO_CM09] 2024-09-23 13:19:12.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 13:19:12.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 14:02:54.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 14:02:56.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 14:02:56.000
+[INFO_CM09] 2024-09-23 14:02:57.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 14:03:56.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 14:07:02.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 14:07:02.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 14:07:03.000
+[INFO_CM09] 2024-09-23 14:07:04.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 14:15:42.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 14:28:15.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 14:28:20.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 14:28:22.000
+[INFO_CM09] 2024-09-23 14:28:23.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 14:33:34.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 14:33:37.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 14:33:38.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 14:33:39.000
+[INFO_CM09] 2024-09-23 14:33:40.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 14:39:31.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 14:43:06.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 14:43:07.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 14:43:07.000
+[INFO_CM09] 2024-09-23 14:43:08.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 14:48:59.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 15:32:09.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 15:32:10.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 15:32:10.000
+[INFO_CM09] 2024-09-23 15:32:11.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 15:32:47.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 15:32:57.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 15:32:58.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 15:32:58.000
+[INFO_CM09] 2024-09-23 15:32:59.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 15:33:34.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 15:33:44.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 15:33:45.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 15:33:46.000
+[INFO_CM09] 2024-09-23 15:33:47.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 15:34:22.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 15:47:16.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 15:47:21.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 15:47:22.000
+[INFO_CM09] 2024-09-23 15:47:23.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 15:54:53.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 17:49:44.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 17:49:46.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 17:49:47.000
+[INFO_CM09] 2024-09-23 17:49:48.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 17:56:15.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 17:56:31.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 17:56:32.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 17:56:33.000
+[INFO_CM09] 2024-09-23 17:56:34.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 18:04:04.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-23 18:08:38.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-23 18:08:39.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-23 18:08:40.000
+[INFO_CM09] 2024-09-23 18:08:41.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-23 18:16:11.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-24 11:00:41.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-24 11:00:43.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-24 11:00:47.000
+[INFO_CM09] 2024-09-24 11:00:48.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-24 11:07:34.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-24 11:07:35.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-24 11:07:36.000
+[INFO_CM09] 2024-09-24 11:07:37.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-24 11:15:07.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-24 11:36:51.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-24 11:36:53.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-24 11:36:54.000
+[INFO_CM09] 2024-09-24 11:36:55.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-24 11:44:25.000[_Sep05T2402JK01] 0x116 sdk connection status: False
+[INFO_OS03] [Sep05T2402JK01] File has been created to store offline data: 2024-09-24 12:03:03.000
+[INFO_IN07] [_Sep05T2402JK01] BaseUrl received to sync the device information: 2024-09-24 12:03:04.000
+[INFO_IN01] [_Sep05T2402JK01] Device information received successfully: 2024-09-24 12:03:05.000
+[INFO_CM09] 2024-09-24 12:03:06.000[_Sep05T2402JK01] 0x116 sdk connection status: True
+[INFO_CM09] 2024-09-24 12:03:39.000[_Sep05T2402JK01] 0x116 sdk connection status: False

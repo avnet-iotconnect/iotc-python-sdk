@@ -30,13 +30,15 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "Your UniqueId"
+UniqueId = "Sep05T2402JK01"
 
 Sdk=None
 interval = 30
 directmethodlist={}
 ACKdirect=[]
 device_list=[]
+
+readyStatus = False
 """
 * sdkOptions is optional. Mandatory for "certificate" X.509 device authentication type
 * "certificate" : It indicated to define the path of the certificate file. Mandatory for X.509/SSL device CA signed or self-signed authentication type only.
@@ -56,9 +58,10 @@ device_list=[]
 
 SdkOptions={
 	"certificate" : { 
-        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
+        # Certs
+        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/Sep05T2402JK01-certificates/pk_Sep05T2402JK01.pem",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/Sep05T2402JK01-certificates/cert_Sep05T2402JK01.crt",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/Sep05T2402JK01-certificates/rootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
  
         
 	},
@@ -72,12 +75,13 @@ SdkOptions={
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
+    "discoveryUrl":"https://jzbybwq654.execute-api.us-east-1.amazonaws.com/Prod/", #Azure All Environment 
+    # "IsDebug": True,
     "IsDebug": False,
-    "cpid" : "Your CPID ",
-    "sId" : "Your SID",
-    "env" : "Your env",
-    "pf"  : "Your pf"
+    "cpid" : "mssql",
+    "sId" : "",
+    "env" : "preqa",
+    "pf"  : "aws"
    
 }
 
@@ -192,7 +196,10 @@ def TwinUpdateCallback(msg):
  * Output  : 
 """
 def sendBackToSDK(sdk, dataArray):
-    sdk.SendData(dataArray)
+    if(sdk.SendData(dataArray) == True):
+        print("def SendData(self,jsonArray): :::::::::: TRUE")
+    else:
+        print("def SendData(self,jsonArray): :::::::::: FALSE")
     time.sleep(interval)
 
 def DirectMethodCallback1(msg,methodname,rId):
@@ -230,8 +237,11 @@ def create_child_callback(msg):
 def attributeDetails(data):
     print ("attribute received in firmware")
     print (data)
-    
 
+def onReady(data):
+    print("Attribute got Sync ::")
+    global readyStatus
+    readyStatus = True
 
 
 def main():
@@ -255,7 +265,7 @@ def main():
         * Input   : cpId, uniqueId, sdkOptions, env as explained above and DeviceCallback and TwinUpdateCallback is callback functions
         * Output  : Callback methods for device command and twin properties
         """
-        
+
         with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback) as Sdk:
             try:
                 """
@@ -270,31 +280,31 @@ def main():
                 Sdk.onOTACommand(DeviceFirmwareCallback)
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
                 Sdk.getTwins()
+                Sdk.onReady(onReady)
                 device_list=Sdk.Getdevice()
                 #Sdk.delete_child("childid",delete_child_callback)
                 #Sdk.createChildDevice("childid", "childtag", "childid", create_child_callback)
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
-                while True:
+                # while True:
+                for i in range(5):
                     #Sdk.GetAttributes()
                     """
                     * Non Gateway device input data format Example:
-					
-                    """
-
                     
-                    #data = {
-                    #"temperature":random.randint(30, 50),
-                    #"long1":random.randint(6000, 9000),
-                    #"integer1": random.randint(100, 200),
-                    #"decimal1":random.uniform(10.5, 75.5),
-                    #"date1":datetime.utcnow().strftime("%Y-%m-%d"),
-                    #"time1":"11:55:22",
-                    #"bit1":1,
-                    #"string1":"red",
-                    #"datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #"gyro": {
+                    """
+                    # data = {
+                    # "temperature":random.randint(30, 50),
+                    # "long1":random.randint(6000, 9000),
+                    # "integer1": random.randint(100, 200),
+                    # "decimal1":random.uniform(10.5, 75.5),
+                    # "date1":datetime.utcnow().strftime("%Y-%m-%d"),
+                    # "time1":"11:55:22",
+                    # "bit1":1,
+                    # "string1":"red",
+                    # "datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    # "gyro": {
                     #    'bit1':0,
                     #    'boolean1': True,
                     #    'date1': datetime.utcnow().strftime("%Y-%m-%d"),
@@ -308,55 +318,64 @@ def main():
                     #    "temperature":random.randint(50, 90)
                     #    }
                     #    }
-                    #dObj = [{
-                    #    "uniqueId": UniqueId,
-                    #    "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #    "data": data
-                    #}]
-                    #
-
-                    """
-                    * Gateway device input data format Example:
-                    """
-                    
-                    
-                    dObj = [ {
-                                 "uniqueId":UniqueId,
-                                 "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                 "data": {
-                                         "temperature":random.randint(30, 50)
-                                         }
-                                 },
-                                 {
-                                    "uniqueId":"NPP",
-                                    "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                    "data": {
-                                         "temperature":random.randint(30, 50)
-                                         }
-                                   }
-                                ]
-                                
-
+                    data= {
+                        "AString" : "AString",
+                        "ADecimal" : random.uniform(10.5, 75.5),
+                        "AObject" : {} ,
+                        "AInteger" : random.randint(100, 200),
+                        "ADate" : datetime.utcnow().strftime("%Y-%m-%d"),
+                        "ABoolean" : False,
+                        "ABit" : True,
+                        "ADateTime" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        "ATime" : "11:55:22",
+                        "ALatLong" : [random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                        "ALong" : random.randint(60, 600000)
+                    }
+                    dObj = [{
+                    "uniqueId": UniqueId,
+                    "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    "data": data
+                    }]
                     
                     """
                     * Add your device attributes and respective value here as per standard format defined in sdk documentation
-                    * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z" 
+                    * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z"
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
                     #dataArray.append(dObj)
                     #print (dObj)      
-                    sendBackToSDK(Sdk, dObj)
+                    if(readyStatus == True):
+                        print("readyStatus == True")
+                        sendBackToSDK(Sdk, dObj)
+                    else:
+                        print("readyStatus == False")
+
+
+                    print("****************************************************************************************************************************************************************")
+                    print(i)
+                    print("****************************************************************************************************************************************************************")
+
+                    time.sleep(60)
+
+                '''
+                Client Disconnect Method
+                '''
+                Sdk.Dispose() 
+
+                time.sleep(10)
+
+                # sys.exit(0)
                     
             except KeyboardInterrupt:
                 print ("Keyboard Interrupt Exception")
                 # os.execl(sys.executable, sys.executable, *sys.argv)
-                os.abort()
+                # os.abort()
                 # sys.exit(0)
                 
                 
     except Exception as ex:
-        # print(ex.message)
-        sys.exit(0)
+        print(ex)
+        # sys.exit(0)
 
 if __name__ == "__main__":
     main()

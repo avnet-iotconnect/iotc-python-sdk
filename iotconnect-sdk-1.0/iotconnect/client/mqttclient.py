@@ -5,6 +5,7 @@ import paho.mqtt.client as mqtt
 import json
 import time
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
+import inspect
 
 authType = {
 	"KEY": 1,
@@ -118,18 +119,15 @@ class mqttclient:
         if msg.topic.find(self._subTopic[:-1]) > -1 and self._onMessage != None:
             self._onMessage(msg_data)
         if msg.topic.find(self._twin_sub_topic[:-1]) > -1 and self._onTwinMessage != None:
-            # print ("_twin_sub_topic")
-            print(msg_data)
+            print (msg_data)
             self._onTwinMessage(msg_data,1)
         if msg.topic.find(self._twin_sub_res_topic[:-1]) > -1:
-            # print ("twin_sub_res_topic")
             print(msg_data)
             self._onTwinMessage(msg_data,0)
         if msg.topic.find(self._direct_sub[:-1]) > -1 and self._onDirectMethod != None:
             method=str(msg.topic.replace(self._direct_sub[:-1],''))
             leng=method.find('/')
             method=method.replace(method[leng:],'')
-            #print(method)
             leng=msg.topic.find("rid=")
             if leng > -1:
                 rid=msg.topic[leng+4:]
@@ -150,7 +148,6 @@ class mqttclient:
 
             if self._rc_status == 0:
                 print("\n____________________\n\nProtocol Initialized\nDevice Is Connected with IoTConnect\n____________________\n")
-                # print("Device Is Connected with IoTConnect\n")
             else:
                 raise(IoTConnectSDKException("06", self._mqtt_status[self._rc_status]))
         except Exception as ex:
@@ -252,7 +249,6 @@ class mqttclient:
         try:
             _obj = None
             if self._isConnected:
-                # print("_twin_pub_topic")
                 print(data)
                 if self._client and self._twin_pub_topic != None:
                     _obj = self._client.publish(self._twin_pub_topic, payload=json.dumps(data), qos=1)
@@ -274,49 +270,6 @@ class mqttclient:
                     #print(obj)
         except:
             return False
-
-    def _init_mqtt_old(self):
-        try:
-            self.Disconnect()
-            self._client = mqtt.Client(client_id=self._config['id'], clean_session=True, userdata=None, protocol=mqtt.MQTTv311)
-            #Check Auth Type
-            if (self._auth_type == authType["KEY"]) or (self._auth_type == authType["SKEY"]):
-                if self._config['pf'] == "az":
-                    self._client.username_pw_set(self._config["un"], self._config["pwd"])
-                if self._path_to_root_cert != None:
-                    self._client.tls_set(self._path_to_root_cert, tls_version = ssl.PROTOCOL_TLSv1_2)
-            elif (self._auth_type == authType["CA_SIGNED"] or self._auth_type == authType["CA_ind"]) :
-                if self._config['pf'] == "az":
-                    self._client.username_pw_set(self._config["un"], None)
-                cert_setting = self._validateSSL(self._sdk_config["certificate"])
-                if len(cert_setting) != 3:
-                    raise(IoTConnectSDKException("01", "Certificate/Key in Sdkoption"))
-                if cert_setting != None:
-                    if self._path_to_root_cert != None:
-                        self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
-                    else:
-                        self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
-                    self._client.tls_insecure_set(False)
-            elif self._auth_type == authType["CA_SELF_SIGNED"]:
-                if self._config['pf'] == "az":
-                    self._client.username_pw_set(self._config["un"], None)
-                cert_setting = self._validateSSL(self._sdk_config["certificate"])
-                if len(cert_setting) != 3:
-                    raise(IoTConnectSDKException("01", "Certificate/Key in Sdkoption"))
-                if cert_setting != None:
-                    if self._path_to_root_cert != None:
-                        self._client.tls_set(self._path_to_root_cert, certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
-                    else:
-                        self._client.tls_set(str(cert_setting["SSLCaPath"]), certfile=str(cert_setting["SSLCertPath"]), keyfile=str(cert_setting["SSLKeyPath"]), cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
-                    self._client.tls_insecure_set(False)
-            self._client.on_connect = self._on_connect
-            self._client.on_disconnect = self._on_disconnect
-            self._client.on_message = self._on_message
-            self._client.disable_logger()
-            if self._client != None:
-                self._connect()
-        except Exception as ex:
-            raise ex
 
     def is_not_blank(self, s):
         return bool(s and s.strip())
@@ -386,7 +339,6 @@ class mqttclient:
         self._pubDL=str(config['topics']['dl'])
         self._pubDi=str(config['topics']['di'])
         platfrom = config["pf"]
-        # print (platfrom)
         if config["pf"] == "az":
             print ("\n============>>>>>>>>>>>\n")
             print ("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-")
