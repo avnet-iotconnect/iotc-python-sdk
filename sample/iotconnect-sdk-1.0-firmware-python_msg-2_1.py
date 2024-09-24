@@ -115,10 +115,10 @@ def DeviceCallback(msg):
             #print(data)
             if "id" in data:
                 if "ack" in data and data["ack"]:
-                    Sdk.sendAckCmd(data["ack"],7,"sucessfull",data["id"])  #fail=4,executed= 5,sucess=7,6=executedack
+                    Sdk.sendAckCmd(data["ack"],2,"sucessfull",data["id"])  #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
             else:
                 if "ack" in data and data["ack"]:
-                    Sdk.sendAckCmd(data["ack"],7,"sucessfull") #fail=4,executed= 5,sucess=7,6=executedack
+                    Sdk.sendAckCmd(data["ack"],2,"sucessfull") #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
     else:
         print("Firmware :: rule command",msg)
 
@@ -148,11 +148,11 @@ def DeviceFirmwareCallback(msg):
                     if "tg" in url_list:
                         for i in device_list:
                             if "tg" in i and (i["tg"] == url_list["tg"]):
-                                Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull",i["id"]) #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
+                                Sdk.sendOTAAckCmd(data["ack"],5,"sucessfull",i["id"]) #Success=5, Executed (Cloud Only)=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
                     else:
-                        Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull") #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
+                        Sdk.sendOTAAckCmd(data["ack"],5,"sucessfull") #Success=5, Executed (Cloud Only)=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
 
-def DeviceConectionCallback(msg):  
+def DeviceConectionCallback(msg):
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
