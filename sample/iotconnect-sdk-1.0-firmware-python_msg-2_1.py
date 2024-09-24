@@ -30,15 +30,15 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "Sep05T2402JK01"
+UniqueId = " " 
 
 Sdk=None
 interval = 30
 directmethodlist={}
 ACKdirect=[]
 device_list=[]
-
 readyStatus = False
+
 """
 * sdkOptions is optional. Mandatory for "certificate" X.509 device authentication type
 * "certificate" : It indicated to define the path of the certificate file. Mandatory for X.509/SSL device CA signed or self-signed authentication type only.
@@ -59,9 +59,9 @@ readyStatus = False
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/Sep05T2402JK01-certificates/pk_Sep05T2402JK01.pem",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/Sep05T2402JK01-certificates/cert_Sep05T2402JK01.crt",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/Sep05T2402JK01-certificates/rootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "  ",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "  ",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "  "     #aws=root-CA.pem         ||   #az=rootCA.pem
  
         
 	},
@@ -74,14 +74,12 @@ SdkOptions={
     "skipValidation":False,
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    "discoveryUrl":"https://jzbybwq654.execute-api.us-east-1.amazonaws.com/Prod/", #Azure All Environment 
-    "IsDebug": True,
-    # "IsDebug": False,
-    "cpid" : "mssql",
-    "sId" : "",
-    "env" : "preqa",
-    "pf"  : "aws"
+    "discoveryUrl":"https://discovery.iotconnect.io",
+    "IsDebug": False,
+    "cpid" : "  ",
+    "sId" : "  ",
+    "env" : "  ",
+    "pf"  : " " # az / aws
    
 }
 
@@ -287,37 +285,15 @@ def main():
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
-                # while True:
+
                 for i in range(5):
                     #Sdk.GetAttributes()
                     """
-                    * Non Gateway device input data format Example:
-                    
+                    * Add your device attributes and respective value here as per standard format defined in sdk documentation
+                    * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z"
+                    * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
-                    # data = {
-                    # "temperature":random.randint(30, 50),
-                    # "long1":random.randint(6000, 9000),
-                    # "integer1": random.randint(100, 200),
-                    # "decimal1":random.uniform(10.5, 75.5),
-                    # "date1":datetime.utcnow().strftime("%Y-%m-%d"),
-                    # "time1":"11:55:22",
-                    # "bit1":1,
-                    # "string1":"red",
-                    # "datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    # "gyro": {
-                    #    'bit1':0,
-                    #    'boolean1': True,
-                    #    'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                    #    "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #    "decimal1":random.uniform(10.5, 75.5),
-                    #    "integer1":random.randint(60, 600),
-                    #    "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                    #    "long1":random.randint(60, 600000),
-                    #    "string1":"green",
-                    #    "time1":"11:44:22",
-                    #    "temperature":random.randint(50, 90)
-                    #    }
-                    #    }
+
                     data= {
                         "AString" : "AString",
                         "ADecimal" : random.uniform(10.5, 75.5),
@@ -331,17 +307,13 @@ def main():
                         "ALatLong" : [random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
                         "ALong" : random.randint(60, 600000)
                     }
+
                     dObj = [{
                     "uniqueId": UniqueId,
                     "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     "data": data
                     }]
-                    
-                    """
-                    * Add your device attributes and respective value here as per standard format defined in sdk documentation
-                    * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z"
-                    * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
-                    """
+
                     #dataArray.append(dObj)
                     #print (dObj)      
                     if(readyStatus == True):
@@ -358,8 +330,6 @@ def main():
                 Sdk.Dispose()
 
                 time.sleep(10)
-
-                # sys.exit(0)
                     
             except KeyboardInterrupt:
                 print ("Keyboard Interrupt Exception")

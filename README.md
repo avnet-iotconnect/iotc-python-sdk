@@ -1,6 +1,6 @@
 - Author: Softweb Solutions An Avnet Company
 - Brief: IOT Connect SDK: Software Development Kit 1.0
-- Modify: 15-April-2024
+- Modify: 24-Sep-2024
 
 This IoTConnect Python SDK works on IoTConnect Message version 2.1, you can find more details on message version form [here](https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/). Below is step by step guid to help you install sdk and run sample.
 
