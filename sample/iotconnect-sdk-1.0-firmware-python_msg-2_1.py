@@ -336,7 +336,7 @@ def main():
                 print ("Keyboard Interrupt Exception")
                 # os.execl(sys.executable, sys.executable, *sys.argv)
                 # os.abort()
-                # sys.exit(0)
+                sys.exit(0)
                 
                 
     except Exception as ex:
