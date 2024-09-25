@@ -313,13 +313,13 @@ class IoTConnectSDK:
                     if msg['ec'] == 0 and msg["ct"] == 201:
                         if self._getattribute_callback == None:
                             self._data_json["att"] = msg["att"]
+                            if self._onReady != None:
+                                self._onReady(msg)
                             for attr in self.attributes:
                                 attr["evaluation"] = data_evaluation(self.isEdge, attr, self.send_edge_data)
                             self._is_process_started = True
                             self._offlineflag=False
                             self.print_debuglog("..........Atrributes Get Successfully...........",0)
-                            if self._onReady != None:
-                                self._onReady(msg["att"])
                         if self._getattribute_callback:
                             self._getattribute_callback(msg["att"])
                             self._getattribute_callback = None

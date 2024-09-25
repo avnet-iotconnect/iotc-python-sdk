@@ -30,7 +30,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = " " 
+UniqueId = "" 
 
 Sdk=None
 interval = 30
@@ -59,9 +59,9 @@ readyStatus = False
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "  ",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "  ",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "  "     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
  
         
 	},
@@ -74,12 +74,12 @@ SdkOptions={
     "skipValidation":False,
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    "discoveryUrl":"https://discovery.iotconnect.io",
+    "discoveryUrl":"https://awsdiscovery.iotconnect.io",
     "IsDebug": False,
-    "cpid" : "  ",
-    "sId" : "  ",
-    "env" : "  ",
-    "pf"  : " " # az / aws
+    "cpid" : "",
+    "sId" : "",
+    "env" : "",
+    "pf"  : "" # az / aws
    
 }
 
@@ -238,6 +238,7 @@ def attributeDetails(data):
 
 def onReady(data):
     print("Firmware :: Attribute got Sync ::")
+    print("Firmware :: " + str(data))
     global readyStatus
     readyStatus = True
 
