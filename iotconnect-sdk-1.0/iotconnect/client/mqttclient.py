@@ -222,10 +222,13 @@ class mqttclient:
                     pubtopic=self._pubFlt
 
                 if self._client and pubtopic != None:
+                    self.print_debuglog(pubtopic, 0)
                     if pubtopic == self._pubACK:
                         _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
+                        self.print_debuglog("if pubtopic == self._pubACK:", 0)
                         return True
                     else:
+                        self.print_debuglog("else pubtopic == self._pubACK:", 0)
                         _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
                         if sys.version_info >=(3,5):
                             _obj.wait_for_publish(timeout=2)
