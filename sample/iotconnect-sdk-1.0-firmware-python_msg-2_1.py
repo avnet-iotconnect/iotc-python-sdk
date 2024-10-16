@@ -30,7 +30,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "" 
+UniqueId = "TeEspD03" 
 
 Sdk=None
 interval = 30
@@ -74,12 +74,12 @@ SdkOptions={
     "skipValidation":False,
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    "discoveryUrl":"https://awsdiscovery.iotconnect.io",
-    "IsDebug": False,
-    "cpid" : "",
+    "discoveryUrl":"https://discovery.iotconnect.io",
+    "IsDebug": True,
+    "cpid" : "may03",
     "sId" : "",
-    "env" : "",
-    "pf"  : "" # az / aws
+    "env" : "qa",
+    "pf"  : "az" # az / aws
    
 }
 
@@ -296,17 +296,18 @@ def main():
                     """
 
                     data= {
-                        "AString" : "AString",
-                        "ADecimal" : random.uniform(10.5, 75.5),
-                        "AObject" : {} ,
-                        "AInteger" : random.randint(100, 200),
-                        "ADate" : datetime.utcnow().strftime("%Y-%m-%d"),
-                        "ABoolean" : False,
-                        "ABit" : True,
-                        "ADateTime" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "ATime" : "11:55:22",
-                        "ALatLong" : [random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                        "ALong" : random.randint(60, 600000)
+                        # "AString" : "AString",
+                        # "ADecimal" : random.uniform(10.5, 75.5),
+                        # "AObject" : {} ,
+                        # "AInteger" : random.randint(100, 200),
+                        # "ADate" : datetime.utcnow().strftime("%Y-%m-%d"),
+                        # "ABoolean" : False,
+                        # "ABit" : True,
+                        # "ADateTime" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        # "ATime" : "11:55:22",
+                        # "ALatLong" : [random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                        # "ALong" : random.randint(60, 600000)
+                        "Temp" : random.randint(20, 30)
                     }
 
                     dObj = [{

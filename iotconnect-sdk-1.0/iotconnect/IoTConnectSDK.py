@@ -360,6 +360,52 @@ class IoTConnectSDK:
                             else:
                                 self._listner_deletechild_callback({"status":True,"message":"fail to delete child device"})
                         self._listner_deletechild_callback=None
+
+                    if msg['ec'] == 0 and msg["ct"] == 210:
+                        self.print_debuglog("Got Message command 210",0)
+
+                        if self.has_key(msg,"att"):
+                            if msg['att'] != None:
+                                if self._getattribute_callback == None:
+                                    self._data_json["att"] = msg["att"]
+                                    if self._onReady != None:
+                                        self._onReady(msg)
+                                    for attr in self.attributes:
+                                        attr["evaluation"] = data_evaluation(self.isEdge, attr, self.send_edge_data)
+                                    self._is_process_started = True
+                                    self._offlineflag=False
+                                    self.print_debuglog("..........Atrributes Get Successfully from 210...........",0)
+
+                                if self._getattribute_callback:
+                                    self._getattribute_callback(msg["att"])
+                                    self._getattribute_callback = None
+
+                        # if self.has_key(msg,"d"):
+                            # self.print_debuglog("..........Device Set from 210...........",0)
+                            # if len(msg['d']) != 0:
+                            #     self._data_json["has"]["d"] = 0
+                            # self._data_json['d']=[]
+                            # self._data_json['d'].append({'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId})
+                            # for i in msg["d"]:
+                            #         self._data_json['d'].append(i)
+                            # if self._listner_devicechng_callback:
+                            #     self._listner_devicechng_callback(msg)
+
+                        if self.has_key(msg,"set"):
+                            if msg['set'] != None:
+                                self._data_json["set"] = msg["set"]
+                                self.print_debuglog("..........Setting Set from 210...........",0)
+
+                        if self.has_key(msg,"r"):
+                            if msg['r'] != None:
+                                self._data_json["r"] = msg["r"]
+                                self.print_debuglog("..........Rule Match Set from 210...........",0)
+
+                        if self.has_key(msg,"ota"):
+                            if msg['ota'] != None:
+                                self._data_json["ota"] = msg["ota"]
+                                self.print_debuglog("..........OTA Set from 210...........",0)
+
                     return
                 else:
                     pass
@@ -617,26 +663,32 @@ class IoTConnectSDK:
                         # print("\nPublish connection status shadow sucessfully...")
                         self.print_debuglog("Publish connection status shadow sucessfully...", 0)
 
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["d"]:
-                        self._hello_handsake({"mt":204})
-                        time.sleep(10)                       
+                    self._hello_handsake({"mt":210})
+
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["d"]:
+                    #     self._hello_handsake({"mt":204})
+                    #     time.sleep(10)                       
+                    # else:
+                    if self._data_json['meta']['gtw'] != None:
+                        self._data_json['d']=[{'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId}]
                     else:
-                        if self._data_json['meta']['gtw'] != None:
-                            self._data_json['d']=[{'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId}]
-                        else:
-                            self._data_json['d']=[{'tg': '','id': self._uniqueId}]
+                        self._data_json['d']=[{'tg': '','id': self._uniqueId}]
 
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
-                        self._hello_handsake({"mt":201})
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["attr"]:
+                    #     print("self._hello_handsake(mt:201)")
+                    #     self._hello_handsake({"mt":201})
 
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
-                        self._hello_handsake({"mt":202})
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["set"]:
+                    #     print("self._hello_handsake(mt:202)")
+                    #     self._hello_handsake({"mt":202})
 
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
-                        self._hello_handsake({"mt":203})
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["r"]:
+                    #     print("self._hello_handsake(mt:203)")
+                    #     self._hello_handsake({"mt":203})
 
-                    if self.has_key(self._data_json,"has") and self._data_json["has"]["ota"]:
-                        self._hello_handsake({"mt":205})
+                    # if self.has_key(self._data_json,"has") and self._data_json["has"]["ota"]:
+                    #     print("self._hello_handsake(mt:205)")
+                    #     self._hello_handsake({"mt":205})
                         
                     if "df" in self._data_json['meta'] and self._data_json['meta']["df"]:
                         self._data_frequency=self._data_json['meta']["df"]
@@ -662,7 +714,6 @@ class IoTConnectSDK:
                 self.print_debuglog("Device is barred SendData() method is not permitted",1)
                 return
             if self.has_key(self._data_json,"att") == False:
-                # print("\n")
                 return
 
             nowtime=datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -691,6 +742,7 @@ class IoTConnectSDK:
                 uniqueId = obj["uniqueId"]
                 time = obj["time"]
                 sensorData = obj["data"]
+
                 for attr in self.attributes:
                     if self.has_key(attr, "evaluation"):
                         evaluation = attr["evaluation"]
@@ -699,6 +751,7 @@ class IoTConnectSDK:
                     if d["id"] == uniqueId:
                         if uniqueId not in self._live_device:
                             self._live_device.append(uniqueId)
+
                         if self._data_json['has']['d']:
                             tg = d["tg"]
                             r_device = {
@@ -817,8 +870,10 @@ class IoTConnectSDK:
                             flt_data["d"].append(f_device)
 
             #--------------------------------
-            #print("rtp: ",rpt_data)
-            #print("flt: ",flt_data)
+            # print("rtp: ",rpt_data)
+            # print("flt: ",flt_data)
+
+            msg_status = False
 
             if len(rpt_data["d"]) > 0:
                 msg_status = self.send_msg_to_broker("RPT", rpt_data)
