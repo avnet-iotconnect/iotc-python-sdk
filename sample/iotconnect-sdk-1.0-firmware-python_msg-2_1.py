@@ -30,7 +30,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "TeEspD03" 
+UniqueId = "" 
 
 Sdk=None
 interval = 30
@@ -75,11 +75,11 @@ SdkOptions={
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     "discoveryUrl":"https://discovery.iotconnect.io",
-    "IsDebug": True,
-    "cpid" : "may03",
+    "IsDebug": False,
+    "cpid" : "",
     "sId" : "",
-    "env" : "qa",
-    "pf"  : "az" # az / aws
+    "env" : "",
+    "pf"  : "" # az / aws
    
 }
 
