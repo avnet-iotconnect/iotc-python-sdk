@@ -18,7 +18,7 @@ import time
 import threading
 import random
 from iotconnect import IoTConnectSDK
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 """
@@ -29,8 +29,6 @@ import os
 * interval     :: send data frequency in seconds
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
-
-UniqueId = "" 
 
 Sdk=None
 interval = 30
@@ -55,18 +53,17 @@ readyStatus = False
 * Note: sdkOptions is optional but mandatory for SSL/x509 device authentication type only. Define proper setting or leave it NULL. If you not provide the offline storage it will set the default settings as per defined above. It may harm your device by storing the large data. Once memory get full may chance to stop the execution.
 """
 
+UniqueId = "" 
 
-SdkOptions={
+SdkOptions = {
 	"certificate" : { 
         # Certs
         "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
         "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
         "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
- 
-        
 	},
     "offlineStorage":{
-        "disabled": False,
+        "disabled": True,
 	    "availSpaceInMb": 0.01,
 	    "fileCount": 5,
         "keepalive":60
@@ -75,20 +72,19 @@ SdkOptions={
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     "discoveryUrl":"https://discovery.iotconnect.io",
-    "IsDebug": False,
+    "IsDebug": True,
     "cpid" : "",
     "sId" : "",
     "env" : "",
-    "pf"  : "" # az / aws
-   
+    "pf"  : ""    # az / aws
 }
 
 
 """
  * Type    : Callback Function "DeviceCallback()"
  * Usage   : Firmware will receive commands from cloud. You can manage your business logic as per received command.
- * Input   :  
- * Output  : Receive device command, firmware command and other device initialize error response 
+ * Input   : 
+ * Output  : Receive device command, firmware command and other device initialize error response
 """
 
 def DeviceCallback(msg):
@@ -105,10 +101,10 @@ def DeviceCallback(msg):
         * Usage   : Send device command received acknowledgment to cloud
         * 
         * - status Type
-        *     st = 6; // Device command Ack status 
+        *     st = 6; // Device command Ack status
         *     st = 4; // Failed Ack
         * - Message Type
-        *     msgType = 5; // for "0x01" device command 
+        *     msgType = 5; // for "0x01" device command
         """
         data=msg
         if data != None:
@@ -134,12 +130,12 @@ def DeviceFirmwareCallback(msg):
     if cmdType == 1:
         """
         * Type    : Public Method "sendAck()"
-        * Usage   : Send firmware command received acknowledgement to cloud
-        * - status Type
+        * Usage   : Send firmware command received acknowledgement to cloud 
+        * - status Type 
         *     st = 7; // firmware OTA command Ack status 
-        *     st = 4; // Failed Ack
-        * - Message Type
-        *     msgType = 11; // for "0x02" Firmware command
+        *     st = 4; // Failed Ack 
+        * - Message Type 
+        *     msgType = 11; // for "0x02" Firmware command 
         """
         data = msg
         if data != None:
@@ -194,6 +190,7 @@ def TwinUpdateCallback(msg):
  * Output  : 
 """
 def sendBackToSDK(sdk, dataArray):
+    print("Firmware :: dataArray : ",dataArray)
     if(sdk.SendData(dataArray) == True):
         print("Firmware :: Data Publish Success")
     else:
@@ -296,28 +293,29 @@ def main():
                     """
 
                     data= {
-                        # "AString" : "AString",
-                        # "ADecimal" : random.uniform(10.5, 75.5),
-                        # "AObject" : {} ,
-                        # "AInteger" : random.randint(100, 200),
-                        # "ADate" : datetime.utcnow().strftime("%Y-%m-%d"),
-                        # "ABoolean" : False,
-                        # "ABit" : True,
-                        # "ADateTime" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        # "ATime" : "11:55:22",
-                        # "ALatLong" : [random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                        # "ALong" : random.randint(60, 600000)
-                        "Temp" : random.randint(20, 30)
+                        "AString" : "AString",
+                        "ADecimal" : random.uniform(10.5, 75.5),
+                        "AObject" : {} ,
+                        "AInteger" : random.randint(100, 200),
+                        "ADate" : datetime.utcnow().strftime("%Y-%m-%d"),
+                        "ABoolean" : False,
+                        "ABit" : True,
+                        "ADateTime" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        "ATime" : "11:55:22",
+                        "ALatLong" : [random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                        "ALong" : random.randint(60, 600000)
                     }
 
+
+
                     dObj = [{
-                    "uniqueId": UniqueId,
+                    # "uniqueId": UniqueId,
                     "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     "data": data
                     }]
 
                     #dataArray.append(dObj)
-                    #print (dObj)      
+                    # print (dObj)      
                     if(readyStatus == True):
                         print("Firmware :: readyStatus == True")
                         sendBackToSDK(Sdk, dObj)

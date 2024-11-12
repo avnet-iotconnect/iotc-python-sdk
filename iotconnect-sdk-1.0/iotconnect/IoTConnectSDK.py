@@ -739,7 +739,7 @@ class IoTConnectSDK:
             flt_data = self._data_template
             for obj in jsonArray:
                 rul_data = []
-                uniqueId = obj["uniqueId"]
+                # uniqueId = obj["uniqueId"]
                 time = obj["time"]
                 sensorData = obj["data"]
 
@@ -748,20 +748,21 @@ class IoTConnectSDK:
                         evaluation = attr["evaluation"]
                         evaluation.reset_get_rule_data()
                 for d in self.devices:
-                    if d["id"] == uniqueId:
-                        if uniqueId not in self._live_device:
-                            self._live_device.append(uniqueId)
+                    # if d["id"] == uniqueId:
+                    if True:
+                        # if uniqueId not in self._live_device:
+                        #     self._live_device.append(uniqueId)
 
                         if self._data_json['has']['d']:
                             tg = d["tg"]
                             r_device = {
-                                "id": uniqueId,
+                                # "id": uniqueId,
                                 "dt": time,
                                 "tg": tg
                             }
                         else:
                             r_device = {
-                                "id": uniqueId,
+                                # "id": uniqueId,
                                 "dt": time
                             }
                             if d["tg"] != None:
@@ -859,7 +860,7 @@ class IoTConnectSDK:
                         #--------------------------------
                         if self.isEdge and self.hasRules and len(rul_data) > 0:
                             for rule in self.rules:
-                                rule["id"]=uniqueId
+                                # rule["id"]=uniqueId
                                 self._ruleEval.evalRules(rule, rul_data)
                         if len(r_attr_s.items()) > 0:
                             r_device["d"]=r_attr_s
@@ -870,8 +871,8 @@ class IoTConnectSDK:
                             flt_data["d"].append(f_device)
 
             #--------------------------------
-            # print("rtp: ",rpt_data)
-            # print("flt: ",flt_data)
+            print("rtp: ",rpt_data)
+            print("flt: ",flt_data)
 
             msg_status = False
 
