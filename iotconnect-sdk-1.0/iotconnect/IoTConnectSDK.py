@@ -727,7 +727,6 @@ class IoTConnectSDK:
                         edge_flt_flag=True
                 else:
                     if not self.isEdge:
-                        print("\r\n730\r\n")
                         return
             else:
                 nowtime=datetime.datetime.strptime(str(nowtime),"%Y%m%d%H%M%S")
