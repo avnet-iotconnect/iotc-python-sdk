@@ -440,12 +440,12 @@ class IoTConnectSDK:
             elif msg["ct"] == CMDTYPE["Stop_Hr_beat"]:
                 self.print_debuglog(str(CMDTYPE["Stop_Hr_beat"])+" Stop_Hr_beat command received...", 0)
                 self.print_debuglog(msg, 0)
-                self.heartbeat_stop()
+                # self.heartbeat_stop()
             elif msg["ct"] == CMDTYPE["Start_Hr_beat"]:
-                HBtime=msg["f"]
+                # HBtime=msg["f"]
                 self.print_debuglog(str(CMDTYPE["Start_Hr_beat"])+" Start_Hr_beat command received...", 0)
                 self.print_debuglog(msg, 0)
-                self.heartbeat_start(HBtime)
+                # self.heartbeat_start(HBtime)
             elif msg["ct"] == CMDTYPE["U_SETTING"]:
                 self.print_debuglog(str(CMDTYPE["U_SETTING"])+" U_SETTING command received...", 0)
                 self.print_debuglog(msg, 0)
@@ -727,6 +727,7 @@ class IoTConnectSDK:
                         edge_flt_flag=True
                 else:
                     if not self.isEdge:
+                        print("\r\n730\r\n")
                         return
             else:
                 nowtime=datetime.datetime.strptime(str(nowtime),"%Y%m%d%H%M%S")
@@ -739,7 +740,8 @@ class IoTConnectSDK:
             flt_data = self._data_template
             for obj in jsonArray:
                 rul_data = []
-                # uniqueId = obj["uniqueId"]
+                if("uniqueId" in obj):
+                    uniqueId = obj["uniqueId"]
                 time = obj["time"]
                 sensorData = obj["data"]
 
@@ -750,23 +752,39 @@ class IoTConnectSDK:
                 for d in self.devices:
                     # if d["id"] == uniqueId:
                     if True:
-                        # if uniqueId not in self._live_device:
-                        #     self._live_device.append(uniqueId)
+                        if("uniqueId" in obj):
+                            if uniqueId not in self._live_device:
+                                self._live_device.append(uniqueId)
 
-                        if self._data_json['has']['d']:
-                            tg = d["tg"]
-                            r_device = {
-                                # "id": uniqueId,
-                                "dt": time,
-                                "tg": tg
-                            }
+                            if self._data_json['has']['d']:
+                                tg = d["tg"]
+                                r_device = {
+                                    "id": uniqueId,
+                                    "dt": time,
+                                    "tg": tg
+                                }
+                            else:
+                                r_device = {
+                                    "id": uniqueId,
+                                    "dt": time
+                                }
+                                if d["tg"] != None:
+                                    r_device["tg"] = d["tg"]
                         else:
-                            r_device = {
-                                # "id": uniqueId,
-                                "dt": time
-                            }
-                            if d["tg"] != None:
-                                r_device["tg"] = d["tg"]
+                            if self._data_json['has']['d']:
+                                tg = d["tg"]
+                                r_device = {
+                                    # "id": uniqueId,
+                                    "dt": time,
+                                    "tg": tg
+                                }
+                            else:
+                                r_device = {
+                                    # "id": uniqueId,
+                                    "dt": time
+                                }
+                                if d["tg"] != None:
+                                    r_device["tg"] = d["tg"]
                         
                         f_device = copy.deepcopy(r_device)
                         r_attr_s = {}
@@ -860,7 +878,8 @@ class IoTConnectSDK:
                         #--------------------------------
                         if self.isEdge and self.hasRules and len(rul_data) > 0:
                             for rule in self.rules:
-                                # rule["id"]=uniqueId
+                                if("uniqueId" in obj):
+                                    rule["id"]=uniqueId
                                 self._ruleEval.evalRules(rule, rul_data)
                         if len(r_attr_s.items()) > 0:
                             r_device["d"]=r_attr_s

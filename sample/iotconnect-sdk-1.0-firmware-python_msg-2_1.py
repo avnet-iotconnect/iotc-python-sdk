@@ -31,7 +31,7 @@ import os
 """
 
 Sdk=None
-interval = 30
+interval = 10
 directmethodlist={}
 ACKdirect=[]
 device_list=[]
@@ -44,8 +44,8 @@ readyStatus = False
 * 	- SSLCertPath: your device certificate
 * 	- SSLCaPath : Root CA certificate
 * 	- Windows + Linux OS: Use "/" forward slash (Example: Windows: "E:/folder1/folder2/certificate", Linux: "/home/folder1/folder2/certificate")
-* "offlineStorage" : Define the configuration related to the offline data storage 
-* 	- disabled : false = offline data storing, true = not storing offline data 
+* "offlineStorage" : Define the configuration related to the offline data storage
+* 	- disabled : false = offline data storing, true = not storing offline data
 * 	- availSpaceInMb : Define the file size of offline data which should be in (MB)
 * 	- fileCount : Number of files need to create for offline data
 * "devicePrimaryKey" : It is optional parameter. Mandatory for the Symmetric Key Authentication support only. It gets from the IoTConnect UI portal "Device -> Select device -> info(Tab) -> Connection Info -> Device Connection".
@@ -53,7 +53,7 @@ readyStatus = False
 * Note: sdkOptions is optional but mandatory for SSL/x509 device authentication type only. Define proper setting or leave it NULL. If you not provide the offline storage it will set the default settings as per defined above. It may harm your device by storing the large data. Once memory get full may chance to stop the execution.
 """
 
-UniqueId = "" 
+UniqueId = ""
 
 SdkOptions = {
 	"certificate" : { 
@@ -71,8 +71,8 @@ SdkOptions = {
     "skipValidation":False,
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    "discoveryUrl":"https://discovery.iotconnect.io",
-    "IsDebug": True,
+    "discoveryUrl":"http://discovery.iotconnect.io",
+    "IsDebug": False,
     "cpid" : "",
     "sId" : "",
     "env" : "",
@@ -242,6 +242,8 @@ def onReady(data):
 
 def main():
     global SdkOptions,Sdk,ACKdirect,device_list
+
+    # configfiledata()
     
     try:
         """
@@ -284,7 +286,8 @@ def main():
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
 
-                for i in range(5):
+                # for i in range(5):
+                while(1):
                     #Sdk.GetAttributes()
                     """
                     * Add your device attributes and respective value here as per standard format defined in sdk documentation
@@ -314,15 +317,38 @@ def main():
                     "data": data
                     }]
 
+
+                    # """
+                    # * Gateway device input data format Example:
+                    # """
+                    
+                    
+                    # dObj = [ {
+                    #              "uniqueId":UniqueId,
+                    #              "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #              "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #              },
+                    #              {
+                    #                 "uniqueId":"NPP",
+                    #                 "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                 "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #                }
+                    #             ]
+
                     #dataArray.append(dObj)
                     # print (dObj)      
                     if(readyStatus == True):
                         print("Firmware :: readyStatus == True")
                         sendBackToSDK(Sdk, dObj)
-                    else:
-                        print("Firmware :: readyStatus == False")
+                    # else:
+                    #     print("Firmware :: readyStatus == False")
 
-                    time.sleep(60)
+                    time.sleep(1)
+
 
                 '''
                 Client Disconnect Method
