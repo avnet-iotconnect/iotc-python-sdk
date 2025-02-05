@@ -31,7 +31,7 @@ from kinesistest import get_kinesis_cer,start_gstreamer,stop_gstreamer
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "kinesisDev"
+UniqueId = ""
 
 Sdk=None
 interval = 30
@@ -58,9 +58,9 @@ device_list=[]
 
 SdkOptions={
 	"certificate" : { 
-        "SSLKeyPath"  : "/home/softweb/Documents/cert/pk_kinesisDev.pem",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "/home/softweb/Documents/cert/cert_kinesisDev.crt",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "/home/softweb/Documents/cert/AmazonRoot.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
  
         
 	},
@@ -76,10 +76,10 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://awsdiscovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "F3F73D448CA1469B806707034D5F67EB",
+    "cpid" : "",
     "sId" : "",
-    "env" : "poc",
-    "pf"  : "aws"
+    "env" : "",
+    "pf"  : ""
    
 }
 
