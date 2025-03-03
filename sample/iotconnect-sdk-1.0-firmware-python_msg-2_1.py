@@ -18,7 +18,7 @@ import time
 import threading
 import random
 from iotconnect import IoTConnectSDK
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 
 """
@@ -30,7 +30,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "" 
+UniqueId = "Enter Unique Id" 
 
 Sdk=None
 interval = 30
@@ -59,9 +59,9 @@ readyStatus = False
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "Enter device KEY certificate",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "Enter device Certificate",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "Enter AWS/AZ Cloud certificate"     #aws=root-CA.pem         ||   #az=rootCA.pem
  
         
 	},
@@ -72,14 +72,14 @@ SdkOptions={
         "keepalive":60
     },
     "skipValidation":False,
-    # "devicePrimaryKey":"<<DevicePrimaryKey>>",
+    # "devicePrimaryKey":"Enter Device Primary Key",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    "discoveryUrl":"https://awsdiscovery.iotconnect.io",
+    "discoveryUrl":"https://discovery.iotconnect.io",
     "IsDebug": False,
-    "cpid" : "",
+    "cpid" : "Enter CPID",
     "sId" : "",
-    "env" : "",
-    "pf"  : "" # az / aws
+    "env" : "Enter ENV",
+    "pf"  : "Enter PF" # az / aws
    
 }
 
@@ -112,12 +112,10 @@ def DeviceCallback(msg):
         """
         data=msg
         if data != None:
-            #print(data)
-            if "id" in data:
-                if "ack" in data and data["ack"]:
+            if "ack" in data and data["ack"]:
+                if "id" in data:
                     Sdk.sendAckCmd(data["ack"],2,"sucessfull",data["id"])  #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
-            else:
-                if "ack" in data and data["ack"]:
+                else:
                     Sdk.sendAckCmd(data["ack"],2,"sucessfull") #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
     else:
         print("Firmware :: rule command",msg)
@@ -200,22 +198,12 @@ def sendBackToSDK(sdk, dataArray):
         print("Firmware :: Data Publish Fail")
     time.sleep(interval)
 
-def DirectMethodCallback1(msg,methodname,rId):
-    global Sdk,ACKdirect
-    print("Firmware :: " + msg)
-    print("Firmware :: " + methodname)
-    print("Firmware :: " + rId)
-    data={"data":"succed"}
-    #return data,200,rId
-    ACKdirect.append({"data":data,"status":200,"reqId":rId})
-    #Sdk.DirectMethodACK(data,200,rId)
-
 def DirectMethodCallback(msg,methodname,rId):
     global Sdk,ACKdirect
     print("Firmware :: " + msg)
     print("Firmware :: " + methodname)
     print("Firmware :: " + rId)
-    data={"data":"fail"}
+    data={"data":"succed"}
     #return data,200,rId
     ACKdirect.append({"data":data,"status":200,"reqId":rId})
     #Sdk.DirectMethodACK(data,200,rId)
@@ -287,7 +275,7 @@ def main():
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
 
-                for i in range(5):
+                while True:
                     #Sdk.GetAttributes()
                     """
                     * Add your device attributes and respective value here as per standard format defined in sdk documentation
@@ -300,10 +288,10 @@ def main():
                         "ADecimal" : random.uniform(10.5, 75.5),
                         "AObject" : {} ,
                         "AInteger" : random.randint(100, 200),
-                        "ADate" : datetime.utcnow().strftime("%Y-%m-%d"),
+                        "ADate" : datetime.now(timezone.utc).strftime("%Y-%m-%d"),
                         "ABoolean" : False,
                         "ABit" : True,
-                        "ADateTime" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        "ADateTime" : datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                         "ATime" : "11:55:22",
                         "ALatLong" : [random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
                         "ALong" : random.randint(60, 600000)
@@ -311,9 +299,37 @@ def main():
 
                     dObj = [{
                     "uniqueId": UniqueId,
-                    "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     "data": data
                     }]
+
+                    # """
+                    # * Gateway device input data format Example:
+                    # """
+                    
+                    
+                    # dObj = [ {
+                    #              "uniqueId":"UniqueId",
+                    #              "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #              "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #              },
+                    #              {
+                    #                 "uniqueId":"childUniqueId",
+                    #                 "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                 "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #                },
+                    #              {
+                    #                 "uniqueId":"childUniqueId",
+                    #                 "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                 "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #                }
+                    #             ]
 
                     #dataArray.append(dObj)
                     #print (dObj)      

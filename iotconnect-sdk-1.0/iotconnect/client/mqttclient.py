@@ -225,10 +225,8 @@ class mqttclient:
                     self.print_debuglog(pubtopic, 0)
                     if pubtopic == self._pubACK:
                         _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
-                        self.print_debuglog("if pubtopic == self._pubACK:", 1)
                         return True
                     else:
-                        self.print_debuglog("else pubtopic == self._pubACK:", 1)
                         _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
                         if sys.version_info >=(3,5):
                             _obj.wait_for_publish(timeout=2)
@@ -330,7 +328,7 @@ class mqttclient:
     def name(self):
         return self._config["n"]
 
-    def __init__(self, auth_type, config, sdk_config, isDebug, onMessage, onDirectMethod, onTwinMessage = None):
+    def __init__(self, auth_type, config, sdk_config, onMessage, onDirectMethod, onTwinMessage = None, isDebug = None):
 
         self._auth_type = auth_type
         self._config = config

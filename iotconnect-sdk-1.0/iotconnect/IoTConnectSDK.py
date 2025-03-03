@@ -319,7 +319,7 @@ class IoTConnectSDK:
                                 attr["evaluation"] = data_evaluation(self.isEdge, attr, self.send_edge_data)
                             self._is_process_started = True
                             self._offlineflag=False
-                            self.print_debuglog("..........Atrributes Get Successfully...........",0)
+                            self.print_debuglog("Atrributes Get Successfully",0)
                         if self._getattribute_callback:
                             self._getattribute_callback(msg["att"])
                             self._getattribute_callback = None
@@ -540,7 +540,7 @@ class IoTConnectSDK:
                 self._client = None
 
             if name == "mqtt":
-                self._client = mqttclient(auth_type, protocol_cofig, self._config, self._debug, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage)
+                self._client = mqttclient(auth_type, protocol_cofig, self._config, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage, self._debug)
             elif name == "http" or name == "https":
                 self._client = httpclient(protocol_cofig, self._config)
             else:
@@ -687,7 +687,7 @@ class IoTConnectSDK:
             flt_data = self._data_template
             for obj in jsonArray:
                 rul_data = []
-                # uniqueId = obj["uniqueId"]
+                uniqueId = obj["uniqueId"]
                 time = obj["time"]
                 sensorData = obj["data"]
 
@@ -696,21 +696,19 @@ class IoTConnectSDK:
                         evaluation = attr["evaluation"]
                         evaluation.reset_get_rule_data()
                 for d in self.devices:
-                    # if d["id"] == uniqueId:
-                    if True:
-                        # if uniqueId not in self._live_device:
-                        #     self._live_device.append(uniqueId)
-
+                    if d["id"] == uniqueId:
+                        if uniqueId not in self._live_device:
+                            self._live_device.append(uniqueId)
                         if self._data_json['has']['d']:
                             tg = d["tg"]
                             r_device = {
-                                # "id": uniqueId,
+                                "id": uniqueId,
                                 "dt": time,
                                 "tg": tg
                             }
                         else:
                             r_device = {
-                                # "id": uniqueId,
+                                "id": uniqueId,
                                 "dt": time
                             }
                             if d["tg"] != None:
@@ -808,7 +806,7 @@ class IoTConnectSDK:
                         #--------------------------------
                         if self.isEdge and self.hasRules and len(rul_data) > 0:
                             for rule in self.rules:
-                                # rule["id"]=uniqueId
+                                rule["id"]=uniqueId
                                 self._ruleEval.evalRules(rule, rul_data)
                         if len(r_attr_s.items()) > 0:
                             r_device["d"]=r_attr_s
