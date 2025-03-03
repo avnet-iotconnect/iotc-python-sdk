@@ -283,18 +283,29 @@ def main():
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
 
-                    data= {
-                        "AString" : "AString",
-                        "ADecimal" : random.uniform(10.5, 75.5),
-                        "AObject" : {} ,
-                        "AInteger" : random.randint(100, 200),
-                        "ADate" : datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                        "ABoolean" : False,
-                        "ABit" : True,
-                        "ADateTime" : datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "ATime" : "11:55:22",
-                        "ALatLong" : [random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                        "ALong" : random.randint(60, 600000)
+                    data = {
+                        "temperature":random.randint(30, 50),
+                        "long1":random.randint(6000, 9000),
+                        "integer1": random.randint(100, 200),
+                        "decimal1":random.uniform(10.5, 75.5),
+                        "date1":datetime.utcnow().strftime("%Y-%m-%d"),
+                        "time1":"11:55:22",
+                        "bit1":1,
+                        "string1":"red",
+                        "datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        "gyro": {
+                            'bit1':0,
+                            'boolean1': True,
+                            'date1': datetime.utcnow().strftime("%Y-%m-%d"),
+                            "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                            "decimal1":random.uniform(10.5, 75.5),
+                            "integer1":random.randint(60, 600),
+                            "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                            "long1":random.randint(60, 600000),
+                            "string1":"green",
+                            "time1":"11:44:22",
+                            "temperature":random.randint(50, 90)
+                            }
                     }
 
                     dObj = [{
