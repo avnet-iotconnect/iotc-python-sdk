@@ -90,7 +90,7 @@ class rule_evaluation:
 
                 sdata = {}
                 sdata["cv"] = cvdata
-                sdata["d"] = fdata
+                sdata["d"] = [ fdata ]
                 sdata["rg"] = rule["g"]
                 sdata["ct"] = rule["con"]
                 sdata["sg"] = rule["es"]
@@ -164,7 +164,7 @@ class rule_evaluation:
                                 sdata["cv"]=d
 
                     if len(sdata) > 0:
-                        sdata["d"]=full_data
+                        sdata["d"]= [ full_data ]
                         sdata["rg"] = rule["g"]
                         sdata["ct"] = rule["con"]
                         sdata["sg"] = rule["es"]

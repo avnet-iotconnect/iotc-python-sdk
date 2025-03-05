@@ -30,10 +30,10 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "Enter Unique Id" 
+UniqueId = "Enter Unique Id"
 
 Sdk=None
-interval = 30
+interval = 10
 directmethodlist={}
 ACKdirect=[]
 device_list=[]
@@ -62,8 +62,6 @@ SdkOptions={
         "SSLKeyPath"  : "Enter device KEY certificate",    #aws=pk_devicename.pem   ||   #az=device.key
         "SSLCertPath" : "Enter device Certificate",    #aws=cert_devicename.crt ||   #az=device.pem
         "SSLCaPath"   : "Enter AWS/AZ Cloud certificate"     #aws=root-CA.pem         ||   #az=rootCA.pem
- 
-        
 	},
     "offlineStorage":{
         "disabled": False,
@@ -75,12 +73,12 @@ SdkOptions={
     # "devicePrimaryKey":"Enter Device Primary Key",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     "discoveryUrl":"https://discovery.iotconnect.io",
-    "IsDebug": False,
+    "IsDebug": True,
     "cpid" : "Enter CPID",
     "sId" : "",
     "env" : "Enter ENV",
     "pf"  : "Enter PF" # az / aws
-   
+
 }
 
 
@@ -284,7 +282,7 @@ def main():
                     """
 
                     data = {
-                        "temperature":random.randint(30, 50),
+                        "Temperature":random.randint(30, 50),
                         "long1":random.randint(6000, 9000),
                         "integer1": random.randint(100, 200),
                         "decimal1":random.uniform(10.5, 75.5),
@@ -293,7 +291,7 @@ def main():
                         "bit1":1,
                         "string1":"red",
                         "datetime1":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "gyro": {
+                        "gyroscope": {
                             'bit1':0,
                             'boolean1': True,
                             'date1': datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -350,7 +348,7 @@ def main():
                     else:
                         print("Firmware :: readyStatus == False")
 
-                    time.sleep(60)
+                    time.sleep(1)
 
                 '''
                 Client Disconnect Method
