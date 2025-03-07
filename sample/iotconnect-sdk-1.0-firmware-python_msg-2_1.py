@@ -2,13 +2,13 @@
   ******************************************************************************
   * @file   : iotconnect-sdk-1.0-firmware-python_msg-2_1.py
   * @author : Softweb Solutions An Avnet Company
-  * @modify : 02-January-2023
-  * @brief  : Firmware part for Python SDK 1.0
+  * @modify : 07-03-2025
+  * @brief  : Firmware part for Python SDK 2.1
   ******************************************************************************
 """
 
 """
- * Hope you have installed the Python SDK v1.0 as guided in README.md file or from documentation portal. 
+ * Hope you have installed the Python SDK v2.1 as guided in README.md file or from documentation portal. 
  * Import the IoTConnect SDK package and other required packages
 """
 
@@ -20,6 +20,7 @@ import random
 from iotconnect import IoTConnectSDK
 from datetime import datetime, timezone
 import os
+
 
 """
 * ## Prerequisite parameter to run this sampel code
@@ -34,6 +35,7 @@ UniqueId = "Enter Unique Id"
 
 Sdk=None
 interval = 10
+# add Direct Method
 directmethodlist={}
 ACKdirect=[]
 device_list=[]
@@ -198,13 +200,11 @@ def sendBackToSDK(sdk, dataArray):
 
 def DirectMethodCallback(msg,methodname,rId):
     global Sdk,ACKdirect
-    print("Firmware :: " + msg)
-    print("Firmware :: " + methodname)
-    print("Firmware :: " + rId)
-    data={"data":"succed"}
-    #return data,200,rId
-    ACKdirect.append({"data":data,"status":200,"reqId":rId})
-    #Sdk.DirectMethodACK(data,200,rId)
+    print("Firmware :: " + str(msg))
+    print("Firmware :: " +  str(methodname))
+    print("Firmware :: " +  str(rId))
+    # ACKdirect.append({"data":data,"status":200,"reqId":rId})
+    Sdk.DirectMethodACK(msg,200,rId)
 
 def DeviceChangCallback(msg):
     print("Firmware :: " + msg)
@@ -259,6 +259,7 @@ def main():
                 * Input   : 
                 * Output  : 
                 """
+                    
                 device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
@@ -266,12 +267,19 @@ def main():
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
                 Sdk.getTwins()
                 Sdk.onReady(onReady)
+
+                for method in directmethodlist:
+                    Sdk.regiter_directmethod_callback(method,DirectMethodCallback)
+
                 device_list=Sdk.Getdevice()
                 #Sdk.delete_child("childid",delete_child_callback)
                 #Sdk.createChildDevice("childid", "childtag", "childid", create_child_callback)
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
+
+
+                
 
                 while True:
                     #Sdk.GetAttributes()
@@ -348,7 +356,7 @@ def main():
                     else:
                         print("Firmware :: readyStatus == False")
 
-                    time.sleep(1)
+                    time.sleep(10)
 
                 '''
                 Client Disconnect Method

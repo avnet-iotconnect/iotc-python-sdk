@@ -46,7 +46,8 @@ class mqttclient:
     _path_to_root_cert=None
     _onDirectMethod=None
     _direct_sub="$iothub/methods/POST/#"
-    _direct_pub_res_topic="$iothub/methods/res/{status}/?$rid={request id}"
+    _direct_pub_res_topic="$iothub/methods/res/{status}/?$rid={rId}"
+    # _direct_pub_res_topic="$iothub/methods/res/{status}/?$rid={requestId}"
     _mqtt_status = {
         0: "MQTT: Connection successful",
         1: "MQTT: Connection refused - incorrect protocol version",
@@ -267,10 +268,11 @@ class mqttclient:
         try:
             if self._isConnected:
                 if self._direct_pub_res_topic:
-                    self._direct_pub_res_topic=self._direct_pub_res_topic.replace("{status}", status)
-                    self._direct_pub_res_topic=self._direct_pub_res_topic.replace("{request id}",requestId)
-                    obj=self._client.publish(self._direct_pub_res_topic, payload=json.dumps(data))
-                    #print(obj)
+                    self._direct_pub_res_topic = self._direct_pub_res_topic.replace("{status}", status)
+                    res_topic = self._direct_pub_res_topic.replace("{rId}",requestId)
+                    obj=self._client.publish(res_topic, payload=json.dumps(data))
+                    self.print_debuglog("Direct Method Data Published", 0)
+                    self.print_debuglog(data, 0)
         except:
             return False
 

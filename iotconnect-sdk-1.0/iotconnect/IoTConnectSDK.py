@@ -125,6 +125,7 @@ class IoTConnectSDK:
     _listner_deletechild_callback = None
     _validation = True
     _getattribute_callback = None
+    _listner_direct_callback_list = {}
 
     def get_config(self):
         try:
@@ -496,6 +497,9 @@ class IoTConnectSDK:
         except Exception as ex:
             # print("Message process failed...",ex)
             self.print_debuglog("Message process failed..." + ex, 1)
+
+    def regiter_directmethod_callback(self,methodname,callback):
+        self._listner_direct_callback_list[methodname]=callback
 
     def onDirectMethodMessage(self,msg,methodname,requestId):
         try:
@@ -938,6 +942,25 @@ class IoTConnectSDK:
                 self.send_msg_to_broker("CMD_ACK", template)
         except Exception as ex:
             raise(ex)
+        
+    def DirectMethodACK(self,msg,status,requestId):
+        if self._dispose == True:
+            self.write_debuglog('[ERR_TP02] '+ self._time +'['+ str(self._cpId)+'_'+ str(self._uniqueId) + "] Device is barred Updatetwin() method is not permitted",1)
+            raise(IoTConnectSDKException("00", "you are not able to call this function"))
+        if self._is_process_started == False:
+            return
+        if self._client:
+            try:
+                if type(status) == str or type(status) == int:
+                    if type(status) == int:
+                        status = str(status)
+                if type(requestId) == str or type(requestId) == int:
+                    if type(requestId) == int:
+                        requestId = str(requestId)
+                if type(requestId) == str and type(status) == str:
+                    online = self._client.SendDirectData(msg,status,requestId)
+            except Exception as ex:
+                raise(ex)
 
     def UpdateTwin(self, key, value):
         try:
