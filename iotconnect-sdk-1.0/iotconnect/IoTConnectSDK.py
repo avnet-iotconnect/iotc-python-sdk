@@ -125,6 +125,7 @@ class IoTConnectSDK:
     _listner_deletechild_callback = None
     _validation = True
     _getattribute_callback = None
+    _listner_direct_callback_list = {}
 
     def get_config(self):
         try:
@@ -319,7 +320,7 @@ class IoTConnectSDK:
                                 attr["evaluation"] = data_evaluation(self.isEdge, attr, self.send_edge_data)
                             self._is_process_started = True
                             self._offlineflag=False
-                            self.print_debuglog("..........Atrributes Get Successfully...........",0)
+                            self.print_debuglog("Atrributes Get Successfully",0)
                         if self._getattribute_callback:
                             self._getattribute_callback(msg["att"])
                             self._getattribute_callback = None
@@ -497,6 +498,9 @@ class IoTConnectSDK:
             # print("Message process failed...",ex)
             self.print_debuglog("Message process failed..." + ex, 1)
 
+    def regiter_directmethod_callback(self,methodname,callback):
+        self._listner_direct_callback_list[methodname]=callback
+
     def onDirectMethodMessage(self,msg,methodname,requestId):
         try:
             if self._listner_direct_callback_list :
@@ -540,7 +544,7 @@ class IoTConnectSDK:
                 self._client = None
 
             if name == "mqtt":
-                self._client = mqttclient(auth_type, protocol_cofig, self._config, self._debug, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage)
+                self._client = mqttclient(auth_type, protocol_cofig, self._config, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage, self._debug)
             elif name == "http" or name == "https":
                 self._client = httpclient(protocol_cofig, self._config)
             else:
@@ -687,7 +691,7 @@ class IoTConnectSDK:
             flt_data = self._data_template
             for obj in jsonArray:
                 rul_data = []
-                # uniqueId = obj["uniqueId"]
+                uniqueId = obj["uniqueId"]
                 time = obj["time"]
                 sensorData = obj["data"]
 
@@ -696,21 +700,19 @@ class IoTConnectSDK:
                         evaluation = attr["evaluation"]
                         evaluation.reset_get_rule_data()
                 for d in self.devices:
-                    # if d["id"] == uniqueId:
-                    if True:
-                        # if uniqueId not in self._live_device:
-                        #     self._live_device.append(uniqueId)
-
+                    if d["id"] == uniqueId:
+                        if uniqueId not in self._live_device:
+                            self._live_device.append(uniqueId)
                         if self._data_json['has']['d']:
                             tg = d["tg"]
                             r_device = {
-                                # "id": uniqueId,
+                                "id": uniqueId,
                                 "dt": time,
                                 "tg": tg
                             }
                         else:
                             r_device = {
-                                # "id": uniqueId,
+                                "id": uniqueId,
                                 "dt": time
                             }
                             if d["tg"] != None:
@@ -808,7 +810,7 @@ class IoTConnectSDK:
                         #--------------------------------
                         if self.isEdge and self.hasRules and len(rul_data) > 0:
                             for rule in self.rules:
-                                # rule["id"]=uniqueId
+                                rule["id"]=uniqueId
                                 self._ruleEval.evalRules(rule, rul_data)
                         if len(r_attr_s.items()) > 0:
                             r_device["d"]=r_attr_s
@@ -940,6 +942,25 @@ class IoTConnectSDK:
                 self.send_msg_to_broker("CMD_ACK", template)
         except Exception as ex:
             raise(ex)
+        
+    def DirectMethodACK(self,msg,status,requestId):
+        if self._dispose == True:
+            self.write_debuglog('[ERR_TP02] '+ self._time +'['+ str(self._cpId)+'_'+ str(self._uniqueId) + "] Device is barred Updatetwin() method is not permitted",1)
+            raise(IoTConnectSDKException("00", "you are not able to call this function"))
+        if self._is_process_started == False:
+            return
+        if self._client:
+            try:
+                if type(status) == str or type(status) == int:
+                    if type(status) == int:
+                        status = str(status)
+                if type(requestId) == str or type(requestId) == int:
+                    if type(requestId) == int:
+                        requestId = str(requestId)
+                if type(requestId) == str and type(status) == str:
+                    online = self._client.SendDirectData(msg,status,requestId)
+            except Exception as ex:
+                raise(ex)
 
     def UpdateTwin(self, key, value):
         try:

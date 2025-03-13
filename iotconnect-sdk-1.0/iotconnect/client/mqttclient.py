@@ -46,7 +46,8 @@ class mqttclient:
     _path_to_root_cert=None
     _onDirectMethod=None
     _direct_sub="$iothub/methods/POST/#"
-    _direct_pub_res_topic="$iothub/methods/res/{status}/?$rid={request id}"
+    _direct_pub_res_topic="$iothub/methods/res/{status}/?$rid={rId}"
+    # _direct_pub_res_topic="$iothub/methods/res/{status}/?$rid={requestId}"
     _mqtt_status = {
         0: "MQTT: Connection successful",
         1: "MQTT: Connection refused - incorrect protocol version",
@@ -225,10 +226,8 @@ class mqttclient:
                     self.print_debuglog(pubtopic, 0)
                     if pubtopic == self._pubACK:
                         _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
-                        self.print_debuglog("if pubtopic == self._pubACK:", 1)
                         return True
                     else:
-                        self.print_debuglog("else pubtopic == self._pubACK:", 1)
                         _obj = self._client.publish(pubtopic, payload=json.dumps(data),qos=0)
                         if sys.version_info >=(3,5):
                             _obj.wait_for_publish(timeout=2)
@@ -269,10 +268,11 @@ class mqttclient:
         try:
             if self._isConnected:
                 if self._direct_pub_res_topic:
-                    self._direct_pub_res_topic=self._direct_pub_res_topic.replace("{status}", status)
-                    self._direct_pub_res_topic=self._direct_pub_res_topic.replace("{request id}",requestId)
-                    obj=self._client.publish(self._direct_pub_res_topic, payload=json.dumps(data))
-                    #print(obj)
+                    self._direct_pub_res_topic = self._direct_pub_res_topic.replace("{status}", status)
+                    res_topic = self._direct_pub_res_topic.replace("{rId}",requestId)
+                    obj=self._client.publish(res_topic, payload=json.dumps(data))
+                    self.print_debuglog("Direct Method Data Published", 0)
+                    self.print_debuglog(data, 0)
         except:
             return False
 
@@ -330,7 +330,7 @@ class mqttclient:
     def name(self):
         return self._config["n"]
 
-    def __init__(self, auth_type, config, sdk_config, isDebug, onMessage, onDirectMethod, onTwinMessage = None):
+    def __init__(self, auth_type, config, sdk_config, onMessage, onDirectMethod, onTwinMessage = None, isDebug = None):
 
         self._auth_type = auth_type
         self._config = config

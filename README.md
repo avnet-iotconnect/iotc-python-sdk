@@ -9,7 +9,7 @@ Getting started
 
 Prerequisites
 Before you install and run the firmware file, we recommend to check with the following set up requirements:
-1. Python: IoTConnect's Python SDK supports 2.7, 3.5, 3.7 to 3.9 and 3.10 Python versions. However, we suggest to install the most stable Python version 3.10.0
+1. Python: IoTConnect's Python SDK supports 2.7, 3.5, 3.7 to 3.12 and 3.13 Python versions. However, we suggest to install the most stable Python version 3.13.0
 2. pip: pip is compatible with the Python version
 3. setuptools: It requires to manage the Python packages
 
@@ -110,15 +110,13 @@ To receive the command from cloud-to-device
 	def DeviceCallback(msg):
 		print(json.dumps(msg))
 		if cmdType == 0:
-			#Device comand Received 
-			if "id" in data:
-					if "ack" in data and data["ack"]:
-						Sdk.sendAckCmd(data["ack"],7,"sucessfull",data["id"])  #fail=4,executed= 5,sucess=7,6=executedack 
-						#To send ACK for gateway type device
-				else:
-					if "ack" in data and data["ack"]:
-						Sdk.sendAckCmd(data["ack"],7,"sucessfull") #fail=4,executed= 5,sucess=7,6=executedack	
-						#To send ACK for non-gateway type device
+			data=msg
+			if data != None:
+				if "ack" in data and data["ack"]:
+					if "id" in data:
+						Sdk.sendAckCmd(data["ack"],2,"sucessfull",data["id"])  #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
+					else:
+						Sdk.sendAckCmd(data["ack"],2,"sucessfull") #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
 ```
 
 To receive the OTA command from cloud-to-device 

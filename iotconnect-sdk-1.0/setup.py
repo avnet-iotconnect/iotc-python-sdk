@@ -6,28 +6,26 @@ packages_requires=[]
 
 if 'win' in sys.platform:
     if sys.version_info >= (3, 5):
-        packages_requires=["paho-mqtt","ntplib","pypiwin32","jsonlib-python3"]
+        packages_requires=["paho-mqtt==2.1.0","ntplib==0.4.0","pypiwin32==223"]
     else:
         packages_requires=[]
-        os.system('pip install paho-mqtt')
-        os.system('pip install ntplib')
-        os.system('pip install pypiwin32')
-        #os.system('pip install jsonlib')
+        os.system('pip install paho-mqtt==2.1.0')
+        os.system('pip install ntplib==0.4.0')
+        os.system('pip install pypiwin32==223')
 
 
 elif 'linux' in sys.platform :
     if sys.version_info >= (3, 5):
-        packages_requires=["paho-mqtt","ntplib","jsonlib-python3"]
+                packages_requires=["paho-mqtt==2.1.0","ntplib==0.4.0"]
     else:
         packages_requires=[]
-        os.system('pip install paho-mqtt')
-        os.system('pip install ntplib')
-        os.system('pip install jsonlib')
+        os.system('pip install paho-mqtt==2.1.0')
+        os.system('pip install ntplib==0.4.0')
  
 setup(
     name="iotconnect-sdk",
-    version="1.1",
-    python_requires=">=2.7,>=3.5,<3.13",
+    version="1.0",
+    python_requires=">=2.7,>=3.5,<3.15",
     description='SDK for D2C and C2D communication',
     license="MIT",
     author='SOFTWEB SOLUTIONS<admin@softwebsolutions.com> (https://www.softwebsolutions.com)',

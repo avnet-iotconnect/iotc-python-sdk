@@ -2,13 +2,13 @@
   ******************************************************************************
   * @file   : iotconnect-sdk-1.0-firmware-python_msg-2_1.py
   * @author : Softweb Solutions An Avnet Company
-  * @modify : 02-January-2023
-  * @brief  : Firmware part for Python SDK 1.0
+  * @modify : 07-03-2025
+  * @brief  : Firmware part for Python SDK 2.1
   ******************************************************************************
 """
 
 """
- * Hope you have installed the Python SDK v1.0 as guided in README.md file or from documentation portal. 
+ * Hope you have installed the Python SDK v2.1 as guided in README.md file or from documentation portal. 
  * Import the IoTConnect SDK package and other required packages
 """
 
@@ -18,9 +18,9 @@ import time
 import threading
 import random
 from iotconnect import IoTConnectSDK
-from datetime import datetime
+from datetime import datetime, timezone
 import os
-from kinesistest import get_kinesis_cer,start_gstreamer,stop_gstreamer
+
 
 """
 * ## Prerequisite parameter to run this sampel code
@@ -31,13 +31,15 @@ from kinesistest import get_kinesis_cer,start_gstreamer,stop_gstreamer
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = ""
+UniqueId = "ED20250220"
 
 Sdk=None
-interval = 30
+interval = 10
+# add Direct Method
 directmethodlist={}
 ACKdirect=[]
 device_list=[]
+readyStatus = False
 
 """
 * sdkOptions is optional. Mandatory for "certificate" X.509 device authentication type
@@ -51,18 +53,17 @@ device_list=[]
 * 	- availSpaceInMb : Define the file size of offline data which should be in (MB)
 * 	- fileCount : Number of files need to create for offline data
 * "devicePrimaryKey" : It is optional parameter. Mandatory for the Symmetric Key Authentication support only. It gets from the IoTConnect UI portal "Device -> Select device -> info(Tab) -> Connection Info -> Device Connection".
-*   - "devicePrimaryKey": "<<your Key>>"
+    - - "devicePrimaryKey": "<<your Key>>"
 * Note: sdkOptions is optional but mandatory for SSL/x509 device authentication type only. Define proper setting or leave it NULL. If you not provide the offline storage it will set the default settings as per defined above. It may harm your device by storing the large data. Once memory get full may chance to stop the execution.
 """
 
 
 SdkOptions={
 	"certificate" : { 
-        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
- 
-        
+        # Certs
+        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/ED20250220-certificates/pk_ED20250220.pem",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/ED20250220-certificates/cert_ED20250220.crt",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/ED20250220-certificates/AmazonRoot.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -71,16 +72,15 @@ SdkOptions={
         "keepalive":60
     },
     "skipValidation":False,
-    # "devicePrimaryKey":"<<DevicePrimaryKey>>",
+    # "devicePrimaryKey":"Enter Device Primary Key",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    "discoveryUrl":"https://awsdiscovery.iotconnect.io", #Azure All Environment 
+    "discoveryUrl":"https://jzbybwq654.execute-api.us-east-1.amazonaws.com/Prod/",
     "IsDebug": True,
-    "cpid" : "",
+    "cpid" : "ou18",
     "sId" : "",
-    "env" : "",
-    "pf"  : ""
-   
+    "env" : "preqa",
+    "pf"  : "aws" # az / aws
+
 }
 
 
@@ -90,29 +90,14 @@ SdkOptions={
  * Input   :  
  * Output  : Receive device command, firmware command and other device initialize error response 
 """
+
 def DeviceCallback(msg):
     global Sdk
-    print("\n--- Command Message Received in Firmware ---")
-    print(json.dumps(msg))
+    print("Firmware :: --- Command Message Received in Firmware ---")
+    print("Firmware :: " + json.dumps(msg))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if "ct"in msg else None
-    
-    if msg["cmd"] == "start_stream":
-
-        stream_id, stream_key, sessionToken = get_kinesis_cer(SdkOptions["cpid"], UniqueId, SdkOptions["certificate"]["SSLCaPath"], SdkOptions["certificate"]["SSLCertPath"], SdkOptions["certificate"]["SSLKeyPath"])
-        print("Stream Access Key : " + stream_id)
-        print("Stream Secret Key : " + stream_key)
-        print("Stream session Token : " + sessionToken)
-
-        gst_thread = threading.Thread(target=start_gstreamer, args=("test-video-stream", stream_id, stream_key, sessionToken))
-        gst_thread.start()
-        print("Streaming started")
-
-    if msg["cmd"] == "end_stream":
-        print("Streaming Ended")
-        stop_gstreamer()
-
     # Other Command
     if cmdType == 0:
         """
@@ -126,23 +111,20 @@ def DeviceCallback(msg):
         *     msgType = 5; // for "0x01" device command 
         """
         data=msg
-
         if data != None:
-            #print(data)
-            if "id" in data:
-                if "ack" in data and data["ack"]:
-                    Sdk.sendAckCmd(data["ack"],7,"sucessfull",data["id"])  #fail=4,executed= 5,sucess=7,6=executedack
-            else:
-                if "ack" in data and data["ack"]:
-                    Sdk.sendAckCmd(data["ack"],7,"sucessfull") #fail=4,executed= 5,sucess=7,6=executedack
+            if "ack" in data and data["ack"]:
+                if "id" in data:
+                    Sdk.sendAckCmd(data["ack"],2,"sucessfull",data["id"])  #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
+                else:
+                    Sdk.sendAckCmd(data["ack"],2,"sucessfull") #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
     else:
-        print("rule command",msg)
+        print("Firmware :: rule command",msg)
 
     # Firmware Upgrade
 def DeviceFirmwareCallback(msg):
     global Sdk,device_list
-    print("\n--- firmware Command Message Received ---")
-    print(json.dumps(msg))
+    print("Firmware :: --- firmware Command Message Received ---")
+    print("Firmware :: " + json.dumps(msg))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
@@ -164,18 +146,18 @@ def DeviceFirmwareCallback(msg):
                     if "tg" in url_list:
                         for i in device_list:
                             if "tg" in i and (i["tg"] == url_list["tg"]):
-                                Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull",i["id"]) #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
+                                Sdk.sendOTAAckCmd(data["ack"],5,"sucessfull",i["id"]) #Success=5, Executed (Cloud Only)=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
                     else:
-                        Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull") #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
+                        Sdk.sendOTAAckCmd(data["ack"],5,"sucessfull") #Success=5, Executed (Cloud Only)=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
 
-def DeviceConectionCallback(msg):  
+def DeviceConectionCallback(msg):
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
     #connection status
     if cmdType == 116:
         #Device connection status e.g. data["command"] = true(connected) or false(disconnected)
-        print(json.dumps(msg))
+        print("Firmware :: " + json.dumps(msg))
 
 """
  * Type    : Public Method "UpdateTwin()"
@@ -196,8 +178,8 @@ def DeviceConectionCallback(msg):
 def TwinUpdateCallback(msg):
     global Sdk
     if msg:
-        print("--- Twin Message Received ---")
-        print(json.dumps(msg))
+        print("Firmware :: --- Twin Message Received ---")
+        print("Firmware :: " + json.dumps(msg))
         if ("desired" in msg) and ("reported" not in msg):
             for j in msg["desired"]:
                 if ("version" not in j) and ("uniqueId" not in j):
@@ -210,55 +192,45 @@ def TwinUpdateCallback(msg):
  * Output  : 
 """
 def sendBackToSDK(sdk, dataArray):
-    sdk.SendData(dataArray)
+    if(sdk.SendData(dataArray) == True):
+        print("Firmware :: Data Publish Success")
+    else:
+        print("Firmware :: Data Publish Fail")
     time.sleep(interval)
-
-def DirectMethodCallback1(msg,methodname,rId):
-    global Sdk,ACKdirect
-    print(msg)
-    print(methodname)
-    print(rId)
-    data={"data":"succed"}
-    #return data,200,rId
-    ACKdirect.append({"data":data,"status":200,"reqId":rId})
-    #Sdk.DirectMethodACK(data,200,rId)
 
 def DirectMethodCallback(msg,methodname,rId):
     global Sdk,ACKdirect
-    print(msg)
-    print(methodname)
-    print(rId)
-    data={"data":"fail"}
-    #return data,200,rId
-    ACKdirect.append({"data":data,"status":200,"reqId":rId})
-    #Sdk.DirectMethodACK(data,200,rId)
+    print("Firmware :: " + str(msg))
+    print("Firmware :: " +  str(methodname))
+    print("Firmware :: " +  str(rId))
+    # ACKdirect.append({"data":data,"status":200,"reqId":rId})
+    Sdk.DirectMethodACK(msg,200,rId)
 
 def DeviceChangCallback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
 
 def InitCallback(response):
-    print(response)
+    print("Firmware :: " + response)
 
 def delete_child_callback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
     
 def create_child_callback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
 
 def attributeDetails(data):
-    print ("attribute received in firmware")
-    print (data)
-    
+    print("Firmware :: attribute received in firmware")
+    print("Firmware :: " + data)
 
+def onReady(data):
+    print("Firmware :: Attribute got Sync ::")
+    print("Firmware :: " + str(data))
+    global readyStatus
+    readyStatus = True
 
 
 def main():
     global SdkOptions,Sdk,ACKdirect,device_list
-
-    # stream_id, stream_key = get_kinesis_cer(SdkOptions["cpid"], UniqueId, SdkOptions["certificate"]["SSLCaPath"], SdkOptions["certificate"]["SSLCertPath"], SdkOptions["certificate"]["SSLKeyPath"])
-    # print("Stream Access Key : " + stream_id)
-    # print("Stream Secret Key : " + stream_key)
-
     
     try:
         """
@@ -267,10 +239,10 @@ def main():
                 if os.path.isfile(SdkOptions["certificate"][prop]):
                     pass
                 else:
-                    print("please give proper path")
+                    print("Firmware :: please give proper path")
                     break
         else:
-            print("you are not use auth type CA sign or self CA sign ") 
+            print("Firmware :: you are not use auth type CA sign or self CA sign ") 
         """    
         """
         * Type    : Object Initialization "IoTConnectSDK()"
@@ -278,7 +250,7 @@ def main():
         * Input   : cpId, uniqueId, sdkOptions, env as explained above and DeviceCallback and TwinUpdateCallback is callback functions
         * Output  : Callback methods for device command and twin properties
         """
-        
+
         with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback) as Sdk:
             try:
                 """
@@ -287,95 +259,110 @@ def main():
                 * Input   : 
                 * Output  : 
                 """
-                
-
+                    
                 device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
                 Sdk.onOTACommand(DeviceFirmwareCallback)
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
                 Sdk.getTwins()
+                Sdk.onReady(onReady)
+
+                for method in directmethodlist:
+                    Sdk.regiter_directmethod_callback(method,DirectMethodCallback)
+
                 device_list=Sdk.Getdevice()
                 #Sdk.delete_child("childid",delete_child_callback)
                 #Sdk.createChildDevice("childid", "childtag", "childid", create_child_callback)
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
+
+
+
                 while True:
                     #Sdk.GetAttributes()
                     """
-                    * Non Gateway device input data format Example:
-					
+                    * Add your device attributes and respective value here as per standard format defined in sdk documentation
+                    * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z"
+                    * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
-
-                    
-                    # data = {
-                    # "temperature":random.randint(30, 50),
-                    # "long1":random.randint(6000, 9000),
-                    # "integer1": random.randint(100, 200),
-                    # "decimal1":random.uniform(10.5, 75.5),
-                    # "date1":datetime.utcnow().strftime("%Y-%m-%d"),
-                    # "time1":"11:55:22",
-                    # "bit1":1,
-                    # "string1":"red",
-                    # "datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    # "gyro": {
-                    #    'bit1':0,
-                    #    'boolean1': True,
-                    #    'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                    #    "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #    "decimal1":random.uniform(10.5, 75.5),
-                    #    "integer1":random.randint(60, 600),
-                    #    "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                    #    "long1":random.randint(60, 600000),
-                    #    "string1":"green",
-                    #    "time1":"11:44:22",
-                    #    "temperature":random.randint(50, 90)
-                    #    }
-                    #    }
 
                     data = {
-                           "stream" : True
+                        "Humidity":random.randint(30, 50),
+                        # "long1":random.randint(6000, 9000),
+                        # "integer1": random.randint(100, 200),
+                        # "decimal1":random.uniform(10.5, 75.5),
+                        # "date1":datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                        # "time1":"11:55:22",
+                        # "bit1":1,
+                        # "string1":"red",
+                        # "datetime1":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        # "gyroscope": {
+                        #     'bit1':0,
+                        #     'boolean1': True,
+                        #     'date1': datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                        #     "datetime1": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        #     "decimal1":random.uniform(10.5, 75.5),
+                        #     "integer1":random.randint(60, 600),
+                        #     "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                        #     "long1":random.randint(60, 600000),
+                        #     "string1":"green",
+                        #     "time1":"11:44:22",
+                        #     "temperature":random.randint(50, 90)
+                        #     }
                     }
-                    
-                    dObj = [{
-                       "uniqueId": UniqueId,
-                       "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                       "data": data
-                    }]
-                    
 
-                    """
-                    * Gateway device input data format Example:
-                    """
+                    dObj = [{
+                    "uniqueId": UniqueId,
+                    "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    "data": data
+                    }]
+
+                    # """
+                    # * Gateway device input data format Example:
+                    # """
                     
                     
                     # dObj = [ {
-                    #              "uniqueId":UniqueId,
-                    #              "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #              "uniqueId":"UniqueId",
+                    #              "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     #              "data": {
                     #                      "temperature":random.randint(30, 50)
                     #                      }
                     #              },
                     #              {
-                    #                 "uniqueId":"NPP",
-                    #                 "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                 "uniqueId":"childUniqueId",
+                    #                 "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                 "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #                },
+                    #              {
+                    #                 "uniqueId":"childUniqueId",
+                    #                 "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     #                 "data": {
                     #                      "temperature":random.randint(30, 50)
                     #                      }
                     #                }
-                    #         ]
-                                
+                    #             ]
 
-                    
-                    """
-                    * Add your device attributes and respective value here as per standard format defined in sdk documentation
-                    * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z" 
-                    * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
-                    """
                     #dataArray.append(dObj)
-                    print (dObj)
-                    sendBackToSDK(Sdk, dObj)
+                    #print (dObj)      
+                    if(readyStatus == True):
+                        print("Firmware :: readyStatus == True")
+                        sendBackToSDK(Sdk, dObj)
+                    else:
+                        print("Firmware :: readyStatus == False")
+
+                    time.sleep(10)
+
+                '''
+                Client Disconnect Method
+                '''
+                Sdk.Dispose()
+
+                time.sleep(10)
                     
             except KeyboardInterrupt:
                 print ("Keyboard Interrupt Exception")
@@ -385,8 +372,8 @@ def main():
                 
                 
     except Exception as ex:
-        # print(ex.message)
-        sys.exit(0)
+        print(ex)
+        # sys.exit(0)
 
 if __name__ == "__main__":
     main()
