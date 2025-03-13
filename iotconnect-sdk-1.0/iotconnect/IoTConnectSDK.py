@@ -37,6 +37,8 @@ from iotconnect.common.util import util
 
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
 
+from iotconnect.client.awskinesisclient import get_kinesis_cer, start_gstreamer,stop_gstreamer
+
 MSGTYPE = {
     "RPT": 0,
     "FLT": 1,
@@ -71,6 +73,8 @@ CMDTYPE = {
     "STOP":109,
     "Start_Hr_beat":110,
     "Stop_Hr_beat":111,
+    "stream_start": 112,
+    "stream_stop": 113,
     "is_connect": 116,
     "SYNC": "sync",
     "RESETPWD": "resetpwd",
@@ -126,6 +130,9 @@ class IoTConnectSDK:
     _validation = True
     _getattribute_callback = None
     _listner_direct_callback_list = {}
+    _kinesis_stream_URL = ""
+    _kinesis_stream_as = True
+    _kinesis_stream_status = False
 
     def get_config(self):
         try:
@@ -378,7 +385,31 @@ class IoTConnectSDK:
                         self.write_debuglog('[INFO_CM09] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] 0x116 sdk connection status: " + msg["command"],0)
                         self.print_debuglog("0x116 sdk connection status: " + msg["command"], 0)
                         return
+                    
+                    if msg["ct"] == CMDTYPE["stream_start"]:
+                        print("Starting Streaming")
 
+                        if(self._kinesis_stream_status == False):
+
+                            print("NEW_TASK ::: Start Kinesis video stream")
+
+                            # stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], "cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com")
+
+                            # gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken))
+                            # gst_thread.start()
+                            self._kinesis_stream_status = True
+                            print("Streaming started")
+
+                        else:
+                            print("Streaming already started")
+
+                    if msg["ct"] == CMDTYPE["stream_stop"]:
+                        if(self._kinesis_stream_status == False):
+                            print("No Streaming found")
+                        else:
+                            # stop_gstreamer()
+                            print("Streaming Stopped")
+                            self._kinesis_stream_status = False
 
             if self._is_process_started == False:
                 return
@@ -644,6 +675,31 @@ class IoTConnectSDK:
                         
                     if "df" in self._data_json['meta'] and self._data_json['meta']["df"]:
                         self._data_frequency=self._data_json['meta']["df"]
+
+                    # kinesis video stream config in Sync call
+                    if self.has_key(self._data_json["p"], "vs"):
+                        print("NEW_TASK ::: Streaming Object found..............................................................................") 
+
+                        self._kinesis_stream_URL = self._data_json["p"]["vs"]["url"]
+                        print(self._kinesis_stream_URL)
+                        self._kinesis_stream_as = self._data_json["p"]["vs"]["as"]
+                        print(self._kinesis_stream_as)
+
+                        if(self._kinesis_stream_as == True):
+                            print(self._uniqueId)
+                            print(self._property)
+
+                            stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._kinesis_stream_URL)
+
+                            gst_thread = threading.Thread(target=start_gstreamer, args=("test-video-stream", stream_id, stream_key, sessionToken))
+                            gst_thread.start()
+                            self._kinesis_stream_status = True
+                            print("Auto Streaming : True")
+
+                        else:
+                            print("Auto Streaming : False wait for start command")
+                    else:
+                        print("NEW_TASK ::: No Streaming Object found..............................................................................")
 
         except Exception as ex:
             raise ex

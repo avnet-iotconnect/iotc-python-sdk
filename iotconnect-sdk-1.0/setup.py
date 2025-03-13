@@ -16,11 +16,12 @@ if 'win' in sys.platform:
 
 elif 'linux' in sys.platform :
     if sys.version_info >= (3, 5):
-                packages_requires=["paho-mqtt==2.1.0","ntplib==0.4.0"]
+                packages_requires=["paho-mqtt==2.1.0","ntplib==0.4.0", "requests"]
     else:
         packages_requires=[]
         os.system('pip install paho-mqtt==2.1.0')
         os.system('pip install ntplib==0.4.0')
+        os.system('pip install requests')
  
 setup(
     name="iotconnect-sdk",

@@ -31,7 +31,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "ED20250220"
+UniqueId = "kinesisDev"
 
 Sdk=None
 interval = 10
@@ -61,9 +61,9 @@ readyStatus = False
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/ED20250220-certificates/pk_ED20250220.pem",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/ED20250220-certificates/cert_ED20250220.crt",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/ED20250220-certificates/AmazonRoot.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/pk_kinesisDev.pem",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/cert_kinesisDev.crt",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/AmazonRoot.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -71,15 +71,16 @@ SdkOptions={
 	    "fileCount": 5,
         "keepalive":60
     },
-    "skipValidation":False,
-    # "devicePrimaryKey":"Enter Device Primary Key",
+     "skipValidation":False,
+    # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    "discoveryUrl":"https://jzbybwq654.execute-api.us-east-1.amazonaws.com/Prod/",
+    # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
+    "discoveryUrl":"https://awsdiscovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "ou18",
+    "cpid" : "F3F73D448CA1469B806707034D5F67EB",
     "sId" : "",
-    "env" : "preqa",
-    "pf"  : "aws" # az / aws
+    "env" : "poc",
+    "pf"  : "aws"
 
 }
 
@@ -289,7 +290,7 @@ def main():
                     """
 
                     data = {
-                        "Humidity":random.randint(30, 50),
+                        "stream":True
                         # "long1":random.randint(6000, 9000),
                         # "integer1": random.randint(100, 200),
                         # "decimal1":random.uniform(10.5, 75.5),
