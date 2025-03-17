@@ -2,6 +2,7 @@ import requests
 import subprocess
 import signal
 import os
+import sys
 
 streampro = None
 
@@ -38,28 +39,45 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token):
 
     global streampro
 
-    gst_command = (
-        f"gst-launch-1.0 v4l2src do-timestamp=TRUE device=/dev/video0 ! "
-        "videoconvert ! video/x-raw,format=I420,width=640,height=480,framerate=30/1 ! "
-        "x264enc bframes=0 key-int-max=45 bitrate=500 ! "
-        "video/x-h264,stream-format=avc,alignment=au,profile=baseline ! "
-        f"kvssink stream-name={stream_name} storage-size=512 "
-        f"access-key={access_key} "
-        f"secret-key={secret_key} "
-        f"session-token={session_token} "  # Include the session token
-        "aws-region=us-east-1 "
-    )
-    
-    print("Starting GStreamer...")
-    print(gst_command)
-    streampro = subprocess.Popen(gst_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
-    print(streampro)
-    output, errors = streampro.communicate()
-    # print(output)
+    if 'linux' in sys.platform :
+
+        gst_command = (
+            f"gst-launch-1.0 v4l2src do-timestamp=TRUE device=/dev/video0 ! "
+            "videoconvert ! video/x-raw,format=I420,width=640,height=480,framerate=30/1 ! "
+            "x264enc bframes=0 key-int-max=45 bitrate=500 ! "
+            "video/x-h264,stream-format=avc,alignment=au,profile=baseline ! "
+            f"kvssink stream-name={stream_name} storage-size=512 "
+            f"access-key={access_key} "
+            f"secret-key={secret_key} "
+            f"session-token={session_token} "  # Include the session token
+            "aws-region=us-east-1 "
+        )
+        
+        print("Starting GStreamer...")
+        print(gst_command)
+
+        try:
+            streampro = subprocess.Popen(gst_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
+
+            stderr = streampro.communicate()
+            if streampro.returncode == 0:
+                print("GStreamer is installed:")
+            else:
+                print("Error while Starting GStreamer:", stderr)
+        
+            print(streampro)
+        except FileNotFoundError:
+            print("GStreamer is NOT installed.")
+    else:
+        print("Starting GStreamer Only avalaible in LINUX")
     return streampro
 
 
 def stop_gstreamer():
     global streampro
-    print("Stopping GStreamer...")
-    os.killpg(os.getpgid(streampro.pid), signal.SIGTERM)  # Kill entire process group
+
+    if 'linux' in sys.platform :
+        print("Stopping GStreamer...")
+        os.killpg(os.getpgid(streampro.pid), signal.SIGTERM)  # Kill entire process group
+    else:
+        print("Stopping GStreamer Only avalaible in LINUX")
