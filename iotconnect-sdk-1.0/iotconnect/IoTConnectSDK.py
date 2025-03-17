@@ -393,10 +393,10 @@ class IoTConnectSDK:
 
                             print("NEW_TASK ::: Start Kinesis video stream")
 
-                            # stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], "cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com")
+                            stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], "cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com")
 
-                            # gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken))
-                            # gst_thread.start()
+                            gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken))
+                            gst_thread.start()
                             self._kinesis_stream_status = True
                             print("Streaming started")
 
@@ -407,7 +407,7 @@ class IoTConnectSDK:
                         if(self._kinesis_stream_status == False):
                             print("No Streaming found")
                         else:
-                            # stop_gstreamer()
+                            stop_gstreamer()
                             print("Streaming Stopped")
                             self._kinesis_stream_status = False
 
