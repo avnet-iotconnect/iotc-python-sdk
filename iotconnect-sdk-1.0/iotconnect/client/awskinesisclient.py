@@ -58,16 +58,11 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token):
 
         try:
             streampro = subprocess.Popen(gst_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
-
             stderr = streampro.communicate()
-            if streampro.returncode == 0:
-                print("GStreamer is installed:")
-            else:
-                print("Error while Starting GStreamer:", stderr)
-        
-            print(streampro)
         except FileNotFoundError:
             print("GStreamer is NOT installed.")
+        except Exception as err:
+            print("Error while Starting GStreamer :",err)
     else:
         print("Starting GStreamer Only avalaible in LINUX")
     return streampro
