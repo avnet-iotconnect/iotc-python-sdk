@@ -176,7 +176,7 @@ class IoTConnectSDK:
 
             if(self._kinesis_stream_status == True):
                 stop_gstreamer()
-                print("Streaming Stopped")
+                print("Video_Stream_Task : Streaming Stopped")
                 self._kinesis_stream_status = False
             
             # self.process_sync("all")
@@ -393,38 +393,39 @@ class IoTConnectSDK:
                         return
                     
                     if msg["ct"] == CMDTYPE["stream_start"]:
-                        print("Starting Streaming")
+                        print("Video_Stream_Task : Starting Streaming")
 
-                        if self.has_key(self._data_json["p"], "vs"):
+                        # Uncomment after SYNC api done to check if sync has object of "vs"
+                        # if self.has_key(self._data_json["p"], "vs"):
 
-                            if(self._kinesis_stream_status == False):
+                        if(self._kinesis_stream_status == False):
+                            print("Video_Stream_Task : Start Kinesis video stream")
 
-                                print("NEW_TASK ::: Start Kinesis video stream")
+                            stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], "cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com")
 
-                                stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], "cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com")
+                            gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken, self._property["CameraOptions"]))
+                            gst_thread.start()
+                            self._kinesis_stream_status = True
+                            print("Video_Stream_Task : Streaming started")
 
-                                gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken))
-                                gst_thread.start()
-                                self._kinesis_stream_status = True
-                                print("Streaming started")
-
-                            else:
-                                print("Streaming already started")
-                        
                         else:
-                            print("Stream Object not found for start in Sync")
+                            print("Video_Stream_Task : Streaming already started")
+                        
+                        # else:
+                        #     print("Stream Object not found for start in Sync")
 
                     if msg["ct"] == CMDTYPE["stream_stop"]:
-
-                        if self.has_key(self._data_json["p"], "vs"):
-                            if(self._kinesis_stream_status == False):
-                                print("No Streaming found")
-                            else:
-                                stop_gstreamer()
-                                print("Streaming Stopped")
-                                self._kinesis_stream_status = False
+                        
+                        # Uncomment after SYNC api done to check if sync has object of "vs"
+                        # if self.has_key(self._data_json["p"], "vs"):
+                        if(self._kinesis_stream_status == False):
+                            print("Video_Stream_Task : No Streaming found")
                         else:
-                            print("Stream Object not found for stop in Sync")
+                            stop_gstreamer()
+                            print("Video_Stream_Task : Streaming Stopped")
+                            self._kinesis_stream_status = False
+                        # else:
+                        #     print("Stream Object not found for stop in Sync")
 
             if self._is_process_started == False:
                 return
@@ -693,7 +694,7 @@ class IoTConnectSDK:
 
                     # kinesis video stream config in Sync call
                     if self.has_key(self._data_json["p"], "vs"):
-                        print("NEW_TASK ::: Streaming Object found..............................................................................") 
+                        print("Video_Stream_Task : Streaming Object found") 
 
                         self._kinesis_stream_URL = self._data_json["p"]["vs"]["url"]
                         print(self._kinesis_stream_URL)
@@ -704,17 +705,18 @@ class IoTConnectSDK:
                             print(self._uniqueId)
                             print(self._property)
 
+                            print("Video_Stream_Task : Auto Streaming ON")
+
                             stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._kinesis_stream_URL)
 
                             gst_thread = threading.Thread(target=start_gstreamer, args=("test-video-stream", stream_id, stream_key, sessionToken))
                             gst_thread.start()
                             self._kinesis_stream_status = True
-                            print("Auto Streaming : True")
-
+                            
                         else:
-                            print("Auto Streaming : False wait for start command")
+                            print("Video_Stream_Task : Auto Streaming OFF, wait for start command")
                     else:
-                        print("NEW_TASK ::: No Streaming Object found..............................................................................")
+                        print("Video_Stream_Task : No Streaming Object found")
 
         except Exception as ex:
             raise ex

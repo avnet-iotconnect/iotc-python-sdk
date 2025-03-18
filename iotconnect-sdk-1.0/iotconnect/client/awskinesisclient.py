@@ -36,15 +36,23 @@ def get_kinesis_cer(cpid, uid, cacert, devicecert, devicekey, aws_endpoint):
 
 
 
-def start_gstreamer(stream_name, access_key, secret_key, session_token):
+def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOptions):
 
     global streampro
 
     if 'linux' in sys.platform :
 
+        print("CameraOptions : ",CameraOptions)
+
+        deviceport = CameraOptions["deviceport"]
+        videoWidth = CameraOptions["video"]["width"]
+        videoHeight = CameraOptions["video"]["height"]
+        videoFrate = CameraOptions["video"]["framerate"]
+
         gst_command = (
-            f"gst-launch-1.0 v4l2src do-timestamp=TRUE device=/dev/video0 ! "
-            "videoconvert ! video/x-raw,format=I420,width=640,height=480,framerate=30/1 ! "
+            f"gst-launch-1.0 v4l2src do-timestamp=TRUE device={deviceport} ! "
+            f"videoconvert ! video/x-raw,format=I420,width={videoWidth},height={videoHeight},framerate={videoFrate} ! "
+            "clockoverlay time-format=\"%a %B %d, %Y %I:%M:%S %p\" ! "
             "x264enc bframes=0 key-int-max=45 bitrate=500 ! "
             "video/x-h264,stream-format=avc,alignment=au,profile=baseline ! "
             f"kvssink stream-name={stream_name} storage-size=512 "
