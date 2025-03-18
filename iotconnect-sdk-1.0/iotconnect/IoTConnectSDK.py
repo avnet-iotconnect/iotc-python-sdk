@@ -173,6 +173,12 @@ class IoTConnectSDK:
     def reconnect_device(self,msg):
         try:
             self.print_debuglog(msg,0)
+
+            if(self._kinesis_stream_status == True):
+                stop_gstreamer()
+                print("Streaming Stopped")
+                self._kinesis_stream_status = False
+            
             # self.process_sync("all")
         except:
             self._offlineflag = True
@@ -389,27 +395,36 @@ class IoTConnectSDK:
                     if msg["ct"] == CMDTYPE["stream_start"]:
                         print("Starting Streaming")
 
-                        if(self._kinesis_stream_status == False):
+                        if self.has_key(self._data_json["p"], "vs"):
 
-                            print("NEW_TASK ::: Start Kinesis video stream")
+                            if(self._kinesis_stream_status == False):
 
-                            stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], "cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com")
+                                print("NEW_TASK ::: Start Kinesis video stream")
 
-                            gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken))
-                            gst_thread.start()
-                            self._kinesis_stream_status = True
-                            print("Streaming started")
+                                stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], "cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com")
 
+                                gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken))
+                                gst_thread.start()
+                                self._kinesis_stream_status = True
+                                print("Streaming started")
+
+                            else:
+                                print("Streaming already started")
+                        
                         else:
-                            print("Streaming already started")
+                            print("Stream Object not found for start in Sync")
 
                     if msg["ct"] == CMDTYPE["stream_stop"]:
-                        if(self._kinesis_stream_status == False):
-                            print("No Streaming found")
+
+                        if self.has_key(self._data_json["p"], "vs"):
+                            if(self._kinesis_stream_status == False):
+                                print("No Streaming found")
+                            else:
+                                stop_gstreamer()
+                                print("Streaming Stopped")
+                                self._kinesis_stream_status = False
                         else:
-                            stop_gstreamer()
-                            print("Streaming Stopped")
-                            self._kinesis_stream_status = False
+                            print("Stream Object not found for stop in Sync")
 
             if self._is_process_started == False:
                 return

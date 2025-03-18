@@ -28,6 +28,7 @@ def get_kinesis_cer(cpid, uid, cacert, devicecert, devicekey, aws_endpoint):
             return res_load["credentials"]["accessKeyId"], res_load["credentials"]["secretAccessKey"], res_load["credentials"]["sessionToken"]
         else:
             print("Failed in getting Kinesis Device access and Secret key")
+            return
         
     except requests.RequestException as e:
         print(f"Error obtaining credentials from IoT: {e}")

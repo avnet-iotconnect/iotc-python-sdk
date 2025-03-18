@@ -80,9 +80,22 @@ SdkOptions={
     "cpid" : "F3F73D448CA1469B806707034D5F67EB",
     "sId" : "",
     "env" : "poc",
-    "pf"  : "aws"
+    "pf"  : "aws",
+
+    #if device has video stream capability
+    "CameraOptions" : {
+        "deviceport" : "/dev/video0",
+        "video" : {
+            "width" : "640",
+            "height" : "480",
+            "framerate" : "30/1"
+        }
+    }
 
 }
+
+
+
 
 
 """
@@ -231,7 +244,7 @@ def onReady(data):
 
 
 def main():
-    global SdkOptions,Sdk,ACKdirect,device_list
+    global SdkOptions,Sdk,ACKdirect,device_list,CameraOptions
     
     try:
         """
