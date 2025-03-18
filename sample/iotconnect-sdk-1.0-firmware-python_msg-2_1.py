@@ -60,9 +60,9 @@ readyStatus = False
 
 SdkOptions={
 	"certificate" : { 
-        "SSLKeyPath"  : "/home/softweb/Documents/cert/pk_kinesisDev.pem",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "/home/softweb/Documents/cert/cert_kinesisDev.crt",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "/home/softweb/Documents/cert/AmazonRoot.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/pk_kinesisDev.pem",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/cert_kinesisDev.crt",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/AmazonRoot.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,

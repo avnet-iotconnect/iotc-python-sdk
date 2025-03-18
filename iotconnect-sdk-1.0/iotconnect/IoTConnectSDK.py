@@ -405,6 +405,8 @@ class IoTConnectSDK:
 
                             gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken, self._property["CameraOptions"]))
                             gst_thread.start()
+
+
                             self._kinesis_stream_status = True
                             print("Video_Stream_Task : Streaming started")
 
@@ -413,6 +415,8 @@ class IoTConnectSDK:
                         
                         # else:
                         #     print("Stream Object not found for start in Sync")
+
+                        self.sendAckStreamCmd(msg["ack"],112, 2, "Starting Streaming")
 
                     if msg["ct"] == CMDTYPE["stream_stop"]:
                         
@@ -426,6 +430,8 @@ class IoTConnectSDK:
                             self._kinesis_stream_status = False
                         # else:
                         #     print("Stream Object not found for stop in Sync")
+
+                        self.sendAckStreamCmd(msg["ack"],113, 2, "Stop Streaming")
 
             if self._is_process_started == False:
                 return
@@ -977,6 +983,29 @@ class IoTConnectSDK:
                 pass
             else:
                 self.send_msg_to_broker("FW", template)
+        except Exception as ex:
+            raise(ex)
+        
+
+    def sendAckStreamCmd(self,ackGuid, type, status, msg):
+        if self._dispose == True:
+            raise(IoTConnectSDKException("00", "you are not able to call this function"))
+        if self._is_process_started == False:
+            return
+        if not msg:
+            self.print_debuglog("sendAckStreamCmd: msg is empty.", 1)
+        if ackGuid != None :
+            pass
+        else:
+            raise(IoTConnectSDKException("00", "sendAckStreamCmd: ackGuid not valid."))
+        try:
+            template = self._Ack_data_template
+            template["d"]["type"] = type
+            template["d"]["st"] = status
+            template["d"]["msg"] = msg
+            template["d"]["ack"] = ackGuid
+            self.print_debuglog(template, 0)
+            self.send_msg_to_broker("CMD_ACK", template)
         except Exception as ex:
             raise(ex)
 
