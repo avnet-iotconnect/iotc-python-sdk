@@ -130,7 +130,7 @@ class IoTConnectSDK:
     _validation = True
     _getattribute_callback = None
     _listner_direct_callback_list = {}
-    _kinesis_stream_URL = ""
+    _aws_credential_endpoint_URL = ""
     _kinesis_stream_as = True
     _kinesis_stream_status = False
 
@@ -398,10 +398,13 @@ class IoTConnectSDK:
                         # Uncomment after SYNC api done to check if sync has object of "vs"
                         # if self.has_key(self._data_json["p"], "vs"):
 
+                        # Added URL for Testing without Sync call
+                        self._aws_credential_endpoint_URL = "https://cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com/role-aliases/kinesisvideoalias/credentials"
+
                         if(self._kinesis_stream_status == False):
                             print("Video_Stream_Task : Start Kinesis video stream")
 
-                            stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], "cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com")
+                            stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
 
                             gst_thread = threading.Thread(target=start_gstreamer, args=(self._uniqueId, stream_id, stream_key, sessionToken, self._property["CameraOptions"]))
                             gst_thread.start()
@@ -702,8 +705,8 @@ class IoTConnectSDK:
                     if self.has_key(self._data_json["p"], "vs"):
                         print("Video_Stream_Task : Streaming Object found") 
 
-                        self._kinesis_stream_URL = self._data_json["p"]["vs"]["url"]
-                        print(self._kinesis_stream_URL)
+                        self._aws_credential_endpoint_URL = self._data_json["p"]["vs"]["url"]
+                        print(self._aws_credential_endpoint_URL)
                         self._kinesis_stream_as = self._data_json["p"]["vs"]["as"]
                         print(self._kinesis_stream_as)
 
@@ -713,7 +716,7 @@ class IoTConnectSDK:
 
                             print("Video_Stream_Task : Auto Streaming ON")
 
-                            stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._kinesis_stream_URL)
+                            stream_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
 
                             gst_thread = threading.Thread(target=start_gstreamer, args=("test-video-stream", stream_id, stream_key, sessionToken))
                             gst_thread.start()

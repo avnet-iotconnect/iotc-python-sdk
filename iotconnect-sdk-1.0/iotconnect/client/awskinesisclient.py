@@ -6,16 +6,15 @@ import sys
 
 streampro = None
 
-def get_kinesis_cer(cpid, uid, cacert, devicecert, devicekey, aws_endpoint):
+def get_kinesis_cer(cpid, uid, cacert, devicecert, devicekey, aws_credential_endpoint):
 
-    iot_cred_url = "https://" + aws_endpoint + "/role-aliases/kinesisvideoalias/credentials"
-    print(iot_cred_url)
+    # aws_cred_url = "https://cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com/role-aliases/kinesisvideoalias/credentials"
  
     try:
         
         response = requests.get(
            
-            url = iot_cred_url,
+            url = aws_credential_endpoint,
             cert = ( devicecert, devicekey ),
             verify = cacert,
             headers = {
