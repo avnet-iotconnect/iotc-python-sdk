@@ -31,7 +31,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "kinesisDev"
+UniqueId = "Enter Unique Id"
 
 Sdk=None
 interval = 10
@@ -60,9 +60,10 @@ readyStatus = False
 
 SdkOptions={
 	"certificate" : { 
-        "SSLKeyPath"  : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/pk_kinesisDev.pem",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/cert_kinesisDev.crt",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "C:/Users/himanshu.parmar1/Downloads/kinesisDev-certificates/AmazonRoot.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        # Certs
+        "SSLKeyPath"  : "Enter device KEY certificate",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "Enter device Certificate",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "Enter AWS/AZ Cloud certificate"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -74,12 +75,12 @@ SdkOptions={
     # "devicePrimaryKey":"<<DevicePrimaryKey>>",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    "discoveryUrl":"https://awsdiscovery.iotconnect.io", #Azure All Environment 
+    "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "F3F73D448CA1469B806707034D5F67EB",
+    "cpid" : "Enter CPID",
     "sId" : "",
-    "env" : "poc",
-    "pf"  : "aws",
+    "env" : "Enter ENV",
+    "pf"  : "Enter PF",
 
     #if device has video stream capability
     "CameraOptions" : {
@@ -302,28 +303,27 @@ def main():
                     """
 
                     data = {
-                        "stream":True
-                        # "long1":random.randint(6000, 9000),
-                        # "integer1": random.randint(100, 200),
-                        # "decimal1":random.uniform(10.5, 75.5),
-                        # "date1":datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                        # "time1":"11:55:22",
-                        # "bit1":1,
-                        # "string1":"red",
-                        # "datetime1":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        # "gyroscope": {
-                        #     'bit1':0,
-                        #     'boolean1': True,
-                        #     'date1': datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                        #     "datetime1": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        #     "decimal1":random.uniform(10.5, 75.5),
-                        #     "integer1":random.randint(60, 600),
-                        #     "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                        #     "long1":random.randint(60, 600000),
-                        #     "string1":"green",
-                        #     "time1":"11:44:22",
-                        #     "temperature":random.randint(50, 90)
-                        #     }
+                        "long1":random.randint(6000, 9000),
+                        "integer1": random.randint(100, 200),
+                        "decimal1":random.uniform(10.5, 75.5),
+                        "date1":datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                        "time1":"11:55:22",
+                        "bit1":1,
+                        "string1":"red",
+                        "datetime1":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        "gyroscope": {
+                            'bit1':0,
+                            'boolean1': True,
+                            'date1': datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                            "datetime1": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                            "decimal1":random.uniform(10.5, 75.5),
+                            "integer1":random.randint(60, 600),
+                            "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                            "long1":random.randint(60, 600000),
+                            "string1":"green",
+                            "time1":"11:44:22",
+                            "temperature":random.randint(50, 90)
+                            }
                     }
 
                     dObj = [{
