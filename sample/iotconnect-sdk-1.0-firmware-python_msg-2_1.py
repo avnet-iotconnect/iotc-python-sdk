@@ -31,7 +31,8 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "Enter Unique Id"
+
+UniqueId = "Enter your Unique ID" 
 
 Sdk=None
 interval = 10
@@ -60,7 +61,7 @@ readyStatus = False
 
 SdkOptions={
 	"certificate" : { 
-        # Certs
+         # Certs
         "SSLKeyPath"  : "Enter device KEY certificate",    #aws=pk_devicename.pem   ||   #az=device.key
         "SSLCertPath" : "Enter device Certificate",    #aws=cert_devicename.crt ||   #az=device.pem
         "SSLCaPath"   : "Enter AWS/AZ Cloud certificate"     #aws=root-CA.pem         ||   #az=rootCA.pem
@@ -74,7 +75,7 @@ SdkOptions={
     "skipValidation":False,
     # "devicePrimaryKey":"Enter Device Primary Key",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    "discoveryUrl":"https://discovery.iotconnect.io",
+    "discoveryUrl":"http://discovery.iotconnect.io",
     "IsDebug": True,
     "cpid" : "Enter CPID",
     "sId" : "",
@@ -279,7 +280,6 @@ def main():
                 # Sdk.GetAttributes(attributeDetails)
 
 
-                
 
                 while True:
                     #Sdk.GetAttributes()
@@ -290,7 +290,6 @@ def main():
                     """
 
                     data = {
-                        "Temperature":random.randint(30, 50),
                         "long1":random.randint(6000, 9000),
                         "integer1": random.randint(100, 200),
                         "decimal1":random.uniform(10.5, 75.5),
@@ -315,10 +314,12 @@ def main():
                     }
 
                     dObj = [{
-                    "uniqueId": UniqueId,
+                    # "uniqueId": UniqueId,
                     "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                     "data": data
                     }]
+
+                    
 
                     # """
                     # * Gateway device input data format Example:

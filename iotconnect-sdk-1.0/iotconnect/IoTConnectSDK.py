@@ -691,7 +691,8 @@ class IoTConnectSDK:
             flt_data = self._data_template
             for obj in jsonArray:
                 rul_data = []
-                uniqueId = obj["uniqueId"]
+                if("uniqueId" in obj):
+                    uniqueId = obj["uniqueId"]
                 time = obj["time"]
                 sensorData = obj["data"]
 
@@ -700,24 +701,142 @@ class IoTConnectSDK:
                         evaluation = attr["evaluation"]
                         evaluation.reset_get_rule_data()
                 for d in self.devices:
-                    if d["id"] == uniqueId:
-                        if uniqueId not in self._live_device:
-                            self._live_device.append(uniqueId)
+                    if("uniqueId" in obj):
+                        if d["id"] == uniqueId:
+                            if uniqueId not in self._live_device:
+                                self._live_device.append(uniqueId)
+                            if self._data_json['has']['d']:
+                                tg = d["tg"]
+                                r_device = {
+                                    "id": uniqueId,
+                                    "dt": time,
+                                    "tg": tg
+                                }
+                            else:
+                                r_device = {
+                                    "id": uniqueId,
+                                    "dt": time
+                                }
+                                if d["tg"] != None:
+                                    r_device["tg"] = d["tg"]
+                                
+                            f_device = copy.deepcopy(r_device)
+                            r_attr_s = {}
+                            f_attr_s = {}
+                            real_sensor = []
+                            for attr in self.attributes:
+                                if attr["p"] == "" and self.has_key(attr, "evaluation"):
+                                    evaluation = attr["evaluation"]
+                                    evaluation.reset_get_rule_data()
+                                    for dObj in attr["d"]:
+                                        child=True
+                                        if self._data_json['has']['d']:
+                                            if tg == dObj["tg"]:
+                                                pass
+                                            else:
+                                                child=False
+                                        if child and self.has_key(sensorData, dObj["ln"]):
+                                            value = sensorData[dObj["ln"]]
+                                            real_sensor.append(dObj["ln"])
+                                            if self.isEdge:
+                                                if type(value) == str:
+                                                    try:
+                                                        sub_value=float(value)
+                                                    except:
+                                                        real_sensor.remove(dObj["ln"])
+                                            if value != None:
+                                                row_data = evaluation.process_data(dObj, attr["p"], value,self._validation)
+                                                if row_data and self.has_key(row_data,"RPT"):
+                                                    for key, value in row_data["RPT"].items():
+                                                        r_attr_s[key] = value
+                                                if row_data and self.has_key(row_data, "FLT"):
+                                                    for key, value in row_data["FLT"].items():
+                                                        f_attr_s[key] = value
+                                            else:
+                                                pass
+                                                #f_attr_s[sensorData[dObj]]
+                                    data = evaluation.get_rule_data()
+                                    if data != None:
+                                        rul_data.append(data)
+
+                                elif attr["p"] != "" and self.has_key(attr, "evaluation") and self.has_key(sensorData, attr["p"]) == True:
+                                    child = True
+                                    if self._data_json['has']['d']:
+                                        if tg == attr["tg"]:
+                                            pass
+                                        else:
+                                            child = False
+                                    if child:
+                                        evaluation = attr["evaluation"]
+                                        evaluation.reset_get_rule_data()
+                                        real_sensor.append(attr["p"])
+                                        sub_sensors=[]
+                                        for dObj in attr["d"]:
+                                            if self.has_key(sensorData[attr["p"]], dObj["ln"]):
+                                                sub_sensors.append(dObj["ln"])
+                                                value = sensorData[attr["p"]][dObj["ln"]]
+                                                if self.isEdge:
+                                                    if type(value) == str:
+                                                        try:
+                                                            sub_value=float(value)
+                                                        except:
+                                                            sub_sensors.remove(dObj["ln"])
+                                                if value != None:
+                                                    row_data = evaluation.process_data(dObj, attr["p"], value,self._validation)
+
+                                                    if row_data and self.has_key(row_data, "RPT"):
+                                                        if self.has_key(r_attr_s, attr["p"]) == False:
+                                                            r_attr_s[attr["p"]] = {}
+                                                        for key, value in row_data["RPT"].items():
+                                                            r_attr_s[attr["p"]][key] = value
+
+                                                    if row_data and self.has_key(row_data, "FLT"):
+                                                        if self.has_key(f_attr_s, attr["p"]) == False:
+                                                            f_attr_s[attr["p"]] = {}
+                                                        for key, value in row_data["FLT"].items():
+                                                            f_attr_s[attr["p"]][key] = value
+                                        unsensor = sensorData[attr["p"]].keys()
+                                        unmatch_sensor= list((set(unsensor)- set(sub_sensors)))
+                                        for unmatch in unmatch_sensor:
+                                            if self.has_key(f_attr_s, attr["p"]) == False:
+                                                f_attr_s[attr["p"]] = {}
+                                            f_attr_s[attr["p"]][unmatch]=sensorData[attr["p"]][unmatch]
+                                        data = evaluation.get_rule_data()
+                                        if data != None:
+                                            rul_data.append(data)
+                            unsensor=sensorData.keys()
+                            unmatch_sensor= list((set(unsensor)- set(real_sensor)))
+                            for unmatch in unmatch_sensor:
+                                f_attr_s[unmatch]=sensorData[unmatch]
+                                #--------------------------------
+                            #--------------------------------
+                            if self.isEdge and self.hasRules and len(rul_data) > 0:
+                                for rule in self.rules:
+                                    rule["id"]=uniqueId
+                                    self._ruleEval.evalRules(rule, rul_data)
+                            if len(r_attr_s.items()) > 0:
+                                r_device["d"]=r_attr_s
+                                rpt_data["d"].append(r_device)
+
+                            if len(f_attr_s.items()) > 0:
+                                f_device["d"]=f_attr_s
+                                flt_data["d"].append(f_device)
+
+                    else:
+
                         if self._data_json['has']['d']:
                             tg = d["tg"]
                             r_device = {
-                                "id": uniqueId,
                                 "dt": time,
                                 "tg": tg
                             }
                         else:
                             r_device = {
-                                "id": uniqueId,
                                 "dt": time
                             }
                             if d["tg"] != None:
                                 r_device["tg"] = d["tg"]
-                        
+
                         f_device = copy.deepcopy(r_device)
                         r_attr_s = {}
                         f_attr_s = {}
@@ -808,10 +927,10 @@ class IoTConnectSDK:
                             f_attr_s[unmatch]=sensorData[unmatch]
                             #--------------------------------
                         #--------------------------------
-                        if self.isEdge and self.hasRules and len(rul_data) > 0:
-                            for rule in self.rules:
-                                rule["id"]=uniqueId
-                                self._ruleEval.evalRules(rule, rul_data)
+                        # if self.isEdge and self.hasRules and len(rul_data) > 0:
+                        #     for rule in self.rules:
+                        #         rule["id"]=uniqueId
+                        #         self._ruleEval.evalRules(rule, rul_data)
                         if len(r_attr_s.items()) > 0:
                             r_device["d"]=r_attr_s
                             rpt_data["d"].append(r_device)
