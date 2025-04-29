@@ -1,6 +1,6 @@
 # iotc-python-sdk
 
-Main branch does not contains any code, below is the branch structure for version specific IoTConnect SDK
+Main branch does not contains any code, below is the branch structure for version specific /IOTCONNECT SDK
 
 # master-std-21
 - Standard sdk to support message version 2.1
