@@ -8,8 +8,6 @@ streampro = None
 
 def get_kinesis_cer(cpid, uid, cacert, devicecert, devicekey, aws_credential_endpoint):
 
-    # aws_cred_url = "https://cwk6e0my0sdd2.credentials.iot.us-east-1.amazonaws.com/role-aliases/kinesisvideoalias/credentials"
- 
     try:
         
         response = requests.get(
@@ -62,7 +60,6 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOp
         )
         
         print("Starting GStreamer...")
-        print(gst_command)
 
         try:
             streampro = subprocess.Popen(gst_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
