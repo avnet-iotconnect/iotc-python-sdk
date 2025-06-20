@@ -698,9 +698,9 @@ class IoTConnectSDK:
 
                     # kinesis video stream config in Sync call
                     if self.has_key(self._data_json["p"], "vs"):
-                        print("Video_Stream_Task : Streaming Object found") 
+                        print("Video_Stream_Task : Streaming Object found")
                         url = self._data_json["p"]["vs"]["url"]
-                        self._aws_credential_endpoint_URL = f"https://{url}/role-aliases/kinesisvideoalias/credentials"
+                        self._aws_credential_endpoint_URL = url
                         print(self._aws_credential_endpoint_URL)
                         self._kinesis_stream_as = self._data_json["p"]["vs"]["as"]
                         print(self._kinesis_stream_as)

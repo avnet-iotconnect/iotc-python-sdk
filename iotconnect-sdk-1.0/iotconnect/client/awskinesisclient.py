@@ -60,7 +60,6 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOp
         )
         
         print("Starting GStreamer...")
-        print(gst_command)
 
         try:
             streampro = subprocess.Popen(gst_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
