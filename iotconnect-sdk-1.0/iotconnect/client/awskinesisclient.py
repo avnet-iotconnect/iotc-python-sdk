@@ -6,7 +6,7 @@ import sys
 
 streampro = None
 
-def get_kinesis_cer(cpid, uid, cacert, devicecert, devicekey, aws_credential_endpoint):
+def get_kinesis_cer(uid, cacert, devicecert, devicekey, aws_credential_endpoint):
 
     try:
         
@@ -16,7 +16,7 @@ def get_kinesis_cer(cpid, uid, cacert, devicecert, devicekey, aws_credential_end
             cert = ( devicecert, devicekey ),
             verify = cacert,
             headers = {
-                "x-amzn-iot-thingname": cpid + "-" + uid
+                "x-amzn-iot-thingname": uid
             },
         )
         res_load = response.json()
@@ -24,6 +24,7 @@ def get_kinesis_cer(cpid, uid, cacert, devicecert, devicekey, aws_credential_end
         if(response.status_code == 200):
             return res_load["credentials"]["accessKeyId"], res_load["credentials"]["secretAccessKey"], res_load["credentials"]["sessionToken"]
         else:
+            print("Response from IoT: (non 200)", res_load)
             print("Failed in getting Kinesis Device access and Secret key")
             return
         
@@ -38,7 +39,7 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOp
     global streampro
 
     if 'linux' in sys.platform :
-
+        print("stream name : ", stream_name)
         print("CameraOptions : ",CameraOptions)
 
         deviceport = CameraOptions["deviceport"]

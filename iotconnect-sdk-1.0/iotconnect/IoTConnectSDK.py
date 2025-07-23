@@ -401,9 +401,8 @@ class IoTConnectSDK:
 
                         if(self._kinesis_stream_status == False):
                             print("Video_Stream_Task : Start Kinesis video stream")
-
-                            access_key_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
-                            stream_id_concat = f"{self._property['cpid']}-{self._uniqueId}"
+                            access_key_id, stream_key, sessionToken = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
+                            stream_id_concat = self._data_json["p"]["id"]
 
                             gst_thread = threading.Thread(target=start_gstreamer, args=(
                                                             stream_id_concat, 
@@ -711,10 +710,10 @@ class IoTConnectSDK:
 
                             print("Video_Stream_Task : Auto Streaming ON")
 
-                            access_key_id, stream_key, sessionToken = get_kinesis_cer(self._property["cpid"], self._uniqueId, self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
+                            access_key_id, stream_key, sessionToken = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
                             print("Video_Stream_Task : Kinesis video stream credentials received")
 
-                            stream_id_concat = f"{self._property['cpid']}-{self._uniqueId}"
+                            stream_id_concat = self._data_json["p"]["id"]
 
                             gst_thread = threading.Thread(
                                     target=start_gstreamer,
