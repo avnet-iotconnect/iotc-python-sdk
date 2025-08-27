@@ -4,35 +4,14 @@ import signal
 import os
 import sys
 
+
+from awsclient import get_aws_credentials
+
 streampro = None
 
+#TODO, handle None case
 def get_kinesis_cer(uid, cacert, devicecert, devicekey, aws_credential_endpoint):
-
-    try:
-        
-        response = requests.get(
-           
-            url = aws_credential_endpoint,
-            cert = ( devicecert, devicekey ),
-            verify = cacert,
-            headers = {
-                "x-amzn-iot-thingname": uid
-            },
-        )
-        res_load = response.json()
-
-        if(response.status_code == 200):
-            return res_load["credentials"]["accessKeyId"], res_load["credentials"]["secretAccessKey"], res_load["credentials"]["sessionToken"]
-        else:
-            print("Response from IoT: (non 200)", res_load)
-            print("Failed in getting Kinesis Device access and Secret key")
-            return
-        
-    except requests.RequestException as e:
-        print(f"Error obtaining credentials from IoT: {e}")
-        return
-
-
+    return get_aws_credentials(uid, cacert, devicecert, devicekey, aws_credential_endpoint)
 
 def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOptions):
 

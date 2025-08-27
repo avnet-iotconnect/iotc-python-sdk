@@ -31,7 +31,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "Enter Unique Id"
+UniqueId = "TestDevice2108"
 
 Sdk=None
 interval = 10
@@ -90,6 +90,12 @@ SdkOptions={
             "height" : "480",
             "framerate" : "30/1"
         }
+    },
+
+
+    "EdgeAIConfig"  : {
+        "enabled" : True,
+        "ImagePath" : ""
     }
 
 }

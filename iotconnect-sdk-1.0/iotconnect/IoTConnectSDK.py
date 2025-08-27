@@ -38,6 +38,7 @@ from iotconnect.common.util import util
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
 
 from iotconnect.client.awskinesisclient import get_kinesis_cer, start_gstreamer,stop_gstreamer
+from iotconnect.client.awss3client import upload_file_to_s3
 
 MSGTYPE = {
     "RPT": 0,
@@ -403,7 +404,11 @@ class IoTConnectSDK:
                             print("Video_Stream_Task : Start Kinesis video stream")
                             access_key_id, stream_key, sessionToken = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
                             stream_id_concat = self._data_json["p"]["id"]
-
+                            #TODO Handle this
+                            if (access_key_id, stream_key, sessionToken) == (None, None, None): 
+                                print("Video_Stream_Task : Failed to get kinesis credentials")
+                                return
+                            
                             gst_thread = threading.Thread(target=start_gstreamer, args=(
                                                             stream_id_concat, 
                                                             access_key_id,
@@ -712,7 +717,11 @@ class IoTConnectSDK:
 
                             access_key_id, stream_key, sessionToken = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
                             print("Video_Stream_Task : Kinesis video stream credentials received")
-
+                            
+                            #TODO Handle this
+                            if (access_key_id, stream_key, sessionToken) == (None, None, None): 
+                                print("Video_Stream_Task : Failed to get kinesis credentials")
+                                return
                             stream_id_concat = self._data_json["p"]["id"]
 
                             gst_thread = threading.Thread(
@@ -728,8 +737,18 @@ class IoTConnectSDK:
                             
                         else:
                             print("Video_Stream_Task : Auto Streaming OFF, wait for start command")
+                    
+                    #s3 / sagemaker specific attributes
+                    if self.has_key(self._data_json["p"], "fs"):
+                        print("File_Stream_Task : File Streaming Object found")
+                        url = self._data_json["p"]["fs"]["url"]
+                        self._aws_credential_endpoint_URL = url
+                        print(self._aws_credential_endpoint_URL)
+                        self._remote_bucket_name = self._data_json["p"]["fs"]["bn"]
+                        print(self._remote_bucket_name)
+                    
                     else:
-                        print("Video_Stream_Task : No Streaming Object found")
+                        print("No other specific attributes found")
 
         except Exception as ex:
             raise ex
