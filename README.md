@@ -1,8 +1,8 @@
 - Author: Softweb Solutions An Avnet Company
-- Brief: IoTConnect SDK: Software Development Kit 1.0
+- Brief: /IOTCONNECT™ SDK: Software Development Kit 1.0
 - Modified: 24-Sep-2024
 
-This repository provides the **IoTConnect Python SDK** with integrated support for **AWS Kinesis Video Streams (KVS)** for real-time video streaming from edge devices to the cloud. The SDK enables seamless video streaming through GStreamer-based pipeline with automatic credential management and stream lifecycle control.
+This repository provides the **/IOTCONNECT™ Python SDK** with integrated support for **AWS Kinesis Video Streams (KVS)** for real-time video streaming from edge devices to the cloud. The SDK enables seamless video streaming through GStreamer-based pipeline with automatic credential management and stream lifecycle control.
 
 ## Key Features
 
@@ -12,7 +12,7 @@ This repository provides the **IoTConnect Python SDK** with integrated support f
 - **Automatic Stream Management**: Start/stop video streaming via cloud commands
 - **X.509 Certificate Authentication**: Secure device authentication and credential management
 
-This IoTConnect Python SDK works with IoTConnect Message version 2.1. You can find more details on the message version [here](https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/). Below is a step-by-step guide to help you install the SDK and run the sample.
+This /IOTCONNECT™ Python SDK works with /IOTCONNECT™ Message version 2.1. You can find more details on the message version [here](https://docs.iotconnect.io/iotconnect/sdk/message-protocol/device-message-2-1/). Below is a step-by-step guide to help you install the SDK and run the sample.
 
 ## Getting Started
 
@@ -21,7 +21,7 @@ This IoTConnect Python SDK works with IoTConnect Message version 2.1. You can fi
 Before you install and run the firmware file, please ensure the following setup requirements:
 
 #### System Requirements
-1. **Python:** IoTConnect's Python SDK supports versions 2.7, 3.5, 3.7 to 3.12, and 3.13. We recommend installing the most stable Python version 3.13.0.
+1. **Python:** /IOTCONNECT™'s Python SDK supports versions 2.7, 3.5, 3.7 to 3.12, and 3.13. We recommend installing the most stable Python version 3.13.0.
 2. **pip:** Compatible with your Python version.
 3. **setuptools:** Required to manage Python packages.
 4. **Operating System:**
@@ -39,8 +39,8 @@ Before you install and run the firmware file, please ensure the following setup 
    - Development tools (cmake, build-essential, pkg-config)
    - SSL/TLS libraries (libssl-dev, libcurl4-openssl-dev)
 
-#### IoTConnect Platform Setup
-1. **Device Registration:** Device must be registered and activated in IoTConnect platform
+#### /IOTCONNECT™ Platform Setup
+1. **Device Registration:** Device must be registered and activated in /IOTCONNECT™ platform
 2. **X.509 Certificates:** Device certificates, private key, and root CA certificate
 3. **Platform Configuration:**
    - Company ID (CPID)
@@ -48,7 +48,7 @@ Before you install and run the firmware file, please ensure the following setup 
    - Platform (PF) - typically "aws"
    - Discovery URL for your environment
 4. **Device Template:** Must include video streaming capability if using KVS features
-5. **Video Stream Configuration:** Configure video stream settings in IoTConnect platform
+5. **Video Stream Configuration:** Configure video stream settings in /IOTCONNECT™ platform
 
 ### Installation
 
@@ -63,7 +63,7 @@ Before you install and run the firmware file, please ensure the following setup 
     cd sample/
     ```
 
-3. If your device already has a previous IoTConnect Python SDK version, uninstall it before installing the latest version:
+3. If your device already has a previous /IOTCONNECT™ Python SDK version, uninstall it before installing the latest version:
     ```sh
     pip list
     # Find your package name (iotconnect-sdk)
@@ -135,7 +135,7 @@ Before you install and run the firmware file, please ensure the following setup 
 
    **Basic Device Configuration:**
    ```python
-   UniqueId = "your-device-unique-id"  # Device ID from IoTConnect platform
+   UniqueId = "your-device-unique-id"  # Device ID from /IOTCONNECT™ platform
    ```
 
    **SDK Options Configuration:**
@@ -177,7 +177,7 @@ Before you install and run the firmware file, please ensure the following setup 
    - Update device credentials (UniqueId, cpid, env)
    - Verify camera device path (`/dev/video0`, `/dev/video1`, etc.)
    - Adjust video resolution based on camera capabilities
-   - Update sensor attributes to match your IoTConnect device template
+   - Update sensor attributes to match your /IOTCONNECT™ device template
 
 ## Explanation
 
@@ -230,7 +230,7 @@ SdkOptions = {
     - `disabled`: False = offline data storing, True = not storing offline data.
     - `availSpaceInMb`: File size of offline data in MB.
     - `fileCount`: Number of files to create for offline data.
-- `devicePrimaryKey`: Mandatory for Symmetric Key Authentication. Obtain it from the IoTConnect UI portal: Device -> Select device -> Info(Tab) -> Connection Info -> Device Connection.
+- `devicePrimaryKey`: Mandatory for Symmetric Key Authentication. Obtain it from the /IOTCONNECT™ UI portal: Device -> Select device -> Info(Tab) -> Connection Info -> Device Connection.
 
 > **Note:**  
 > SSL/X.509 device CA-signed or self-signed authentication type requires `sdkOptions`. Define the proper certification path.  
@@ -378,11 +378,11 @@ The SDK provides seamless integration with AWS Kinesis Video Streams for real-ti
 
 #### Stream Control Commands
 
-Video streaming is controlled via IoTConnect cloud commands:
+Video streaming is controlled via /IOTCONNECT™ cloud commands:
 
 **Start Streaming (Command Type 112):**
 - Automatically triggered when `"as": true` (auto-start) is configured
-- Can be manually triggered via IoTConnect platform
+- Can be manually triggered via /IOTCONNECT™ platform
 - Establishes AWS credentials and starts GStreamer pipeline
 
 **Stop Streaming (Command Type 113):**
