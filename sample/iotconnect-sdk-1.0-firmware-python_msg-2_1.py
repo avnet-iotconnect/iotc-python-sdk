@@ -303,27 +303,7 @@ def main():
                     """
 
                     data = {
-                        "long1":random.randint(6000, 9000),
-                        "integer1": random.randint(100, 200),
-                        "decimal1":random.uniform(10.5, 75.5),
-                        "date1":datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                        "time1":"11:55:22",
-                        "bit1":1,
-                        "string1":"red",
-                        "datetime1":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                        "gyroscope": {
-                            'bit1':0,
-                            'boolean1': True,
-                            'date1': datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                            "datetime1": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                            "decimal1":random.uniform(10.5, 75.5),
-                            "integer1":random.randint(60, 600),
-                            "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                            "long1":random.randint(60, 600000),
-                            "string1":"green",
-                            "time1":"11:44:22",
-                            "temperature":random.randint(50, 90)
-                            }
+                         "temperature":random.randint(50, 90)
                     }
 
                     dObj = [{
