@@ -1,18 +1,36 @@
+from urllib.parse import urlparse
 import requests
 import subprocess
 import signal
 import os
 import sys
+import threading
 
 streampro = None
 
 def get_kinesis_cer(uid, cacert, devicecert, devicekey, aws_credential_endpoint):
 
+    if not aws_credential_endpoint:
+        raise ValueError("AWS credential endpoint is required")
+
+    url = aws_credential_endpoint.strip()
     try:
-        
+        p = urlparse(url)
+        if p.scheme != "https" or not url.endswith("/credentials"):
+            raise ValueError(f"Bad role-alias URL: {url}. URL must use HTTPS and end with '/credentials'")
+        if not p.netloc:
+            raise ValueError(f"Invalid URL format: {url}. Missing domain name")
+    except Exception as e:
+        raise ValueError(f"Failed to parse URL '{url}': {e}")
+
+    print("Kinesis creds endpoint (final):", repr(url))
+    print("Using Thing name:", uid)
+
+    try:
+
         response = requests.get(
-           
-            url = aws_credential_endpoint,
+
+            url = url,
             cert = ( devicecert, devicekey ),
             verify = cacert,
             headers = {
@@ -34,7 +52,7 @@ def get_kinesis_cer(uid, cacert, devicecert, devicekey, aws_credential_endpoint)
 
 
 
-def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOptions):
+def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOptions,region="us-east-1"):
 
     global streampro
 
@@ -57,20 +75,33 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOp
             f"access-key={access_key} "
             f"secret-key={secret_key} "
             f"session-token={session_token} "  # Include the session token
-            "aws-region=us-east-1 "
+            f"aws-region={region}"
         )
         
-        print("Starting GStreamer...")
+    print("CameraOptions : ", CameraOptions)
+    print("Starting GStreamer...")
+    print(gst_command)
 
-        try:
-            streampro = subprocess.Popen(gst_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, preexec_fn=os.setsid)
-            stderr = streampro.communicate()
-        except FileNotFoundError:
-            print("GStreamer is NOT installed.")
-        except Exception as err:
-            print("Error while Starting GStreamer :",err)
-    else:
-        print("Starting GStreamer Only avalaible in LINUX")
+    try:
+        streampro = subprocess.Popen(
+            gst_command, shell=True,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            preexec_fn=os.setsid, text=False
+        )
+        # Mirror child output so errors are visible
+        threading.Thread(target=_pipe_reader, args=("GSTOUT", streampro.stdout), daemon=True).start()
+        threading.Thread(target=_pipe_reader, args=("GSTERR", streampro.stderr), daemon=True).start()
+
+        # Health check
+        import time as _t
+        _t.sleep(1.0)
+        rc = streampro.poll()
+        if rc is not None:
+            print(f"gst-launch-1.0 exited immediately with code {rc}")
+    except FileNotFoundError:
+        print("GStreamer is NOT installed.")
+    except Exception as err:
+        print("Error while Starting GStreamer :", err)
     return streampro
 
 
@@ -82,3 +113,13 @@ def stop_gstreamer():
         os.killpg(os.getpgid(streampro.pid), signal.SIGTERM)  # Kill entire process group
     else:
         print("Stopping GStreamer Only avalaible in LINUX")
+
+def _pipe_reader(prefix, pipe):
+    try:
+        for line in iter(pipe.readline, b''):
+            print(f"{prefix}: {line.decode(errors='replace').rstrip()}")
+    finally:
+        try:
+            pipe.close()
+        except Exception:
+            pass
