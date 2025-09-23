@@ -10,21 +10,27 @@ streampro = None
 
 def get_kinesis_cer(uid, cacert, devicecert, devicekey, aws_credential_endpoint):
 
-    url = (aws_credential_endpoint or "").strip()
-    if url.startswith("https://https://"):
-        url = "https://" + url[len("https://https://"):]
-    p = urlparse(url)
-    if p.scheme != "https" or not url.endswith("/credentials"):
-        raise RuntimeError(f"Bad role-alias URL: {url}")
-   
+    if not aws_credential_endpoint:
+        raise ValueError("AWS credential endpoint is required")
+
+    url = aws_credential_endpoint.strip()
+    try:
+        p = urlparse(url)
+        if p.scheme != "https" or not url.endswith("/credentials"):
+            raise ValueError(f"Bad role-alias URL: {url}. URL must use HTTPS and end with '/credentials'")
+        if not p.netloc:
+            raise ValueError(f"Invalid URL format: {url}. Missing domain name")
+    except Exception as e:
+        raise ValueError(f"Failed to parse URL '{url}': {e}")
+
     print("Kinesis creds endpoint (final):", repr(url))
     print("Using Thing name:", uid)
 
     try:
-        
+
         response = requests.get(
-           
-            url = aws_credential_endpoint,
+
+            url = url,
             cert = ( devicecert, devicekey ),
             verify = cacert,
             headers = {

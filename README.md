@@ -74,13 +74,24 @@ Before you install and run the firmware file, please ensure the following setup 
 
    **Step 4a: Install System Dependencies**
     ```sh
-    sudo apt update
-    sudo apt install -y git cmake build-essential pkg-config \
-        libssl-dev libcurl4-openssl-dev liblog4cplus-dev \
-        libgstreamer1.0-dev gstreamer1.0-tools \
-        gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
-        gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly \
-        gstreamer1.0-libav
+    sudo apt-get update 
+    sudo apt-get install -y \
+    automake \
+    build-essential \
+    cmake \
+    git \
+    gstreamer1.0-plugins-base-apps \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-tools \
+    gstreamer1.0-omx-generic \
+    libcurl4-openssl-dev \
+    libgstreamer1.0-dev \
+    libgstreamer-plugins-base1.0-dev \
+    liblog4cplus-dev \
+    libssl-dev \
+    pkg-config
     ```
 
    **Step 4b: Build AWS KVS Producer SDK**
@@ -99,23 +110,14 @@ Before you install and run the firmware file, please ensure the following setup 
     make -j"$(nproc)"
     ```
 
-   **Step 4c: Install GStreamer Plugin**
+   **Step 4c: Verify Installation**
     ```sh
-    # Make kvssink plugin discoverable by GStreamer
-    sudo cp libgstkvssink.so /usr/lib/x86_64-linux-gnu/gstreamer-1.0/
-    sudo ldconfig
-
-    # For ARM64 systems, use:
-    # sudo cp libgstkvssink.so /usr/lib/aarch64-linux-gnu/gstreamer-1.0/
-    ```
-
-   **Step 4d: Verify Installation**
-    ```sh
-    # Verify GStreamer can find the kvssink plugin
-    gst-inspect-1.0 kvssink | head
-
-    # Check camera device availability
-    ls -la /dev/video*
+    # Confirm that libgstkvssink.so is present.
+    ls
+    # Confirm that GStreamer can load kvssink.
+    export GST_PLUGIN_PATH='pwd'
+    # Have GStreamer load kvssink:
+    gst-inspect-1.0 kvssink
 
     # Test camera capture (optional)
     gst-launch-1.0 v4l2src device=/dev/video0 ! videoconvert ! autovideosink
