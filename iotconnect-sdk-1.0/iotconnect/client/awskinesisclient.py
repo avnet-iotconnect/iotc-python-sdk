@@ -5,6 +5,7 @@ import signal
 import os
 import sys
 import threading
+import re
 
 streampro = None
 
@@ -115,7 +116,7 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOp
     gst_command = (
         "gst-launch-1.0 -v "
         f"v4l2src device={deviceport} do-timestamp=true ! "
-        f"videoconvert ! video/x-raw,format=I420,width={videoWidth},height={videoHeight},framerate={videoFrate}/1 ! "
+        f"videoconvert ! video/x-raw,format=I420,width={videoWidth},height={videoHeight},framerate={videoFrate} ! "
         "x264enc bframes=0 key-int-max=45 bitrate=800 speed-preset=ultrafast tune=zerolatency ! "
         "video/x-h264,stream-format=avc,alignment=au ! queue ! mux. "
     )
