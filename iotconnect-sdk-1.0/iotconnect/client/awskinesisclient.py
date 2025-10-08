@@ -113,25 +113,33 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOp
     mic_device = detect_mic_device()
 
     # --- Build GStreamer command ---
-    gst_command = (
-        "gst-launch-1.0 -v "
-        f"v4l2src device={deviceport} do-timestamp=true ! "
-        f"videoconvert ! video/x-raw,format=I420,width={videoWidth},height={videoHeight},framerate={videoFrate} ! "
-        "x264enc bframes=0 key-int-max=45 bitrate=800 speed-preset=ultrafast tune=zerolatency ! "
-        "video/x-h264,stream-format=avc,alignment=au ! queue ! mux. "
-    )
-
     if mic_device:
-        gst_command += (
+        # Video + Audio pipeline with matroskamux
+        gst_command = (
+            "gst-launch-1.0 -v "
+            f"v4l2src device={deviceport} do-timestamp=true ! "
+            f"videoconvert ! video/x-raw,format=I420,width={videoWidth},height={videoHeight},framerate={videoFrate} ! "
+            "x264enc bframes=0 key-int-max=45 bitrate=800 speed-preset=ultrafast tune=zerolatency ! "
+            "video/x-h264,stream-format=avc,alignment=au ! queue ! mux. "
             f"alsasrc device={mic_device} ! audio/x-raw,rate=44100,channels=1,format=S16LE ! "
             "avenc_aac bitrate=64000 ! queue ! mux. "
+            "matroskamux name=mux ! "
+            f"kvssink stream-name={stream_name} storage-size=512 "
+            f"access-key={access_key} secret-key={secret_key} "
+            f"session-token={session_token} aws-region={region}"
         )
-
-    gst_command += (
-        f"kvssink stream-name={stream_name} storage-size=512 "
-        f"access-key={access_key} secret-key={secret_key} "
-        f"session-token={session_token} aws-region={region}"
-    )
+    else:
+        # Video-only pipeline (no muxer needed)
+        gst_command = (
+            "gst-launch-1.0 -v "
+            f"v4l2src device={deviceport} do-timestamp=true ! "
+            f"videoconvert ! video/x-raw,format=I420,width={videoWidth},height={videoHeight},framerate={videoFrate} ! "
+            "x264enc bframes=0 key-int-max=45 bitrate=800 speed-preset=ultrafast tune=zerolatency ! "
+            "video/x-h264,stream-format=avc,alignment=au ! "
+            f"kvssink stream-name={stream_name} storage-size=512 "
+            f"access-key={access_key} secret-key={secret_key} "
+            f"session-token={session_token} aws-region={region}"
+        )
 
     print(f"GStreamer command:\n{gst_command}")
 
