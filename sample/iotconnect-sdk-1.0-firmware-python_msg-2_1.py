@@ -307,24 +307,31 @@ def main():
                     #      "temperature":random.randint(50, 90)
                     # }
 
-                    # Example 2: Edge AI data with ARRAY datatype
+                    # Example 2: Edge AI data with ARRAY datatype and nested structure
                     # This demonstrates sending array data (clf) with detection results
-                    # Note: Make sure to configure "clf" attribute with ARRAY datatype (dt=11) in IoTConnect platform
+                    # Note: IoTConnect platform configuration required:
+                    # - Parent attribute: "dg" (OBJECT type)
+                    # - Child attributes under "dg":
+                    #   - "ppl" (INT datatype)
+                    #   - "fid" (INT datatype)
+                    #   - "clf" (ARRAY datatype, dt=11)
                     data = {
-                         "ppl": 2,  # People count
-                         "fid": 10,  # Frame ID
-                         "clf": [  # Classification results array (ARRAY datatype)
-                             {
-                                 "tracker_id": 7,
-                                 "class": "person",
-                                 "confidence": 0.96
-                             },
-                             {
-                                 "tracker_id": 8,
-                                 "class": "person",
-                                 "confidence": 0.96
-                             }
-                         ]
+                         "dg": {
+                             "ppl": 2,  # People count
+                             "fid": 10,  # Frame ID
+                             "clf": [  # Classification results array (ARRAY datatype)
+                                 {
+                                     "tracker_id": 7,
+                                     "class": "person",
+                                     "confidence": 0.96
+                                 },
+                                 {
+                                     "tracker_id": 8,
+                                     "class": "person",
+                                     "confidence": 0.96
+                                 }
+                             ]
+                         }
                     }
 
                     dObj = [{
