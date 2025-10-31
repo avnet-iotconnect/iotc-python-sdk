@@ -14,6 +14,7 @@ DATATYPE = {
     "BIT"     : 8,
     "Boolean" : 9,
     "LatLong" : 10,
+    "ARRAY"   : 11,
     "OBJECT"  : 12
 }
 
@@ -217,6 +218,21 @@ class util:
                                     isValid = True
                             except:
                                 isValid = False
+            elif dataType == DATATYPE["ARRAY"] and value != None and type(value) == list:
+                isValid = True
+                if dataValidation != None and dataValidation != "":
+                    # Validate array length if validation is provided
+                    vlist = dataValidation.split(",")
+                    if len(vlist) > 0:
+                        for v in vlist:
+                            if v.find("to") > -1:
+                                vRange = v.split("to")
+                                if(len(value) >= int(vRange[0].strip('')) and len(value) <= int(vRange[1].strip(''))):
+                                    isValid = True
+                                else:
+                                    isValid = False
+                            elif len(value) == int(v):
+                                isValid = True
             return isValid
         except:
             raise(IoTConnectSDKException("09","Twin Validation"))

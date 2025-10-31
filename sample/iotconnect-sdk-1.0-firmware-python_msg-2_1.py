@@ -31,7 +31,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "Enter Unique Id"
+UniqueId = "asd-kvs"
 
 Sdk=None
 interval = 10
@@ -61,9 +61,9 @@ readyStatus = False
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "Enter device KEY certificate",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "Enter device Certificate",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "Enter AWS/AZ Cloud certificate"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "/home/softweb/",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "/home/softweb/",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "/home/softweb/"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -77,10 +77,10 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "Enter CPID",
+    "cpid" : "F3F73D448CA1469B806707034D5F67EB",
     "sId" : "",
-    "env" : "Enter ENV",
-    "pf"  : "Enter PF",
+    "env" : "poc",
+    "pf"  : "aws",
 
     #if device has video stream capability
     "CameraOptions" : {
@@ -302,8 +302,29 @@ def main():
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
 
+                    # Example 1: Simple data with temperature
+                    # data = {
+                    #      "temperature":random.randint(50, 90)
+                    # }
+
+                    # Example 2: Edge AI data with ARRAY datatype
+                    # This demonstrates sending array data (clf) with detection results
+                    # Note: Make sure to configure "clf" attribute with ARRAY datatype (dt=11) in IoTConnect platform
                     data = {
-                         "temperature":random.randint(50, 90)
+                         "ppl": 2,  # People count
+                         "fid": 10,  # Frame ID
+                         "clf": [  # Classification results array (ARRAY datatype)
+                             {
+                                 "tracker_id": 7,
+                                 "class": "person",
+                                 "confidence": 0.96
+                             },
+                             {
+                                 "tracker_id": 8,
+                                 "class": "person",
+                                 "confidence": 0.96
+                             }
+                         ]
                     }
 
                     dObj = [{
