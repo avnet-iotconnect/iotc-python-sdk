@@ -222,6 +222,7 @@ class util:
                 isValid = True
                 if dataValidation != None and dataValidation != "":
                     # Validate array length if validation is provided
+                    isValid = False
                     vlist = dataValidation.split(",")
                     if len(vlist) > 0:
                         for v in vlist:
@@ -229,8 +230,6 @@ class util:
                                 vRange = v.split("to")
                                 if(len(value) >= int(vRange[0].strip('')) and len(value) <= int(vRange[1].strip(''))):
                                     isValid = True
-                                else:
-                                    isValid = False
                             elif len(value) == int(v):
                                 isValid = True
             return isValid
