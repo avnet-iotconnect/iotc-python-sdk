@@ -31,7 +31,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "asd-kvs"
+UniqueId = "reInvent"
 
 Sdk=None
 interval = 10
@@ -61,9 +61,9 @@ readyStatus = False
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "/home/softweb/",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "/home/softweb/",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "/home/softweb/"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "c:/Users/ankit.sangani/Downloads/reInvent-certificates/cert_reInvent demo.crt",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "c:/Users/ankit.sangani/Downloads/reInvent-certificates/pk_reInvent demo.pem",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "c:/SW-AnkitSangani/AWS/sdk/AmazonrootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -77,9 +77,9 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "F3F73D448CA1469B806707034D5F67EB",
+    "cpid" : "mssql",
     "sId" : "",
-    "env" : "poc",
+    "env" : "preqa",
     "pf"  : "aws",
 
     #if device has video stream capability

@@ -14,8 +14,8 @@ DATATYPE = {
     "BIT"     : 8,
     "Boolean" : 9,
     "LatLong" : 10,
-    "ARRAY"   : 11,
-    "OBJECT"  : 12
+    "OBJECT"  : 11,
+    "ARRAY"   : 12
 }
 
 class util:
