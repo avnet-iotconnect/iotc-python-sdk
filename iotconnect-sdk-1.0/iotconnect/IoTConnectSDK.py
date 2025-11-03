@@ -37,7 +37,9 @@ from iotconnect.common.util import util
 
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
 
-from iotconnect.client.awskinesisclient import get_kinesis_cer, start_gstreamer,stop_gstreamer
+from iotconnect.client.awskinesisclient import get_kinesis_cer, start_gstreamer, stop_gstreamer
+import subprocess
+import queue
 
 MSGTYPE = {
     "RPT": 0,
@@ -133,6 +135,9 @@ class IoTConnectSDK:
     _aws_credential_endpoint_URL = ""
     _kinesis_stream_as = True
     _kinesis_stream_status = False
+    _gst_process = None
+    _stdin_lock = None
+    _kinesis_credentials = None
 
     def get_config(self):
         try:
@@ -235,6 +240,11 @@ class IoTConnectSDK:
                 self.write_debuglog('[INFO_DC01] '+'['+ str(self._sId)+'_'+str(self._uniqueId)+"] Device already disconnected: "+self._time,0)
                 self.print_debuglog("Device already disconnected ",0)
                 return True
+
+            # Stop Kinesis stream if running
+            if self._gst_process:
+                self.StopKinesisVideoStream()
+
             for attr in self.attributes:
                 if self.has_key(attr, "evaluation"):
                     attr["evaluation"].destroyed()
@@ -259,6 +269,9 @@ class IoTConnectSDK:
             self._lock = None
             self._live_device=[]
             self._debug=False
+            self._gst_process = None
+            self._stdin_lock = None
+            self._kinesis_credentials = None
             return True
         except:
             raise(IoTConnectSDKException("00","Dispose error.."))
@@ -1283,6 +1296,215 @@ class IoTConnectSDK:
         except:
             return None
 
+    def GetAWSCredentials(self):
+        """
+        Get AWS credentials from device certificates using the IoT Core role alias endpoint.
+
+        Returns:
+            dict: Dictionary containing 'accessKeyId', 'secretAccessKey', and 'sessionToken'
+                  or None if credentials cannot be obtained
+
+        Example:
+            credentials = sdk.GetAWSCredentials()
+            if credentials:
+                access_key = credentials['accessKeyId']
+                secret_key = credentials['secretAccessKey']
+                session_token = credentials['sessionToken']
+        """
+        try:
+            if self._dispose == True:
+                raise(IoTConnectSDKException("00", "you are not able to call this function"))
+            if self._is_process_started == False:
+                self.print_debuglog("Device is not ready to get AWS credentials", 1)
+                return None
+
+            # Check if we have the AWS credential endpoint URL from sync
+            if not self._aws_credential_endpoint_URL:
+                # Try to get it from sync data if available
+                if self._data_json and self.has_key(self._data_json, "p") and self.has_key(self._data_json["p"], "vs"):
+                    self._aws_credential_endpoint_URL = self._data_json["p"]["vs"].get("url", "")
+
+                if not self._aws_credential_endpoint_URL:
+                    self.print_debuglog("AWS credential endpoint URL not available. Check sync configuration.", 1)
+                    return None
+
+            # Get device ID from protocol data
+            device_id = self._data_json["p"]["id"] if self._data_json and self.has_key(self._data_json, "p") else self._uniqueId
+
+            # Get certificate paths
+            ca_cert = self._property["certificate"]["SSLCaPath"]
+            device_cert = self._property["certificate"]["SSLCertPath"]
+            device_key = self._property["certificate"]["SSLKeyPath"]
+
+            # Call the existing function to get credentials
+            access_key_id, secret_key, session_token = get_kinesis_cer(
+                device_id, ca_cert, device_cert, device_key, self._aws_credential_endpoint_URL
+            )
+
+            if access_key_id and secret_key and session_token:
+                self._kinesis_credentials = {
+                    'accessKeyId': access_key_id,
+                    'secretAccessKey': secret_key,
+                    'sessionToken': session_token
+                }
+                self.print_debuglog("AWS credentials obtained successfully from device certificates", 0)
+                return self._kinesis_credentials
+            else:
+                self.print_debuglog("Failed to obtain AWS credentials from device certificates", 1)
+                return None
+
+        except Exception as ex:
+            self.print_debuglog(f"Error getting AWS credentials: {ex}", 1)
+            return None
+
+    def StartKinesisVideoStream(self, stream_name, width=640, height=480, fps=10, region='us-east-1'):
+        """
+        Initialize and start a Kinesis Video Stream pipeline using GStreamer with fdsrc.
+        This method sets up a pipeline that accepts raw frames via stdin.
+
+        Args:
+            stream_name (str): Name of the Kinesis Video Stream
+            width (int): Frame width (default: 640)
+            height (int): Frame height (default: 480)
+            fps (int): Frames per second (default: 10)
+            region (str): AWS region (default: 'us-east-1')
+
+        Returns:
+            bool: True if stream started successfully, False otherwise
+
+        Example:
+            if sdk.StartKinesisVideoStream("my-stream", width=640, height=480, fps=10):
+                print("Kinesis stream started")
+        """
+        try:
+            if self._dispose == True:
+                raise(IoTConnectSDKException("00", "you are not able to call this function"))
+
+            if self._gst_process is not None:
+                self.print_debuglog("Kinesis stream already running", 1)
+                return False
+
+            # Get AWS credentials if not already cached
+            if not self._kinesis_credentials:
+                credentials = self.GetAWSCredentials()
+                if not credentials:
+                    self.print_debuglog("Cannot start Kinesis stream: No AWS credentials", 1)
+                    return False
+
+            # Build GStreamer pipeline with fdsrc
+            pipeline = (
+                f"gst-launch-1.0 -e fdsrc ! "
+                f"videoparse width={width} height={height} framerate={fps}/1 format=bgr ! "
+                f"videoconvert ! video/x-raw,format=I420 ! "
+                f"x264enc bitrate=512 tune=zerolatency speed-preset=superfast key-int-max=45 bframes=0 ! "
+                f"h264parse ! video/x-h264,stream-format=avc,alignment=au ! "
+                f"kvssink stream-name={stream_name} aws-region={region} "
+                f"access-key={self._kinesis_credentials['accessKeyId']} "
+                f"secret-key={self._kinesis_credentials['secretAccessKey']} "
+                f"session-token={self._kinesis_credentials['sessionToken']}"
+            )
+
+            self.print_debuglog(f"Starting Kinesis stream: {stream_name}", 0)
+
+            # Start the GStreamer process
+            self._gst_process = subprocess.Popen(
+                pipeline, shell=True, stdin=subprocess.PIPE,
+                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, bufsize=0
+            )
+
+            # Initialize stdin lock
+            if not self._stdin_lock:
+                self._stdin_lock = threading.Lock()
+
+            time.sleep(2)
+
+            # Check if process is still running
+            if self._gst_process.poll() is not None:
+                err = self._gst_process.stderr.read().decode()
+                self.print_debuglog(f"GStreamer failed to start: {err}", 1)
+                self._gst_process = None
+                return False
+
+            self.print_debuglog(f"Kinesis stream started successfully: {stream_name}", 0)
+            self._kinesis_stream_status = True
+            return True
+
+        except Exception as ex:
+            self.print_debuglog(f"Error starting Kinesis stream: {ex}", 1)
+            self._gst_process = None
+            return False
+
+    def PushFrameToKinesis(self, frame):
+        """
+        Push a single frame to the Kinesis Video Stream.
+        The frame should be a numpy array (BGR format from OpenCV).
+
+        Args:
+            frame: numpy array representing the frame (BGR format, shape: height x width x 3)
+
+        Returns:
+            bool: True if frame was pushed successfully, False otherwise
+
+        Example:
+            import cv2
+            ret, frame = cap.read()
+            if ret:
+                sdk.PushFrameToKinesis(frame)
+        """
+        try:
+            if self._dispose == True:
+                return False
+
+            if not self._gst_process or self._gst_process.poll() is not None:
+                self.print_debuglog("Kinesis stream is not running", 1)
+                return False
+
+            if not self._stdin_lock:
+                self.print_debuglog("Stream not properly initialized", 1)
+                return False
+
+            # Thread-safe write to stdin
+            with self._stdin_lock:
+                if self._gst_process and self._gst_process.stdin:
+                    self._gst_process.stdin.write(frame.tobytes())
+                    self._gst_process.stdin.flush()
+                    return True
+                else:
+                    return False
+
+        except Exception as ex:
+            self.print_debuglog(f"Error pushing frame to Kinesis: {ex}", 1)
+            return False
+
+    def StopKinesisVideoStream(self):
+        """
+        Stop the Kinesis Video Stream pipeline.
+
+        Returns:
+            bool: True if stream stopped successfully, False otherwise
+
+        Example:
+            sdk.StopKinesisVideoStream()
+        """
+        try:
+            if self._gst_process:
+                self.print_debuglog("Stopping Kinesis video stream", 0)
+                try:
+                    self._gst_process.stdin.close()
+                    self._gst_process.terminate()
+                    self._gst_process.wait(timeout=5)
+                except Exception as ex:
+                    self.print_debuglog(f"Error during stream cleanup: {ex}", 1)
+                finally:
+                    self._gst_process = None
+                    self._kinesis_stream_status = False
+                    self.print_debuglog("Kinesis video stream stopped", 0)
+                return True
+            return False
+        except Exception as ex:
+            self.print_debuglog(f"Error stopping Kinesis stream: {ex}", 1)
+            return False
+
     def GetAttributes(self,callback):
         try:
             if callback:
@@ -1507,6 +1729,10 @@ class IoTConnectSDK:
 
     def __exit__(self, exc_type, exc_value, exc_tb):
         try:
+            # Stop Kinesis stream if running
+            if self._gst_process:
+                self.StopKinesisVideoStream()
+
             self._is_process_started = False
             for attr in self.attributes:
                 if self.has_key(attr, "evaluation"):
