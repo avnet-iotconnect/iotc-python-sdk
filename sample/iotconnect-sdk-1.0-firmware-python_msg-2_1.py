@@ -61,9 +61,9 @@ readyStatus = False
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "Enter device KEY certificate",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "Enter device Certificate",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "Enter AWS/AZ Cloud certificate"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "c:/Users/ankit.sangani/Downloads/reInvent-certificates/cert_reInvent demo.crt",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "c:/Users/ankit.sangani/Downloads/reInvent-certificates/pk_reInvent demo.pem",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "c:/SW-AnkitSangani/AWS/sdk/AmazonrootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -77,10 +77,10 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "Enter CPID",
+    "cpid" : "mssql",
     "sId" : "",
-    "env" : "Enter ENV",
-    "pf"  : "Enter PF",
+    "env" : "preqa",
+    "pf"  : "aws",
 
     #if device has video stream capability
     "CameraOptions" : {
@@ -302,8 +302,36 @@ def main():
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
 
+                    # Example 1: Simple data with temperature
+                    # data = {
+                    #      "temperature":random.randint(50, 90)
+                    # }
+
+                    # Example 2: Edge AI data with ARRAY datatype and nested structure
+                    # This demonstrates sending array data (clf) with detection results
+                    # Note: IoTConnect platform configuration required:
+                    # - Parent attribute: "dg" (OBJECT type)
+                    # - Child attributes under "dg":
+                    #   - "ppl" (INT datatype)
+                    #   - "fid" (INT datatype)
+                    #   - "clf" (ARRAY datatype, dt=11)
                     data = {
-                         "temperature":random.randint(50, 90)
+                         "dg": {
+                             "ppl": 2,  # People count
+                             "fid": 10,  # Frame ID
+                             "clf": [  # Classification results array (ARRAY datatype)
+                                 {
+                                     "tracker_id": 7,
+                                     "class": "person",
+                                     "confidence": 0.96
+                                 },
+                                 {
+                                     "tracker_id": 8,
+                                     "class": "person",
+                                     "confidence": 0.96
+                                 }
+                             ]
+                         }
                     }
 
                     dObj = [{
