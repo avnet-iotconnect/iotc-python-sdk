@@ -27,6 +27,7 @@ else:
 from iotconnect.client.mqttclient import mqttclient
 from iotconnect.client.httpclient import httpclient
 from iotconnect.client.offlineclient import offlineclient
+from iotconnect.client.fileuploadclient import FileUploadClient
 
 from iotconnect.common.data_evaluation import data_evaluation
 from iotconnect.common.rule_evaluation import rule_evaluation
@@ -47,7 +48,8 @@ MSGTYPE = {
     "LOG" : 4,
     "ACK" : 5,
     "OTA" : 6,
-    "FIRMWARE": 11
+    "FIRMWARE": 11,
+    "FILE": 11
 }
 ErorCode = {
     "OK": 0,
@@ -133,6 +135,8 @@ class IoTConnectSDK:
     _aws_credential_endpoint_URL = ""
     _kinesis_stream_as = True
     _kinesis_stream_status = False
+    _file_upload_client = None
+    _fs_config = None
 
     def get_config(self):
         try:
@@ -225,6 +229,233 @@ class IoTConnectSDK:
             return data
         except:
             return None
+
+    def UploadImage(self, file_path=None, file_stream=None, file_name=None):
+        """
+        Upload an image file to S3 and publish to MQTT
+
+        Args:
+            file_path: Path to the file (if uploading from file system)
+            file_stream: File content as bytes or base64 string (if uploading from memory)
+            file_name: Name of file (required if using file_stream)
+
+        Returns:
+            dict: Upload result with keys:
+                - success: bool
+                - s3_key: S3 object key
+                - bucket: Bucket name
+                - url: URL path for MQTT message
+                - mqtt_published: bool indicating if MQTT message was sent
+                - error: Error message (if failed)
+        """
+        try:
+            if self._dispose == True:
+                raise(IoTConnectSDKException("00", "you are not able to call this function"))
+
+            if not self._file_upload_client:
+                return {
+                    "success": False,
+                    "s3_key": None,
+                    "bucket": None,
+                    "url": None,
+                    "mqtt_published": False,
+                    "error": "File upload client not initialized. Check if fs configuration is available in sync response."
+                }
+
+            if self._is_process_started == False:
+                return {
+                    "success": False,
+                    "s3_key": None,
+                    "bucket": None,
+                    "url": None,
+                    "mqtt_published": False,
+                    "error": "Device not started. Cannot publish to MQTT."
+                }
+
+            # Perform upload
+            result = self._file_upload_client.upload_file(
+                file_path=file_path,
+                file_stream=file_stream,
+                file_name=file_name
+            )
+
+            if not result["success"]:
+                result["mqtt_published"] = False
+                return result
+
+            # Build MQTT message payload with empty cf object
+            mqtt_data = {
+                "url": result["url"],
+                "cf": {}
+            }
+
+            # Determine if this is a gateway device
+            is_gateway = False
+            if self.has_key(self._data_json, "meta"):
+                if self.has_key(self._data_json["meta"], "gtw"):
+                    is_gateway = self._data_json["meta"]["gtw"] is not None
+
+            # Build payload based on device type
+            if is_gateway:
+                # Gateway device - need to include id and tg
+                device_id = self._uniqueId
+                device_tag = ""
+
+                if self.has_key(self._data_json, "d") and len(self._data_json["d"]) > 0:
+                    device_id = self._data_json["d"][0].get("id", self._uniqueId)
+                    device_tag = self._data_json["d"][0].get("tg", "")
+
+                mqtt_data["id"] = device_id
+                mqtt_data["tg"] = device_tag
+
+            payload = {
+                "d": [{
+                    "d": mqtt_data
+                }]
+            }
+
+            # Publish to MQTT
+            mqtt_success = self.send_msg_to_broker("FILE", payload)
+
+            result["mqtt_published"] = mqtt_success
+
+            if mqtt_success:
+                self.print_debuglog(f"File uploaded and published to MQTT: {result['url']}", 0)
+            else:
+                self.print_debuglog(f"File uploaded but MQTT publish failed: {result['url']}", 1)
+
+            return result
+
+        except Exception as ex:
+            self.print_debuglog(f"UploadImage error: {ex}", 1)
+            return {
+                "success": False,
+                "s3_key": None,
+                "bucket": None,
+                "url": None,
+                "mqtt_published": False,
+                "error": str(ex)
+            }
+
+    def UploadImageWithClassification(self, file_path=None, file_stream=None, file_name=None, classification=None, custom_attributes=None):
+        """
+        Upload an image file to S3 and publish classification data to MQTT
+
+        Args:
+            file_path: Path to the file (if uploading from file system)
+            file_stream: File content as bytes or base64 string (if uploading from memory)
+            file_name: Name of file (required if using file_stream)
+            classification: Classification result string (can be None)
+            custom_attributes: Optional dict of custom attributes to include in MQTT message
+
+        Returns:
+            dict: Upload result with keys:
+                - success: bool
+                - s3_key: S3 object key
+                - bucket: Bucket name
+                - url: URL path for MQTT message
+                - mqtt_published: bool indicating if MQTT message was sent
+                - error: Error message (if failed)
+        """
+        try:
+            if self._dispose == True:
+                raise(IoTConnectSDKException("00", "you are not able to call this function"))
+
+            if not self._file_upload_client:
+                return {
+                    "success": False,
+                    "s3_key": None,
+                    "bucket": None,
+                    "url": None,
+                    "mqtt_published": False,
+                    "error": "File upload client not initialized. Check if fs configuration is available in sync response."
+                }
+
+            if self._is_process_started == False:
+                return {
+                    "success": False,
+                    "s3_key": None,
+                    "bucket": None,
+                    "url": None,
+                    "mqtt_published": False,
+                    "error": "Device not started. Cannot publish classification data."
+                }
+
+            # Upload the file (without sending MQTT)
+            upload_result = self._file_upload_client.upload_file(
+                file_path=file_path,
+                file_stream=file_stream,
+                file_name=file_name
+            )
+
+            if not upload_result["success"]:
+                upload_result["mqtt_published"] = False
+                return upload_result
+
+            # Build MQTT message payload with cf object
+            cf_data = {}
+
+            # Add classification to cf if provided
+            if classification is not None:
+                cf_data["classification"] = classification
+
+            # Add custom attributes to cf if provided
+            if custom_attributes and isinstance(custom_attributes, dict):
+                cf_data.update(custom_attributes)
+
+            mqtt_data = {
+                "url": upload_result["url"],
+                "cf": cf_data
+            }
+
+            # Determine if this is a gateway device
+            is_gateway = False
+            if self.has_key(self._data_json, "meta"):
+                if self.has_key(self._data_json["meta"], "gtw"):
+                    is_gateway = self._data_json["meta"]["gtw"] is not None
+
+            # Build payload based on device type
+            if is_gateway:
+                # Gateway device - need to include id and tg
+                # Use the first device or parent device
+                device_id = self._uniqueId
+                device_tag = ""
+
+                if self.has_key(self._data_json, "d") and len(self._data_json["d"]) > 0:
+                    device_id = self._data_json["d"][0].get("id", self._uniqueId)
+                    device_tag = self._data_json["d"][0].get("tg", "")
+
+                mqtt_data["id"] = device_id
+                mqtt_data["tg"] = device_tag
+
+            payload = {
+                "d": [{
+                    "d": mqtt_data
+                }]
+            }
+
+            # Publish to MQTT
+            mqtt_success = self.send_msg_to_broker("FILE", payload)
+
+            upload_result["mqtt_published"] = mqtt_success
+
+            if mqtt_success:
+                self.print_debuglog(f"File uploaded and classification published: {upload_result['url']}", 0)
+            else:
+                self.print_debuglog(f"File uploaded but classification publish failed: {upload_result['url']}", 1)
+
+            return upload_result
+
+        except Exception as ex:
+            self.print_debuglog(f"UploadImageWithClassification error: {ex}", 1)
+            return {
+                "success": False,
+                "s3_key": None,
+                "bucket": None,
+                "url": None,
+                "mqtt_published": False,
+                "error": str(ex)
+            }
 
     def Dispose(self):
         try:
@@ -730,6 +961,33 @@ class IoTConnectSDK:
                             print("Video_Stream_Task : Auto Streaming OFF, wait for start command")
                     else:
                         print("Video_Stream_Task : No Streaming Object found")
+
+                # Initialize file upload client if fs config is available
+                if self.has_key(self._data_json, "p"):
+                    if self.has_key(self._data_json["p"], "fs"):
+                        print("File_Upload_Task : File upload configuration found")
+                        self._fs_config = self._data_json["p"]["fs"]
+
+                        # Initialize file upload client if certificate-based authentication
+                        if self._property.get("certificate"):
+                            cert = self._property["certificate"]
+                            try:
+                                self._file_upload_client = FileUploadClient(
+                                    unique_id=self._data_json["p"]["id"],
+                                    ca_cert=cert.get("SSLCaPath"),
+                                    device_cert=cert.get("SSLCertPath"),
+                                    device_key=cert.get("SSLKeyPath"),
+                                    fs_config=self._fs_config,
+                                    debug=self._debug
+                                )
+                                print("File_Upload_Task : File upload client initialized successfully")
+                            except Exception as fs_ex:
+                                print(f"File_Upload_Task : Failed to initialize file upload client: {fs_ex}")
+                                self._file_upload_client = None
+                        else:
+                            print("File_Upload_Task : Certificate-based authentication required for file upload")
+                    else:
+                        print("File_Upload_Task : No file upload configuration found")
 
         except Exception as ex:
             raise ex

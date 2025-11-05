@@ -31,7 +31,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = " "
+UniqueId = "pydevice"
 
 Sdk=None
 interval = 10
@@ -40,6 +40,8 @@ directmethodlist={}
 ACKdirect=[]
 device_list=[]
 readyStatus = False
+file_upload_counter = 0
+test_file_upload = True  # Set to True to enable file upload testing
 
 """
 * sdkOptions is optional. Mandatory for "certificate" X.509 device authentication type
@@ -61,9 +63,9 @@ readyStatus = False
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "c:/Users/ankit.sangani/Downloads/reInvent-certificates/cert_reInvent demo.crt",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "c:/Users/ankit.sangani/Downloads/reInvent-certificates/pk_reInvent demo.pem",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "c:/SW-AnkitSangani/AWS/sdk/AmazonrootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -77,10 +79,10 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "mssql",
+    "cpid" : "",
     "sId" : "",
-    "env" : "preqa",
-    "pf"  : "aws",
+    "env" : "",
+    "pf"  : "",
 
     #if device has video stream capability
     "CameraOptions" : {
@@ -242,9 +244,114 @@ def onReady(data):
     global readyStatus
     readyStatus = True
 
+"""
+* Type    : Test Function "testFileUpload()"
+* Usage   : Test file upload functionality
+* Input   : SDK instance
+* Output  : Upload test results
+"""
+def testFileUpload(sdk):
+    global file_upload_counter
+    file_upload_counter += 1
+
+    print("Firmware :: ========== File Upload Test ==========")
+
+    # Test 1: Upload image from file path (if test image exists)
+    test_image_path = "c:/Users/ankit.sangani/Pictures/Screenshots/mqttissues.png"
+    if os.path.exists(test_image_path):
+        print("Firmware :: Test 1: UploadImage from file path")
+        result = sdk.UploadImage(file_path=test_image_path)
+
+        if result["success"]:
+            print("Firmware :: Upload Success!")
+            print("Firmware ::   S3 Key: " + result["s3_key"])
+            print("Firmware ::   Bucket: " + result["bucket"])
+            print("Firmware ::   URL: " + result["url"])
+        else:
+            print("Firmware :: Upload Failed: " + result["error"])
+    else:
+        print("Firmware :: Test 1 skipped: test_image.jpg not found")
+
+    # Test 2: Upload with classification from file path
+    if os.path.exists(test_image_path):
+        print("Firmware :: Test 2: UploadImageWithClassification from file path")
+        result = sdk.UploadImageWithClassification(
+            file_path=test_image_path,
+            classification="test_classification",
+            custom_attributes={
+                "confidence": 0.95,
+                "test_counter": file_upload_counter,
+                "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            }
+        )
+
+        if result["success"]:
+            print("Firmware :: Upload Success!")
+            print("Firmware ::   S3 Key: " + result["s3_key"])
+            print("Firmware ::   URL: " + result["url"])
+            print("Firmware ::   MQTT Published: " + str(result["mqtt_published"]))
+        else:
+            print("Firmware :: Upload Failed: " + result["error"])
+    else:
+        print("Firmware :: Test 2 skipped: test_image.jpg not found")
+
+    # Test 3: Upload from byte stream (create a small test file in memory)
+    print("Firmware :: Test 3: UploadImage from byte stream")
+    try:
+        # Create a small test text file
+        test_content = b"Test file content - IoTConnect File Upload Test\n"
+        test_content += b"Timestamp: " + datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z").encode('utf-8')
+
+        result = sdk.UploadImage(
+            file_stream=test_content,
+            file_name="test_upload_" + str(file_upload_counter) + ".txt"
+        )
+
+        if result["success"]:
+            print("Firmware :: Upload Success!")
+            print("Firmware ::   S3 Key: " + result["s3_key"])
+            print("Firmware ::   URL: " + result["url"])
+        else:
+            print("Firmware :: Upload Failed: " + result["error"])
+    except Exception as ex:
+        print("Firmware :: Test 3 exception: " + str(ex))
+
+    # Test 4: Upload byte stream with classification
+    print("Firmware :: Test 4: UploadImageWithClassification from byte stream")
+    try:
+        # Simulate image classification result
+        classifications = ["defect", "good", "anomaly", "normal"]
+        current_class = classifications[file_upload_counter % len(classifications)]
+
+        test_content = b"Test classification image - Counter: " + str(file_upload_counter).encode('utf-8')
+
+        result = sdk.UploadImageWithClassification(
+            file_stream=test_content,
+            file_name="classified_" + str(file_upload_counter) + ".txt",
+            classification=current_class,
+            custom_attributes={
+                "confidence": random.uniform(0.80, 0.99),
+                "model_version": "1.0",
+                "test_number": file_upload_counter
+            }
+        )
+
+        if result["success"]:
+            print("Firmware :: Upload Success!")
+            print("Firmware ::   Classification: " + current_class)
+            print("Firmware ::   URL: " + result["url"])
+            print("Firmware ::   MQTT Published: " + str(result["mqtt_published"]))
+        else:
+            print("Firmware :: Upload Failed: " + result["error"])
+    except Exception as ex:
+        print("Firmware :: Test 4 exception: " + str(ex))
+
+    print("Firmware :: ========== File Upload Test Complete ==========")
+    print("")
+
 
 def main():
-    global SdkOptions,Sdk,ACKdirect,device_list,CameraOptions
+    global SdkOptions,Sdk,ACKdirect,device_list,CameraOptions,test_file_upload,file_upload_counter
     
     try:
         """
@@ -294,7 +401,17 @@ def main():
 
 
 
+                # File Upload Test: Run once at startup if enabled
+                if test_file_upload == True:
+                    print("Firmware :: Running file upload integration test...")
+                    time.sleep(2)  # Wait a bit for full initialization
+                    testFileUpload(Sdk)
+                    print("Firmware :: File upload test completed. Continuing with telemetry...")
+                    print("")
+
+                loop_counter = 0
                 while True:
+                    loop_counter += 1
                     #Sdk.GetAttributes()
                     """
                     * Add your device attributes and respective value here as per standard format defined in sdk documentation
@@ -302,36 +419,8 @@ def main():
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
 
-                    # Example 1: Simple data with temperature
-                    # data = {
-                    #      "temperature":random.randint(50, 90)
-                    # }
-
-                    # Example 2: Edge AI data with ARRAY datatype and nested structure
-                    # This demonstrates sending array data (clf) with detection results
-                    # Note: IoTConnect platform configuration required:
-                    # - Parent attribute: "dg" (OBJECT type)
-                    # - Child attributes under "dg":
-                    #   - "ppl" (INT datatype)
-                    #   - "fid" (INT datatype)
-                    #   - "clf" (ARRAY datatype, dt=11)
                     data = {
-                         "dg": {
-                             "ppl": 2,  # People count
-                             "fid": 10,  # Frame ID
-                             "clf": [  # Classification results array (ARRAY datatype)
-                                 {
-                                     "tracker_id": 7,
-                                     "class": "person",
-                                     "confidence": 0.96
-                                 },
-                                 {
-                                     "tracker_id": 8,
-                                     "class": "person",
-                                     "confidence": 0.96
-                                 }
-                             ]
-                         }
+                         "temperature":random.randint(50, 90)
                     }
 
                     dObj = [{
@@ -369,10 +458,16 @@ def main():
                     #             ]
 
                     #dataArray.append(dObj)
-                    #print (dObj)      
+                    #print (dObj)
                     if(readyStatus == True):
                         print("Firmware :: readyStatus == True")
                         sendBackToSDK(Sdk, dObj)
+
+                        # Optional: Test file upload every 5 loops (every 50 seconds)
+                        # Uncomment to enable periodic file upload testing
+                        # if test_file_upload and loop_counter % 5 == 0:
+                        #     print("Firmware :: Running periodic file upload test...")
+                        #     testFileUpload(Sdk)
                     else:
                         print("Firmware :: readyStatus == False")
 

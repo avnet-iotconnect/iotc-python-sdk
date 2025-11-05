@@ -34,6 +34,7 @@ class mqttclient:
     _pubERm=None
     _pubDL=None
     _pubDi=None
+    _pubFile=None
     _twin_pub_topic = None
     _twin_sub_topic = None
     _twin_sub_res_topic = None
@@ -219,6 +220,8 @@ class mqttclient:
                     pubtopic=self._pubDL
                 elif msgtype == "Di":
                     pubtopic=self._pubDi
+                elif msgtype == "FILE":
+                    pubtopic=self._pubFile
                 else:
                     pubtopic=self._pubFlt
 
@@ -351,6 +354,8 @@ class mqttclient:
         self._pubHB=str(config['topics']['hb'])
         self._pubDL=str(config['topics']['dl'])
         self._pubDi=str(config['topics']['di'])
+        if 'fu' in config['topics']:
+            self._pubFile=str(config['topics']['fu'])
         platfrom = config["pf"]
         if config["pf"] == "az":
             # print ("\n============>>>>>>>>>>>\n")
