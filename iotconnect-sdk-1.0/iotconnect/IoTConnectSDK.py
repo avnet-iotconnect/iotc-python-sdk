@@ -457,6 +457,62 @@ class IoTConnectSDK:
                 "error": str(ex)
             }
 
+    def GetCredentials(self):
+        """
+        Get temporary AWS credentials for file upload using device certificate
+
+        Returns:
+            dict: Credentials result with keys:
+                - success: bool
+                - access_key_id: AWS access key ID
+                - secret_access_key: AWS secret access key
+                - session_token: AWS session token
+                - expiration: Credential expiration time
+                - error: Error message (if failed)
+        """
+        try:
+            if self._dispose == True:
+                raise(IoTConnectSDKException("00", "you are not able to call this function"))
+
+            if not self._file_upload_client:
+                return {
+                    "success": False,
+                    "access_key_id": None,
+                    "secret_access_key": None,
+                    "session_token": None,
+                    "expiration": None,
+                    "error": "File upload client not initialized. Check if fs configuration is available in sync response."
+                }
+
+            self.print_debuglog("Getting file upload credentials using device certificate", 0)
+
+            # Get IoT credentials using device certificate
+            access_key_id, secret_access_key, session_token = self._file_upload_client._get_iot_credentials()
+
+            if access_key_id and secret_access_key:
+                self.print_debuglog("Successfully obtained file upload credentials", 0)
+                return {
+                    "success": True,
+                    "access_key_id": access_key_id,
+                    "secret_access_key": secret_access_key,
+                    "session_token": session_token,
+                    "expiration": "Credentials typically valid for 1 hour",
+                    "error": None
+                }
+            else:
+                raise Exception("Failed to obtain credentials from IoT Core")
+
+        except Exception as ex:
+            self.print_debuglog(f"GetCredentials error: {ex}", 1)
+            return {
+                "success": False,
+                "access_key_id": None,
+                "secret_access_key": None,
+                "session_token": None,
+                "expiration": None,
+                "error": str(ex)
+            }
+
     def Dispose(self):
         try:
             if self._dispose == True:

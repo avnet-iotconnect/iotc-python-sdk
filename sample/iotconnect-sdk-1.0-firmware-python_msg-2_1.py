@@ -31,7 +31,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "pydevice"
+UniqueId = ""
 
 Sdk=None
 interval = 10
@@ -42,6 +42,7 @@ device_list=[]
 readyStatus = False
 file_upload_counter = 0
 test_file_upload = True  # Set to True to enable file upload testing
+test_array_data = True  # Set to True to enable array data testing
 
 """
 * sdkOptions is optional. Mandatory for "certificate" X.509 device authentication type
@@ -349,9 +350,97 @@ def testFileUpload(sdk):
     print("Firmware :: ========== File Upload Test Complete ==========")
     print("")
 
+"""
+* Type    : Test Function "testGetCredentials()"
+* Usage   : Test getting file upload credentials
+* Input   : SDK instance
+* Output  : Display credentials information
+"""
+def testGetCredentials(sdk):
+    print("Firmware :: ========== Get File Upload Credentials Test ==========")
+
+    # Get credentials using device certificate
+    result = sdk.GetCredentials()
+
+    if result["success"]:
+        print("Firmware :: Successfully obtained file upload credentials!")
+        print("Firmware :: ")
+        print("Firmware :: Credentials Information:")
+        print("Firmware ::   Access Key ID: " + result["access_key_id"][:10] + "..." + result["access_key_id"][-4:])
+        print("Firmware ::   Secret Access Key: " + result["secret_access_key"][:10] + "..." + result["secret_access_key"][-4:])
+        if result["session_token"]:
+            print("Firmware ::   Session Token: " + result["session_token"][:20] + "..." + result["session_token"][-10:])
+        print("Firmware ::   Expiration: " + result["expiration"])
+        print("Firmware :: ")
+        print("Firmware :: Note: These are temporary credentials obtained via IoT Core credential provider")
+        print("Firmware ::       using your device certificate for authentication.")
+    else:
+        print("Firmware :: Failed to get credentials: " + result["error"])
+
+    print("Firmware :: ========== Get Credentials Test Complete ==========")
+    print("")
+
+"""
+* Type    : Test Function "sendAudioDataWithArray()"
+* Usage   : Send telemetry data with array (words) and nested objects in RPT format
+* Input   : SDK instance
+* Output  : Send audio transcript data with word array
+"""
+def sendAudioDataWithArray(sdk):
+    print("Firmware :: ========== Send Audio Data with Array Test ==========")
+
+    # Create audio data with nested object and array
+    # Include "temperature" as a valid attribute so data goes to RPT
+    # The audio data with array will be sent along with it
+    audioData = {
+        "temperature": random.randint(20, 30),  # Valid attribute for RPT
+        "audio": {
+            "transcript": "Full Text Of Speech Approx 1 OR 2 min",
+            "words": [
+                {
+                    "word": "AWS",
+                    "weight": 10
+                },
+                {
+                    "word": "IOTCONNECT",
+                    "weight": 5
+                },
+                {
+                    "word": "Python",
+                    "weight": 8
+                },
+                {
+                    "word": "SDK",
+                    "weight": 7
+                }
+            ]
+        }
+    }
+
+    # Prepare data object for SDK
+    dObj = [{
+        "uniqueId": UniqueId,
+        "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        "data": audioData
+    }]
+
+    print("Firmware :: Sending audio data with word array (RPT format)...")
+    print("Firmware :: Data structure:")
+    print("Firmware :: ", json.dumps(audioData, indent=2))
+
+    # Send data
+    if sdk.SendData(dObj):
+        print("Firmware :: Audio data with array sent successfully to RPT!")
+        print("Firmware :: Note: Data includes 'temperature' attribute for RPT routing")
+    else:
+        print("Firmware :: Failed to send audio data")
+
+    print("Firmware :: ========== Audio Data Array Test Complete ==========")
+    print("")
+
 
 def main():
-    global SdkOptions,Sdk,ACKdirect,device_list,CameraOptions,test_file_upload,file_upload_counter
+    global SdkOptions,Sdk,ACKdirect,device_list,CameraOptions,test_file_upload,file_upload_counter,test_array_data
     
     try:
         """
@@ -405,8 +494,21 @@ def main():
                 if test_file_upload == True:
                     print("Firmware :: Running file upload integration test...")
                     time.sleep(2)  # Wait a bit for full initialization
+
+                    # Test getting credentials using device certificate
+                    testGetCredentials(Sdk)
+
+                    # Test file upload
                     testFileUpload(Sdk)
                     print("Firmware :: File upload test completed. Continuing with telemetry...")
+                    print("")
+
+                # Array Data Test: Run once at startup if enabled
+                if test_array_data == True:
+                    print("Firmware :: Running array data integration test...")
+                    time.sleep(1)
+                    sendAudioDataWithArray(Sdk)
+                    print("Firmware :: Array data test completed. Continuing with telemetry...")
                     print("")
 
                 loop_counter = 0
