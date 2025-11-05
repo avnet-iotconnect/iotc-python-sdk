@@ -79,10 +79,10 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "awspreqa222",
+    "cpid" : "",
     "sId" : "",
-    "env" : "preqa",
-    "pf"  : "aws",
+    "env" : "",
+    "pf"  : "",
 
     #if device has video stream capability
     "CameraOptions" : {
