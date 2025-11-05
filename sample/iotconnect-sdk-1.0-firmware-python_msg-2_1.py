@@ -31,7 +31,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "Enter Unique Id"
+UniqueId = " "
 
 Sdk=None
 interval = 10
