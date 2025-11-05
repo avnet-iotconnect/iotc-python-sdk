@@ -63,9 +63,9 @@ test_file_upload = True  # Set to True to enable file upload testing
 SdkOptions={
 	"certificate" : { 
         # Certs
-        "SSLKeyPath"  : "c:/Users/ankit.sangani/Downloads/pydevice-certificates (1)/pk_pydevice.pem",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "c:/Users/ankit.sangani/Downloads/pydevice-certificates (1)/cert_pydevice.crt",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "c:/SW-AnkitSangani/AWS/sdk/AmazonrootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
