@@ -229,6 +229,159 @@ def onReady(data):
     global readyStatus
     readyStatus = True
 
+def onCertReceivedCallback(cert_data):
+    """
+    Certificate Rotation Callback
+
+    This callback is triggered when new certificates are received from IoTConnect
+    during certificate rotation.
+
+    Args:
+        cert_data: Dictionary containing:
+            - dc: Device certificate in DER Hex format
+            - pk: Private key in DER Hex format
+            - ackId: Acknowledgment ID
+    """
+    global Sdk, SdkOptions
+
+    print("\n" + "="*60)
+    print("Firmware :: Certificate Rotation - New certificates received")
+    print("="*60)
+
+    try:
+        # Import utility for certificate conversion
+        from iotconnect.common.util import util
+
+        dc_hex = cert_data["dc"]
+        pk_hex = cert_data["pk"]
+        ack_id = cert_data["ackId"]
+
+        print("Firmware :: Certificate data received")
+        print("Firmware :: - Device Certificate Length: {} chars".format(len(dc_hex)))
+        print("Firmware :: - Private Key Length: {} chars".format(len(pk_hex)))
+        print("Firmware :: - ACK ID: {}".format(ack_id))
+
+        # Define new certificate paths (backup old ones with timestamp)
+        import time
+        timestamp = int(time.time())
+
+        old_cert_path = SdkOptions["certificate"]["SSLCertPath"]
+        old_key_path = SdkOptions["certificate"]["SSLKeyPath"]
+
+        # Backup old certificates
+        backup_cert_path = old_cert_path + ".backup." + str(timestamp)
+        backup_key_path = old_key_path + ".backup." + str(timestamp)
+
+        print("\nFirmware :: Backing up old certificates...")
+        try:
+            import shutil
+            if os.path.isfile(old_cert_path):
+                shutil.copy2(old_cert_path, backup_cert_path)
+                print("Firmware :: - Old certificate backed up to: {}".format(backup_cert_path))
+            if os.path.isfile(old_key_path):
+                shutil.copy2(old_key_path, backup_key_path)
+                print("Firmware :: - Old key backed up to: {}".format(backup_key_path))
+        except Exception as backup_ex:
+            print("Firmware :: WARNING - Failed to backup old certificates: {}".format(str(backup_ex)))
+
+        # Convert DER hex to PEM and save
+        print("\nFirmware :: Converting certificates from DER hex to PEM format...")
+
+        cert_pem = util.der_hex_to_pem(dc_hex, "CERTIFICATE")
+        key_pem = util.der_hex_to_pem(pk_hex, "PRIVATE KEY")
+
+        if not cert_pem or not key_pem:
+            raise Exception("Failed to convert certificates to PEM format")
+
+        print("Firmware :: - Certificates converted successfully")
+
+        # Save new certificates
+        print("\nFirmware :: Saving new certificates...")
+
+        if not util.save_pem_file(cert_pem, old_cert_path):
+            raise Exception("Failed to save certificate file")
+        print("Firmware :: - Certificate saved to: {}".format(old_cert_path))
+
+        if not util.save_pem_file(key_pem, old_key_path):
+            raise Exception("Failed to save key file")
+        print("Firmware :: - Private key saved to: {}".format(old_key_path))
+
+        # Disconnect from current MQTT connection and reconnect with new certificates
+        print("\nFirmware :: Disconnecting from MQTT broker...")
+        print("Firmware :: This will temporarily interrupt the connection")
+
+        # Call SDK method to disconnect and reconnect with new certificates
+        print("\nFirmware :: Reconnecting with new certificates...")
+        print("Firmware :: - Certificate: {}".format(old_cert_path))
+        print("Firmware :: - Private Key: {}".format(old_key_path))
+
+        connectivity_ok = Sdk.reconnect_with_new_certificates(old_cert_path, old_key_path, timeout=30)
+
+        if connectivity_ok:
+            print("\nFirmware :: ✓ Reconnection successful!")
+            print("Firmware :: ✓ Device is now using new certificates")
+            print("Firmware :: ✓ Device connectivity verified successfully")
+
+            # Send ACK to IoTConnect
+            print("\nFirmware :: Sending certificate installation ACK...")
+            if Sdk.certReceiveAck(ack_id, True, "Certificate installed and verified successfully"):
+                print("Firmware :: - ACK sent successfully")
+                print("\n" + "="*60)
+                print("Firmware :: Certificate Rotation Completed Successfully")
+                print("="*60 + "\n")
+
+                # Clean up old backup certificates (optional)
+                print("Firmware :: Cleaning up backup certificates...")
+                try:
+                    if os.path.isfile(backup_cert_path):
+                        os.remove(backup_cert_path)
+                    if os.path.isfile(backup_key_path):
+                        os.remove(backup_key_path)
+                    print("Firmware :: - Backup certificates removed")
+                except:
+                    print("Firmware :: - Could not remove backup certificates (keeping for safety)")
+            else:
+                print("Firmware :: ERROR - Failed to send ACK")
+        else:
+            print("\nFirmware :: ✗ Reconnection failed!")
+            print("Firmware :: ERROR - Device connectivity check failed")
+
+            # Restore old certificates
+            print("\nFirmware :: Rolling back to old certificates...")
+            try:
+                import shutil
+                if os.path.isfile(backup_cert_path):
+                    shutil.copy2(backup_cert_path, old_cert_path)
+                    print("Firmware :: - Old certificate restored")
+                if os.path.isfile(backup_key_path):
+                    shutil.copy2(backup_key_path, old_key_path)
+                    print("Firmware :: - Old key restored")
+
+                # Try to reconnect with old certificates
+                print("\nFirmware :: Attempting to reconnect with old certificates...")
+                if Sdk.reconnect_with_new_certificates(old_cert_path, old_key_path, timeout=30):
+                    print("Firmware :: - Successfully restored connection with old certificates")
+                else:
+                    print("Firmware :: - Failed to restore connection (device may require manual intervention)")
+            except Exception as restore_ex:
+                print("Firmware :: - Failed to restore old certificates: {}".format(str(restore_ex)))
+
+            # Send failure ACK
+            try:
+                Sdk.certReceiveAck(ack_id, False, "Certificate installation failed - reconnection failed")
+            except:
+                print("Firmware :: - Could not send failure ACK")
+
+    except Exception as ex:
+        print("\nFirmware :: ERROR - Certificate rotation failed: {}".format(str(ex)))
+        print("="*60 + "\n")
+
+        # Send failure ACK
+        try:
+            Sdk.certReceiveAck(ack_id, False, "Certificate installation failed: " + str(ex))
+        except:
+            pass
+
 
 def main():
     global SdkOptions,Sdk,ACKdirect,device_list
@@ -266,6 +419,7 @@ def main():
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
                 Sdk.onOTACommand(DeviceFirmwareCallback)
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
+                Sdk.onCertReceived(onCertReceivedCallback)
                 Sdk.getTwins()
                 Sdk.onReady(onReady)
 
