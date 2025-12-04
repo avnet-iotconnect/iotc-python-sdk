@@ -309,7 +309,8 @@ class util:
             True if successful, False otherwise
         """
         try:
-            with open(file_path, 'w') as f:
+            # Save with explicit encoding and newline handling
+            with open(file_path, 'w', encoding='utf-8', newline='\n') as f:
                 f.write(pem_data)
             return True
         except Exception as ex:

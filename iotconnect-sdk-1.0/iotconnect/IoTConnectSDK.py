@@ -128,6 +128,7 @@ class IoTConnectSDK:
     _listner_direct_callback_list = {}
     _listner_cert_callback = None
     _auth_challenge_response = None
+    _pending_cert_rotation = None  # Store cert data until MQTT client is ready
 
     def get_config(self):
         try:
@@ -250,9 +251,15 @@ class IoTConnectSDK:
                 self.print_debuglog("Failed to extract companyGuid from base URL", 1)
                 return None
 
-            # Prepare auth challenge request
-            auth_url = self._base_url.replace("/device-identity/", "/x509/auth").replace("/uid/", "")
-            self.print_debuglog("auth_url: " + auth_url , 1)
+            # Prepare auth challenge request - construct correct URL
+            # Extract protocol and host from base_url
+            # Example: https://awspocdi.iotconnect.io/api/2.1/agent/device-identity/cg/.../uid/...
+            # Need: https://awspocdi.iotconnect.io/api/2.1/agent/x509/auth
+            parsed_url = urlparse(self._base_url)
+            base_host = "{0}://{1}".format(parsed_url.scheme, parsed_url.netloc)
+            auth_url = base_host + "/api/2.1/agent/x509/auth"
+
+            self.print_debuglog("auth_url: " + auth_url , 0)
             self.print_debuglog("companyGuid: " + company_guid , 0)
 
             payload = {
@@ -294,15 +301,14 @@ class IoTConnectSDK:
                         "ackId": ack_id
                     }
 
-                    # Call firmware callback with new certificates
-                    # Note: Callback existence is already checked at the beginning of this method
-                    self._listner_cert_callback({
+                    # Store certificate data - callback will be executed after MQTT client is ready
+                    self._pending_cert_rotation = {
                         "dc": dc,
                         "pk": pk,
                         "ackId": ack_id
-                    })
-                    self.print_debuglog("New certificates sent to firmware callback", 0)
-                    self.write_debuglog('[INFO_CE02B] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] New certificates passed to firmware callback",0)
+                    }
+                    self.print_debuglog("New certificates received, will process after MQTT client is ready", 0)
+                    self.write_debuglog('[INFO_CE02] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] New certificates received, pending callback execution",0)
 
             return response_data
 
@@ -754,6 +760,16 @@ class IoTConnectSDK:
                     self._is_process_started = False
                     self._data_json = response
                     self.init_protocol()
+
+                    # Execute pending certificate rotation callback now that MQTT client is ready
+                    if self._pending_cert_rotation and self._listner_cert_callback:
+                        self.print_debuglog("MQTT client ready, executing certificate rotation callback...", 0)
+                        self.write_debuglog('[INFO_CE02B] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Executing certificate rotation callback",0)
+                        cert_data = self._pending_cert_rotation.copy()
+                        cert_data["sdk"] = self  # Add SDK instance
+                        self._pending_cert_rotation = None  # Clear pending data
+                        self._listner_cert_callback(cert_data)
+
                     if self._pf == "aws":
                         data = { "_connectionStatus": "true" }
                         self._client.SendTwinData(data)
@@ -1275,6 +1291,15 @@ class IoTConnectSDK:
 
             ack_url = self._auth_challenge_response["url"]
 
+            # Only send ACK if status is True (success)
+            # For failures, we should not acknowledge
+            if not status:
+                self.print_debuglog("Certificate installation failed - NOT sending ACK", 1)
+                self.write_debuglog('[WARN_CE05] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Certificate installation failed: " + msg + " - ACK not sent",1)
+                # Clear auth challenge response
+                self._auth_challenge_response = None
+                return False
+
             payload = {
                 "version": "2.1"
             }
@@ -1295,7 +1320,7 @@ class IoTConnectSDK:
             response = urllib.urlopen(request)
             response_data = json.loads(response.read().decode('utf-8'))
 
-            self.print_debuglog("Certificate ACK sent successfully", 0)
+            self.print_debuglog("Certificate ACK sent successfully (status=success)", 0)
             self.write_debuglog('[INFO_CE04] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Certificate ACK sent: " + msg,0)
 
             # Clear auth challenge response after ACK
@@ -1818,7 +1843,7 @@ class IoTConnectSDK:
         ts.tv_nsec=0 * 1000000
         librt.clock_settime(CLOCK_REALTIME,ctypes.byref(ts))
 
-    def __init__(self, uniqueId,sdkOptions=None,initCallback=None):
+    def __init__(self, uniqueId,sdkOptions=None,initCallback=None,certCallback=None):
         self._lock = threading.Lock()
 
 #        if sys.platform == 'win32':
@@ -1847,6 +1872,9 @@ class IoTConnectSDK:
 
         if initCallback:
             self._listner_callback=initCallback
+
+        if certCallback:
+            self._listner_cert_callback=certCallback
 
         self.get_config()
         if self._debug:

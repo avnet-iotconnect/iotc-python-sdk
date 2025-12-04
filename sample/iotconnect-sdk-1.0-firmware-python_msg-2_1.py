@@ -21,6 +21,24 @@ from iotconnect import IoTConnectSDK
 from datetime import datetime, timezone
 import os
 
+# Enable ANSI colors in Windows command prompt
+if sys.platform == 'win32':
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+
+# ANSI color codes for terminal output
+class Colors:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+
 
 """
 * ## Prerequisite parameter to run this sampel code
@@ -79,8 +97,18 @@ SdkOptions={
     "IsDebug": True,
     "cpid" : "Enter CPID",
     "sId" : "",
-    "env" : "Enter ENV",
+     "env" : "Enter ENV",
     "pf"  : "Enter PF" # az / aws
+
+      #if device has video stream capability
+    "CameraOptions" : {
+        "deviceport" : "/dev/video0",
+        "video" : {
+            "width" : "640",
+            "height" : "480",
+            "framerate" : "30/1"
+        }
+    }
 
 }
 
@@ -241,12 +269,13 @@ def onCertReceivedCallback(cert_data):
             - dc: Device certificate in DER Hex format
             - pk: Private key in DER Hex format
             - ackId: Acknowledgment ID
+            - sdk: SDK instance to use for reconnection and ACK
     """
-    global Sdk, SdkOptions
+    global SdkOptions
 
-    print("\n" + "="*60)
-    print("Firmware :: Certificate Rotation - New certificates received")
-    print("="*60)
+    print("\n" + Colors.CYAN + Colors.BOLD + "="*60 + Colors.RESET)
+    print(Colors.CYAN + Colors.BOLD + "Firmware :: Certificate Rotation - New certificates received" + Colors.RESET)
+    print(Colors.CYAN + Colors.BOLD + "="*60 + Colors.RESET)
 
     try:
         # Import utility for certificate conversion
@@ -255,11 +284,12 @@ def onCertReceivedCallback(cert_data):
         dc_hex = cert_data["dc"]
         pk_hex = cert_data["pk"]
         ack_id = cert_data["ackId"]
+        Sdk = cert_data["sdk"]  # Get SDK instance from callback data
 
-        print("Firmware :: Certificate data received")
-        print("Firmware :: - Device Certificate Length: {} chars".format(len(dc_hex)))
-        print("Firmware :: - Private Key Length: {} chars".format(len(pk_hex)))
-        print("Firmware :: - ACK ID: {}".format(ack_id))
+        print(Colors.GREEN + "Firmware :: Certificate data received" + Colors.RESET)
+        print(Colors.GREEN + "Firmware :: - Device Certificate Length: {} chars".format(len(dc_hex)) + Colors.RESET)
+        print(Colors.GREEN + "Firmware :: - Private Key Length: {} chars".format(len(pk_hex)) + Colors.RESET)
+        print(Colors.GREEN + "Firmware :: - ACK ID: {}".format(ack_id) + Colors.RESET)
 
         # Define new certificate paths (backup old ones with timestamp)
         import time
@@ -288,12 +318,16 @@ def onCertReceivedCallback(cert_data):
         print("\nFirmware :: Converting certificates from DER hex to PEM format...")
 
         cert_pem = util.der_hex_to_pem(dc_hex, "CERTIFICATE")
-        key_pem = util.der_hex_to_pem(pk_hex, "PRIVATE KEY")
+
+        # Try RSA PRIVATE KEY format first (more common)
+        key_pem = util.der_hex_to_pem(pk_hex, "RSA PRIVATE KEY")
 
         if not cert_pem or not key_pem:
             raise Exception("Failed to convert certificates to PEM format")
 
         print("Firmware :: - Certificates converted successfully")
+        print("Firmware :: - Certificate PEM preview: {}...".format(cert_pem[:80]))
+        print("Firmware :: - Key PEM preview: {}...".format(key_pem[:80]))
 
         # Save new certificates
         print("\nFirmware :: Saving new certificates...")
@@ -306,6 +340,18 @@ def onCertReceivedCallback(cert_data):
             raise Exception("Failed to save key file")
         print("Firmware :: - Private key saved to: {}".format(old_key_path))
 
+        # Verify saved files can be read
+        print("\nFirmware :: Verifying saved certificates...")
+        try:
+            with open(old_cert_path, 'r') as f:
+                saved_cert = f.read()
+                print("Firmware :: - Certificate file readable: {} bytes".format(len(saved_cert)))
+            with open(old_key_path, 'r') as f:
+                saved_key = f.read()
+                print("Firmware :: - Key file readable: {} bytes".format(len(saved_key)))
+        except Exception as verify_ex:
+            raise Exception("Failed to verify saved certificates: " + str(verify_ex))
+
         # Disconnect from current MQTT connection and reconnect with new certificates
         print("\nFirmware :: Disconnecting from MQTT broker...")
         print("Firmware :: This will temporarily interrupt the connection")
@@ -317,18 +363,30 @@ def onCertReceivedCallback(cert_data):
 
         connectivity_ok = Sdk.reconnect_with_new_certificates(old_cert_path, old_key_path, timeout=30)
 
+        # If reconnection failed with RSA PRIVATE KEY, try with PRIVATE KEY format
+        if not connectivity_ok:
+            print(Colors.YELLOW + "\nFirmware :: Retrying with alternate key format (PRIVATE KEY)..." + Colors.RESET)
+
+            # Regenerate key with different format
+            key_pem_alt = util.der_hex_to_pem(pk_hex, "PRIVATE KEY")
+            if key_pem_alt and util.save_pem_file(key_pem_alt, old_key_path):
+                print("Firmware :: - Private key saved with alternate format")
+                connectivity_ok = Sdk.reconnect_with_new_certificates(old_cert_path, old_key_path, timeout=30)
+            else:
+                print(Colors.RED + "ERROR :: Failed to save alternate key format" + Colors.RESET)
+
         if connectivity_ok:
-            print("\nFirmware :: ✓ Reconnection successful!")
-            print("Firmware :: ✓ Device is now using new certificates")
-            print("Firmware :: ✓ Device connectivity verified successfully")
+            print(Colors.GREEN + Colors.BOLD + "\n✓ Firmware :: Reconnection successful!" + Colors.RESET)
+            print(Colors.GREEN + Colors.BOLD + "✓ Firmware :: Device is now using new certificates" + Colors.RESET)
+            print(Colors.GREEN + Colors.BOLD + "✓ Firmware :: Device connectivity verified successfully" + Colors.RESET)
 
             # Send ACK to IoTConnect
-            print("\nFirmware :: Sending certificate installation ACK...")
+            print(Colors.GREEN + "\nFirmware :: Sending certificate installation ACK..." + Colors.RESET)
             if Sdk.certReceiveAck(ack_id, True, "Certificate installed and verified successfully"):
-                print("Firmware :: - ACK sent successfully")
-                print("\n" + "="*60)
-                print("Firmware :: Certificate Rotation Completed Successfully")
-                print("="*60 + "\n")
+                print(Colors.GREEN + "Firmware :: - ACK sent successfully" + Colors.RESET)
+                print(Colors.GREEN + Colors.BOLD + "\n" + "="*60 + Colors.RESET)
+                print(Colors.GREEN + Colors.BOLD + "Firmware :: Certificate Rotation Completed Successfully" + Colors.RESET)
+                print(Colors.GREEN + Colors.BOLD + "="*60 + "\n" + Colors.RESET)
 
                 # Clean up old backup certificates (optional)
                 print("Firmware :: Cleaning up backup certificates...")
@@ -341,10 +399,10 @@ def onCertReceivedCallback(cert_data):
                 except:
                     print("Firmware :: - Could not remove backup certificates (keeping for safety)")
             else:
-                print("Firmware :: ERROR - Failed to send ACK")
+                print(Colors.RED + Colors.BOLD + "ERROR :: Failed to send ACK" + Colors.RESET)
         else:
-            print("\nFirmware :: ✗ Reconnection failed!")
-            print("Firmware :: ERROR - Device connectivity check failed")
+            print(Colors.RED + Colors.BOLD + "\n✗ Firmware :: Reconnection failed!" + Colors.RESET)
+            print(Colors.RED + Colors.BOLD + "ERROR :: Device connectivity check failed" + Colors.RESET)
 
             # Restore old certificates
             print("\nFirmware :: Rolling back to old certificates...")
@@ -362,21 +420,22 @@ def onCertReceivedCallback(cert_data):
                 if Sdk.reconnect_with_new_certificates(old_cert_path, old_key_path, timeout=30):
                     print("Firmware :: - Successfully restored connection with old certificates")
                 else:
-                    print("Firmware :: - Failed to restore connection (device may require manual intervention)")
+                    print(Colors.RED + "Firmware :: - Failed to restore connection (device may require manual intervention)" + Colors.RESET)
             except Exception as restore_ex:
-                print("Firmware :: - Failed to restore old certificates: {}".format(str(restore_ex)))
+                print(Colors.RED + "ERROR :: Failed to restore old certificates: {}".format(str(restore_ex)) + Colors.RESET)
 
-            # Send failure ACK
-            try:
-                Sdk.certReceiveAck(ack_id, False, "Certificate installation failed - reconnection failed")
-            except:
-                print("Firmware :: - Could not send failure ACK")
+            # Do NOT send ACK on failure (per IoTConnect protocol)
+            print(Colors.YELLOW + "\nFirmware :: NOT sending ACK (connection failed)" + Colors.RESET)
+            print(Colors.YELLOW + "Firmware :: IoTConnect will retry certificate rotation on next sync" + Colors.RESET)
+            Sdk.certReceiveAck(ack_id, False, "Certificate installation failed - reconnection failed")
 
     except Exception as ex:
-        print("\nFirmware :: ERROR - Certificate rotation failed: {}".format(str(ex)))
-        print("="*60 + "\n")
+        print(Colors.RED + Colors.BOLD + "\nERROR :: Certificate rotation failed: {}".format(str(ex)) + Colors.RESET)
+        print(Colors.RED + "="*60 + "\n" + Colors.RESET)
 
-        # Send failure ACK
+        # Do NOT send ACK on exception (per IoTConnect protocol)
+        print(Colors.YELLOW + "\nFirmware :: NOT sending ACK (exception occurred)" + Colors.RESET)
+        print(Colors.YELLOW + "Firmware :: IoTConnect will retry certificate rotation on next sync" + Colors.RESET)
         try:
             Sdk.certReceiveAck(ack_id, False, "Certificate installation failed: " + str(ex))
         except:
@@ -405,21 +464,20 @@ def main():
         * Output  : Callback methods for device command and twin properties
         """
 
-        with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback) as Sdk:
+        with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback,onCertReceivedCallback) as Sdk:
             try:
                 """
                 * Type    : Public Method "GetAllTwins()"
                 * Usage   : Send request to get all the twin properties Desired and Reported
-                * Input   : 
-                * Output  : 
+                * Input   :
+                * Output  :
                 """
-                    
+
                 device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
                 Sdk.onOTACommand(DeviceFirmwareCallback)
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
-                Sdk.onCertReceived(onCertReceivedCallback)
                 Sdk.getTwins()
                 Sdk.onReady(onReady)
 
