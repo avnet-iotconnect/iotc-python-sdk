@@ -97,8 +97,8 @@ SdkOptions={
     "IsDebug": True,
     "cpid" : "Enter CPID",
     "sId" : "",
-     "env" : "Enter ENV",
-    "pf"  : "Enter PF" # az / aws
+    "env" : "Enter ENV",
+    "pf"  : "Enter PF", # az / aws
 
       #if device has video stream capability
     "CameraOptions" : {
