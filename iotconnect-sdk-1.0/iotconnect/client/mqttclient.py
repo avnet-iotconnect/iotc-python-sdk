@@ -6,6 +6,7 @@ import json
 import time
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
 import inspect
+import threading
 
 authType = {
 	"KEY": 1,
@@ -13,7 +14,6 @@ authType = {
 	"CA_SELF_SIGNED": 3,
     "SKEY": 5,
     "CA_ind" : 7
-    
 }
 
 
@@ -56,6 +56,7 @@ class mqttclient:
         4: "MQTT: Connection refused - bad username or password",
         5: "MQTT: Connection refused - not authorised"
     }
+    _unassociate_retry = 0
 
     class disconnect_msg:
         payload=u'{"ct": 116,"data": {"guid": "","uniqueId":"_uniqueId","command": "False","ack": "False","ackId": "","ct": 116}}'
@@ -89,11 +90,16 @@ class mqttclient:
     #     self._client.loop_stop()
 
     # change with Python 3.0.4 SDK
-    def _on_disconnect(self, client, userdata,rc=0):
+    def _on_disconnect(self, client, userdata, rc=0):
         self._rc_status = rc
         self._isConnected = False
-        if self._client != None:
+        if self._client != None and ("unassociate_retry" not in self._sdk_config or self._sdk_config["unassociate_retry"] == 0) : #Jignesh
             self._client.loop_stop()
+        elif "unassociate_retry" in self._sdk_config:
+            t = threading.Thread(target = None)
+            t.start()
+            t.join()
+            self._sdk_config["unassociate_retry"] = 0
         msg=self.disconnect_msg()
         msg_data=json.loads(msg.payload)
         self._onMessage(msg_data)
@@ -172,8 +178,16 @@ class mqttclient:
     def Disconnect(self):
         try:
             if self._client != None:
+                #Jignesh
                 self._client.disconnect()
-                self._client.loop_stop()
+                if "unassociate_retry" not in self._sdk_config or self._sdk_config["unassociate_retry"] == 0:
+                    self._client.loop_stop()
+                elif "unassociate_retry" in self._sdk_config:
+                    t = threading.Thread(target = None)
+                    t.start()
+                    t.join()
+
+                    self._sdk_config["unassociate_retry"] = 0
                 while self._isConnected == True:
                     time.sleep(1)
                     self._isConnected = False
@@ -339,27 +353,32 @@ class mqttclient:
         self._keepalive= sdk_config["keepalive"] if "keepalive" in sdk_config else 60
         self._onMessage = onMessage
         self._onTwinMessage = onTwinMessage
-        self._onDirectMethod=onDirectMethod
-        self._subTopic = str(config['topics']['c2d'])
-        self._pubACK = str(config['topics']['ack'])
-        self._pubOfline=str(config['topics']['od'])
-        self._pubRpt=str(config['topics']['rpt'])
-        if 'erpt' in config['topics']:
-            self._pubERpt=str(config['topics']['erpt'])
-            self._pubERm=str(config['topics']['erm'])
-        self._pubFlt=str(config['topics']['flt'])
-        self._pubHB=str(config['topics']['hb'])
-        self._pubDL=str(config['topics']['dl'])
-        self._pubDi=str(config['topics']['di'])
+        self._onDirectMethod = onDirectMethod
+
+        if "topics" in config:
+            self._subTopic = str(config['topics']['c2d'])
+            self._pubACK = str(config['topics']['ack'])
+            self._pubOfline=str(config['topics']['od'])
+            self._pubRpt=str(config['topics']['rpt'])
+            if 'erpt' in config['topics']:
+                self._pubERpt=str(config['topics']['erpt'])
+                self._pubERm=str(config['topics']['erm'])
+            self._pubFlt=str(config['topics']['flt'])
+            self._pubHB=str(config['topics']['hb'])
+            self._pubDL=str(config['topics']['dl'])
+            self._pubDi=str(config['topics']['di'])
+
         platfrom = config["pf"]
         if config["pf"] == "az":
             # print ("\n============>>>>>>>>>>>\n")
             self.print_debuglog("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> Microsoft Azure Cloud <-", 0)
             # print ("\n<<<<<<<<<<<============\n")
-            self._twin_pub_topic = str(sdk_config['az']['twin_pub_topic'])
-            self._twin_sub_topic = str(sdk_config['az']['twin_sub_topic'])
-            self._twin_sub_res_topic = str(sdk_config['az']['twin_sub_res_topic'])
-            self._twin_pub_res_topic = str(sdk_config['az']['twin_pub_res_topic'])
+            if "az" in sdk_config:
+                self._twin_pub_topic = str(sdk_config['az']['twin_pub_topic'])
+                self._twin_sub_topic = str(sdk_config['az']['twin_sub_topic'])
+                self._twin_sub_res_topic = str(sdk_config['az']['twin_sub_res_topic'])
+                self._twin_pub_res_topic = str(sdk_config['az']['twin_pub_res_topic'])
+            
             _path = os.path.abspath(os.path.dirname(__file__))
             _config_path = os.path.join(_path, "assets\\az_crt.txt")
             _config_path = _config_path.replace("\\client","")
@@ -369,20 +388,22 @@ class mqttclient:
             self.print_debuglog("IoTConnect Python 2.1 SDK(Release Date: 24 December 2022) will connect with -> AWS Cloud <-", 0)
             # print ("\n<<<<<<<<<<<============\n")
             cpid_uid = (config["id"])
-            self._twin_pub_topic = str(config['topics']['set']['pub'])
-            self._twin_sub_topic= str(config['topics']['set']['sub'])
+            if "topics" in config:
+                self._twin_pub_topic = str(config['topics']['set']['pub'])
+                self._twin_sub_topic= str(config['topics']['set']['sub'])
 
-            #self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic'])
-            # print (type(self._twin_pub_topic))
-            #self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
-            # print (type(self._twin_pub_topic))
-            #self._twin_sub_topic = str(sdk_config['aws']['twin_sub_topic'])
-            #self._twin_sub_topic = self._twin_sub_topic.replace("{Cpid_DeviceID}", cpid_uid)
+                #self._twin_pub_topic = str(sdk_config['aws']['twin_pub_topic'])
+                # print (type(self._twin_pub_topic))
+                #self._twin_pub_topic = self._twin_pub_topic.replace("{Cpid_DeviceID}", cpid_uid) # to publish desired twin/shadow from d2c
+                # print (type(self._twin_pub_topic))
+                #self._twin_sub_topic = str(sdk_config['aws']['twin_sub_topic'])
+                #self._twin_sub_topic = self._twin_sub_topic.replace("{Cpid_DeviceID}", cpid_uid)
             
-            self._twin_sub_res_topic = str(sdk_config['aws']['twin_sub_res_topic'])
-            self._twin_sub_res_topic = self._twin_sub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
-            self._twin_pub_res_topic = str(sdk_config['aws']['twin_pub_res_topic'])
-            self._twin_pub_res_topic = self._twin_pub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
+                self._twin_sub_res_topic = str(sdk_config['aws']['twin_sub_res_topic'])
+                self._twin_sub_res_topic = self._twin_sub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
+                self._twin_pub_res_topic = str(sdk_config['aws']['twin_pub_res_topic'])
+                self._twin_pub_res_topic = self._twin_pub_res_topic.replace("{Cpid_DeviceID}", cpid_uid)
+            
             _path = os.path.abspath(os.path.dirname(__file__))
             _config_path = os.path.join(_path, "assets\\aws_crt.txt")
             _config_path = _config_path.replace("\\client","")

@@ -126,6 +126,9 @@ class IoTConnectSDK:
     _validation = True
     _getattribute_callback = None
     _listner_direct_callback_list = {}
+    _custom_property = False
+    _host = None
+    _unassociate_retry = 0
 
     def get_config(self):
         try:
@@ -333,18 +336,21 @@ class IoTConnectSDK:
                         if len(msg['d']) == 0:
                             self._data_json["has"]["d"] = 0
                         self._data_json['d']=[]
-                        self._data_json['d'].append({'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId})
+                        self._data_json['d'].append({'tg': self._data_json['meta']['gtw']['tg'],'id': self._uniqueId, 'cp' : {}})
                         for i in msg["d"]:
                                 self._data_json['d'].append(i)
+
                         if self._listner_devicechng_callback:
+                            self.print_debuglog("4. Callback 204 with custom property value...START" + str(self._custom_property), 0)
                             self._listner_devicechng_callback(msg)
+                            self.print_debuglog("4. Callback 204 with custom property value...END" + str(self._custom_property), 0)
                     if msg['ec'] == 0 and msg["ct"] == 205:
                         self._data_json["ota"] = msg["ota"]
                     if msg["ct"] == 221:
                         if self._listner_creatchild_callback:
                             if msg["ec"] == 0:
                                 self._listner_creatchild_callback({"status":True,"message":self.__child_error_log(msg["ec"])})
-                                self._hello_handsake({"mt":204,"sid":self._sId})
+                                self._hello_handsake({"mt":204,"sid":self._sId,"d":{"cp":self._custom_property}})
                                 time.sleep(10)
                             else:
                                 self._listner_creatchild_callback({"status":False,"message":self.__child_error_log(msg["ec"])})
@@ -356,7 +362,7 @@ class IoTConnectSDK:
                                     if self._data_json["d"][i] == self.deletechild:
                                         self._data_json["d"].pop(i)
                                         break
-                                self._hello_handsake({"mt":204,"sid":self._sId})
+                                self._hello_handsake({"mt":204,"sid":self._sId,"d":{"cp":self._custom_property}})
                                 time.sleep(10)
                             else:
                                 self._listner_deletechild_callback({"status":True,"message":"fail to delete child device"})
@@ -367,6 +373,12 @@ class IoTConnectSDK:
                 if "ct" in msg:
                     if msg["ct"] == CMDTYPE["is_connect"]:
                         msg["uniqueId"] = self._uniqueId
+                        
+                        if self._host and self._unassociate_retry > 0:
+                            #time.sleep(3)
+                            self._unassociate_retry = 0
+                            self.process_sync("all")
+
                         if msg["command"] in "False":
                             self._offlineflag = True
                             if self._is_process_started:
@@ -377,6 +389,7 @@ class IoTConnectSDK:
                             self._listner_callback(msg)
                         self.write_debuglog('[INFO_CM09] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] 0x116 sdk connection status: " + msg["command"],0)
                         self.print_debuglog("0x116 sdk connection status: " + msg["command"], 0)
+                        
                         return
 
 
@@ -406,9 +419,11 @@ class IoTConnectSDK:
                 self.print_debuglog(msg, 0)
                 _tProcess = threading.Thread(target = self.reset_process_sync, args = ["SETTING"])
             elif msg["ct"] == CMDTYPE["U_DEVICE"]:
+                self.print_debuglog("5. Callback 204 with custom property value...at U_DEVICE....START" + str(self._custom_property), 0)
                 self.print_debuglog(str(CMDTYPE["U_DEVICE"])+" U_DEVICE command received...", 0)
                 self.print_debuglog(msg, 0)
                 _tProcess = threading.Thread(target = self.reset_process_sync, args = ["DEVICE"])
+                self.print_debuglog("5. Callback 204 with custom property value...at U_DEVICE....END" + str(self._custom_property), 0)
             elif msg["ct"] == CMDTYPE["U_RULE"]:
                 if self._listner_rulechng_callback:
                     self._listner_rulechng_callback(msg)
@@ -471,7 +486,7 @@ class IoTConnectSDK:
                 _tProcess.start()
 
         except Exception as ex:
-            self.print_debuglog("Message process failed..."+ str(ex), 1)
+            self.print_debuglog("Message process failed..." + str(ex), 1)
 
     def onTwinMessage(self, msg,value):
         try:
@@ -536,7 +551,48 @@ class IoTConnectSDK:
 
             if auth_type == 5:
                 if ("devicePrimaryKey" in self._property) and self._property["devicePrimaryKey"]:
-                    protocol_cofig["pwd"]=self.generate_sas_token(protocol_cofig["h"],self._property["devicePrimaryKey"])
+                    protocol_cofig["pwd"] = self.generate_sas_token(protocol_cofig["h"],self._property["devicePrimaryKey"])
+                else:
+                    raise(IoTConnectSDKException("01", "devicePrimaryKey"))
+
+            if self._client != None:
+                self._client = None
+
+            if name == "mqtt":
+                self._client = mqttclient(auth_type, protocol_cofig, self._config, self.onMessage,self.onDirectMethodMessage, self.onTwinMessage, self._debug)
+            elif name == "http" or name == "https":
+                self._client = httpclient(protocol_cofig, self._config)
+            else:
+                self._client = None
+        except Exception as ex:
+            raise(ex)
+
+    def init_protocol_unassociated(self):
+        try:
+            self._unassociate_retry = 1
+            protocol_cofig = {
+			    "n": "mqtt",
+			    "h": self._host,
+			    "p": 8883,
+			    "id": self._uniqueId,
+                "pf" : self._pf
+            }
+            self._config["unassociate_retry"] = 1
+            self._config.setdefault("unassociate_retry", 1)
+
+            name = protocol_cofig["n"]
+            auth_type = 3
+            if auth_type == 2 or auth_type == 3 or auth_type == 7:
+                cert = self._config["certificate"]
+                
+                if util.cert_validate(cert, auth_type) == False:
+                    self.write_debuglog('[ERR_IN06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] sdkOption: Certificate is missing or invalid",1)
+                    self.print_debuglog("sdkOption: Certificate is missing or invalid",1)
+                    raise(IoTConnectSDKException("05"))
+                
+            if auth_type == 5:
+                if ("devicePrimaryKey" in self._property) and self._property["devicePrimaryKey"]:
+                    protocol_cofig["pwd"] = self.generate_sas_token(protocol_cofig["h"],self._property["devicePrimaryKey"])
                 else:
                     raise(IoTConnectSDKException("01", "devicePrimaryKey"))
 
@@ -558,8 +614,9 @@ class IoTConnectSDK:
 
     def process_sync(self, option):
         try:
-            self._time_s=10
+            self._time_s = 10
             isReChecking = False
+            isUnassociatedDevice = False
             if option == "all":
                 url = self._base_url
                 response = self.post_call(url)
@@ -580,8 +637,16 @@ class IoTConnectSDK:
                         raise(IoTConnectSDKException("03", response["message"]))
                     if response["ec"] != ErorCode["OK"]:
                         isReChecking = True
-                        self._time_s=60
-                    if response["ec"] == ErorCode["DEV_NOT_FOUND"] or response["ec"] == ErorCode["CPID_NOT_FOUND"] :
+                        self._time_s = 60
+                    if response["ec"] == ErorCode["CPID_NOT_FOUND"] :
+                        self.write_debuglog('[ERR_IN10] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device Information not found",1)
+                        self.print_debuglog("Device Information not found", 0)
+                    elif response["ec"] == ErorCode["DEV_NOT_REG"] and self._host and self._host.strip():
+                        isReChecking = False
+                        isUnassociatedDevice = True
+                        self.write_debuglog('[INFO_IN10] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Unassociated configuration found, Registering device",1)
+                        self.print_debuglog("Unassociated configuration found, Registering device", 0)
+                    elif response["ec"] == ErorCode["DEV_NOT_FOUND"]:
                         self.write_debuglog('[ERR_IN10] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Device Information not found",1)
                         self.print_debuglog("Device Information not found", 0)
             else:
@@ -590,7 +655,8 @@ class IoTConnectSDK:
                 elif option == "SETTING":
                     self._hello_handsake({"mt":202})
                 elif option == "DEVICE":
-                    self._hello_handsake({"mt":204})
+                    self.print_debuglog("2. Publish 204 with custom property value..." + str(self._custom_property), 0)
+                    self._hello_handsake({"mt":204, "d" : { "cp" : self._custom_property } })
                 elif option == "RULE":
                     self._hello_handsake({"mt":203})
                 else:
@@ -614,7 +680,11 @@ class IoTConnectSDK:
                 if option == "all":
                     self._is_process_started = False
                     self._data_json = response
-                    self.init_protocol()
+                    if isUnassociatedDevice:
+                        self.init_protocol_unassociated()
+                    else:
+                        self.init_protocol()
+
                     if self._pf == "aws":
                         data = { "_connectionStatus": "true" }
                         self._client.SendTwinData(data)
@@ -622,7 +692,8 @@ class IoTConnectSDK:
                         self.print_debuglog("Publish connection status shadow sucessfully...", 0)
 
                     if self.has_key(self._data_json,"has") and self._data_json["has"]["d"]:
-                        self._hello_handsake({"mt":204})
+                        self.print_debuglog("1. Publish 204 with custom property value..." + str(self._custom_property), 0)
+                        self._hello_handsake({"mt":204, "d":{"cp":self._custom_property }})
                         time.sleep(10)                       
                     else:
                         if self._data_json['meta']['gtw'] != None:
@@ -1572,7 +1643,7 @@ class IoTConnectSDK:
         ts.tv_nsec=0 * 1000000
         librt.clock_settime(CLOCK_REALTIME,ctypes.byref(ts))
 
-    def __init__(self, uniqueId,sdkOptions=None,initCallback=None):
+    def __init__(self, uniqueId, sdkOptions=None, initCallback = None):
         self._lock = threading.Lock()
 
 #        if sys.platform == 'win32':
@@ -1619,6 +1690,10 @@ class IoTConnectSDK:
             self._env = self._property["env"]
         if "pf" in self._property:
             self.pf = self._property["pf"]
+        if "customProperty" in self._property:
+            self._custom_property = self._property["customProperty"]
+        if "associate" in self._property and "host" in self._property["associate"]:
+            self._host = self._property["associate"]["host"]
         
         if not self.is_not_blank(self._uniqueId):
             self.write_debuglog('[ERR_IN05] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId)+']:'+'uniqueId can not be blank',1)

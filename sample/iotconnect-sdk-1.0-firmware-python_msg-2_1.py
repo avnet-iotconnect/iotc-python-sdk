@@ -75,13 +75,16 @@ SdkOptions={
     "skipValidation":False,
     # "devicePrimaryKey":"Enter Device Primary Key",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    "discoveryUrl":"http://discovery.iotconnect.io",
+    "discoveryUrl":"https://jzbybwq654.execute-api.us-east-1.amazonaws.com/Prod",
     "IsDebug": True,
     "cpid" : "Enter CPID",
     "sId" : "",
     "env" : "Enter ENV",
-    "pf"  : "Enter PF" # az / aws
-
+    "pf"  : "Enter PF", # az / aws
+    "customProperty"  : False,
+    "associate" :{
+        "host": ""
+    }
 }
 
 
@@ -208,7 +211,7 @@ def DirectMethodCallback(msg,methodname,rId):
     Sdk.DirectMethodACK(msg,200,rId)
 
 def DeviceChangCallback(msg):
-    print("Firmware :: " + msg)
+    print("Firmware Device Custom Property :: ", msg)
 
 def InitCallback(response):
     print("Firmware :: " + response)
@@ -278,8 +281,6 @@ def main():
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
-
-
 
                 while True:
                     #Sdk.GetAttributes()
