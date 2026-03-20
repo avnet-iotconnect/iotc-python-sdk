@@ -9,6 +9,10 @@ import re
 
 streampro = None
 
+# Prefer the local Python sample in this client folder by default.
+KVS_MASTER_SCRIPT = os.path.join(os.path.dirname(__file__), "kvsWebRTCClientMaster.py")
+KVS_MASTER_CLIENT_EXE = "/usr/local/bin/kvsWebrtcClientMasterGst"  # optional compiled binary (if you have it)
+
 def get_kinesis_cer(uid, cacert, devicecert, devicekey, aws_credential_endpoint):
 
     if not aws_credential_endpoint:
@@ -51,14 +55,18 @@ def get_kinesis_cer(uid, cacert, devicecert, devicekey, aws_credential_endpoint)
         print(f"Error obtaining credentials from IoT: {e}")
         return
 
+def _extract_region_from_arn(arn):
+    """Extract AWS region from a channel ARN.
+    ARN format: arn:aws:kinesisvideo:<region>:<account-id>:channel/<name>/<id>
+    """
     try:
-        for line in iter(pipe.readline, b''):
-            print(f"{prefix}: {line.decode(errors='replace').rstrip()}")
-    finally:
-        try:
-            pipe.close()
-        except Exception:
-            pass
+        parts = (arn or "").split(":")
+        if len(parts) >= 4 and parts[3]:
+            return parts[3]
+    except Exception:
+        pass
+    return None
+
 
 def detect_video_device():
     """Detects the first /dev/video* device."""
@@ -163,6 +171,101 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOp
         print("❌ GStreamer is NOT installed.")
     except Exception as err:
         print(f"Error while Starting GStreamer: {err}")
+
+    return streampro
+
+
+def start_kvs_webrtc_from_devicecert(channel_arn, uid, cacert_path, devicecert_path, devicekey_path, aws_credential_endpoint, CameraOptions, region="us-east-1"):
+    """
+    Start a KVS WebRTC MASTER client using temporary credentials obtained via device certificate.
+
+    - Obtains temporary credentials by calling the device credential endpoint (get_kinesis_cer).
+    - Injects credentials into the child process environment.
+    - Starts either the compiled binary (if present) or the local Python sample script (kvsWebRTCClientMaster.py).
+    - Uses CameraOptions for device selection (function currently injects device selection into environment if needed).
+    """
+    global streampro
+
+    # Extract region from ARN when not explicitly provided
+    arn_region = _extract_region_from_arn(channel_arn)
+    if arn_region:
+        region = arn_region
+
+    # obtain temporary credentials using device certs
+    creds = None
+    try:
+        creds = get_kinesis_cer(uid, cacert_path, devicecert_path, devicekey_path, aws_credential_endpoint)
+    except Exception as ex:
+        print(f"Failed to get kinesis credentials: {ex}")
+        return
+
+    if not creds or len(creds) < 3:
+        print("Failed to obtain temporary credentials from IoT credential endpoint.")
+        return
+
+    access_key, secret_key, session_token = creds
+
+    # stop any existing stream
+    try:
+        if streampro:
+            print("Stopping existing stream before starting KVS WebRTC...")
+            os.killpg(os.getpgid(streampro.pid), signal.SIGTERM)
+    except Exception:
+        pass
+
+    env = os.environ.copy()
+    env["AWS_ACCESS_KEY_ID"] = access_key
+    env["AWS_SECRET_ACCESS_KEY"] = secret_key
+    if session_token:
+        env["AWS_SESSION_TOKEN"] = session_token
+    env["AWS_DEFAULT_REGION"] = region
+
+    # Build command for binary or python script. The sample script expects --channel-arn.
+    if os.path.isfile(KVS_MASTER_CLIENT_EXE) and os.access(KVS_MASTER_CLIENT_EXE, os.X_OK):
+        cmd = [KVS_MASTER_CLIENT_EXE, "--channel-arn", channel_arn]
+        print(f"Using KVS binary: {KVS_MASTER_CLIENT_EXE}")
+    elif os.path.isfile(KVS_MASTER_SCRIPT):
+        # Credentials are already injected as AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY /
+        # AWS_SESSION_TOKEN env vars above, so boto3 inside the script picks them up
+        # automatically. Do NOT pass --use-device-certs which would cause the script to
+        # re-fetch credentials from a .env file, ignoring the ones we injected.
+        cmd = [sys.executable, KVS_MASTER_SCRIPT, "--channel-arn", channel_arn]
+        print(f"Using KVS Python sample script: {KVS_MASTER_SCRIPT}")
+    else:
+        print("❌ No KVS master client found. Set KVS_MASTER_CLIENT_EXE or place kvsWebRTCClientMaster.py in this folder.")
+        return
+
+    # Optionally pass a file-path or device info, if supported by your client.
+    deviceport = CameraOptions.get("deviceport") or detect_video_device()
+    if deviceport:
+        # The sample script provides --file-path for file playback; for device camera we don't pass.
+        # If you want to pass file-path, uncomment the next line and adapt accordingly:
+        # cmd += ["--file-path", deviceport]
+        pass
+
+    print("Starting KVS WebRTC MASTER client (env creds injected):")
+    print(" ".join(cmd))
+
+    try:
+        streampro = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            env=env,
+            preexec_fn=os.setsid, text=False
+        )
+
+        threading.Thread(target=_pipe_reader, args=("KVMOUT", streampro.stdout), daemon=True).start()
+        threading.Thread(target=_pipe_reader, args=("KVMERR", streampro.stderr), daemon=True).start()
+
+        import time as _t
+        _t.sleep(2.0)
+        rc = streampro.poll()
+        if rc is not None:
+            print(f"❌ KVS WebRTC master client exited immediately with code {rc}")
+    except FileNotFoundError:
+        print("❌ KVS WebRTC master client binary/script not found.")
+    except Exception as err:
+        print(f"Error while starting KVS WebRTC master client: {err}")
 
     return streampro
 

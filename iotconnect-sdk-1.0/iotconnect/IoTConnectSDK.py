@@ -38,7 +38,7 @@ from iotconnect.common.util import util
 
 from iotconnect.IoTConnectSDKException import IoTConnectSDKException
 
-from iotconnect.client.awskinesisclient import get_kinesis_cer, start_gstreamer,stop_gstreamer
+from iotconnect.client.awskinesisclient import get_kinesis_cer, start_gstreamer, stop_gstreamer, start_kvs_webrtc_from_devicecert
 
 MSGTYPE = {
     "RPT": 0,
@@ -134,6 +134,7 @@ class IoTConnectSDK:
     _listner_direct_callback_list = {}
     _aws_credential_endpoint_URL = ""
     _kinesis_stream_as = True
+    _kinesis_stream_carn = ""
     _kinesis_stream_status = False
     _file_upload_client = None
     _fs_config = None
@@ -682,26 +683,73 @@ class IoTConnectSDK:
                     if msg["ct"] == CMDTYPE["stream_start"]:
                         print("Video_Stream_Task : Starting Streaming")
 
-                        # Uncomment after SYNC api done to check if sync has object of "vs"
                         # if self.has_key(self._data_json["p"], "vs"):
 
-
-                        if(self._kinesis_stream_status == False):
+                        if (self._kinesis_stream_status == False):
                             print("Video_Stream_Task : Start Kinesis video stream")
-                            access_key_id, stream_key, sessionToken = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
+
+                            # Read webrtc flag and carn from the incoming command
+                            webrtc_flag = False
+                            channel_arn = None
+                            try:
+                                webrtc_flag = bool(msg.get("webrtc", False))
+                                channel_arn = msg.get("carn")
+                            except Exception:
+                                webrtc_flag = False
+                                channel_arn = None
+
                             stream_id_concat = self._data_json["p"]["id"]
 
-                            gst_thread = threading.Thread(target=start_gstreamer, args=(
-                                                            stream_id_concat, 
-                                                            access_key_id,
-                                                            stream_key,
-                                                            sessionToken,
-                                                             self._property["CameraOptions"]))
-                            gst_thread.start()
+                            if webrtc_flag:
+                                # webrtc=true path -> start KVS WebRTC MASTER client using device certificate flow
+                                if not channel_arn:
+                                    print("Video_Stream_Task : webrtc requested but carn not provided in command")
+                                else:
+                                    print(f"Video_Stream_Task : Starting KVS WebRTC MASTER on channel {channel_arn}")
+                                    # Extract thing name (uid) from the channel ARN
+                                    # ARN: ...channel/{channel-name}/{timestamp} -> uid = channel-name
+                                    webrtc_uid = channel_arn.split('/')[-2]
+                                    # start_kvs_webrtc_from_devicecert will obtain temporary creds using device certs
+                                    threading.Thread(
+                                        target=start_kvs_webrtc_from_devicecert,
+                                        args=(
+                                            channel_arn,
+                                            webrtc_uid,
+                                            self._property["certificate"]["SSLCaPath"],
+                                            self._property["certificate"]["SSLCertPath"],
+                                            self._property["certificate"]["SSLKeyPath"],
+                                            self._aws_credential_endpoint_URL,
+                                            self._property.get("CameraOptions", {})
+                                        ),
+                                        daemon=True
+                                    ).start()
+                                    self._kinesis_stream_status = True
+                                    print("Video_Stream_Task : KVS WebRTC MASTER started")
+                            else:
+                                # webrtc=false or absent -> start existing GStreamer kvssink pipeline
+                                try:
+                                    access_key_id, stream_key, sessionToken = get_kinesis_cer(
+                                        self._data_json["p"]["id"],
+                                        self._property["certificate"]["SSLCaPath"],
+                                        self._property["certificate"]["SSLCertPath"],
+                                        self._property["certificate"]["SSLKeyPath"],
+                                        self._aws_credential_endpoint_URL
+                                    )
+                                except Exception as ex:
+                                    print(f"Video_Stream_Task : Failed to obtain Kinesis credentials: {ex}")
+                                    return
 
+                                gst_thread = threading.Thread(target=start_gstreamer, args=(
+                                    stream_id_concat,
+                                    access_key_id,
+                                    stream_key,
+                                    sessionToken,
+                                    self._property.get("CameraOptions", {})
+                                ), daemon=True)
+                                gst_thread.start()
 
-                            self._kinesis_stream_status = True
-                            print("Video_Stream_Task : Streaming started")
+                                self._kinesis_stream_status = True
+                                print("Video_Stream_Task : Streaming started")
 
                         else:
                             print("Video_Stream_Task : Streaming already started")
@@ -989,30 +1037,53 @@ class IoTConnectSDK:
                         self._aws_credential_endpoint_URL = url
                         print(self._aws_credential_endpoint_URL)
                         self._kinesis_stream_as = self._data_json["p"]["vs"]["as"]
-                        print(self._kinesis_stream_as)
+                        self._kinesis_stream_carn = self._data_json["p"]["vs"].get("carn", "")
+                        print(f"Video_Stream_Task : as={self._kinesis_stream_as}, carn={self._kinesis_stream_carn}")
 
                         if(self._kinesis_stream_as == True):
                             print(self._uniqueId)
                             print(self._property)
 
-                            print("Video_Stream_Task : Auto Streaming ON")
+                            if self._kinesis_stream_carn:
+                                # carn is non-empty -> auto-start WebRTC signaling channel
+                                # Extract thing name (uid) from channel ARN
+                                # ARN: ...channel/{channel-name}/{timestamp} -> uid = channel-name
+                                vs_webrtc_uid = self._kinesis_stream_carn.split('/')[-2]
+                                print("Video_Stream_Task : Auto Streaming ON (WebRTC signaling channel)")
+                                threading.Thread(
+                                    target=start_kvs_webrtc_from_devicecert,
+                                    args=(
+                                        self._kinesis_stream_carn,
+                                        vs_webrtc_uid,
+                                        self._property["certificate"]["SSLCaPath"],
+                                        self._property["certificate"]["SSLCertPath"],
+                                        self._property["certificate"]["SSLKeyPath"],
+                                        self._aws_credential_endpoint_URL,
+                                        self._property.get("CameraOptions", {})
+                                    ),
+                                    daemon=True
+                                ).start()
+                                self._kinesis_stream_status = True
+                                print("Video_Stream_Task : KVS WebRTC MASTER auto-started")
+                            else:
+                                # carn is empty -> auto-start PutMedia (GStreamer/kvssink)
+                                print("Video_Stream_Task : Auto Streaming ON (PutMedia)")
+                                access_key_id, stream_key, sessionToken = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
+                                print("Video_Stream_Task : Kinesis video stream credentials received")
 
-                            access_key_id, stream_key, sessionToken = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
-                            print("Video_Stream_Task : Kinesis video stream credentials received")
+                                stream_id_concat = self._data_json["p"]["id"]
 
-                            stream_id_concat = self._data_json["p"]["id"]
+                                gst_thread = threading.Thread(
+                                        target=start_gstreamer,
+                                         args=(stream_id_concat,
+                                             access_key_id,
+                                              stream_key,
+                                               sessionToken,
+                                               self._property["CameraOptions"]
+                                               ))
+                                gst_thread.start()
+                                self._kinesis_stream_status = True
 
-                            gst_thread = threading.Thread(
-                                    target=start_gstreamer,
-                                     args=(stream_id_concat,
-                                         access_key_id,
-                                          stream_key,
-                                           sessionToken,
-                                           self._property["CameraOptions"]
-                                           ))
-                            gst_thread.start()
-                            self._kinesis_stream_status = True
-                            
                         else:
                             print("Video_Stream_Task : Auto Streaming OFF, wait for start command")
                     else:
@@ -1298,7 +1369,6 @@ class IoTConnectSDK:
                 template["d"]["cid"] = childId
                 if ackGuid != None:
                     # print(template)
-                    self.print_debuglog(template, 0)
                     self.send_msg_to_broker("FW", template)
             elif childId:
                 pass
