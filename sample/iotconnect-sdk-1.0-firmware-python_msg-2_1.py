@@ -21,6 +21,8 @@ from iotconnect import IoTConnectSDK
 from datetime import datetime, timezone
 import os
 
+# New import: helper to start KVS WebRTC MASTER on device (created earlier)
+from iotconnect.client.awskinesisclient import start_kvs_webrtc_from_devicecert
 
 """
 * ## Prerequisite parameter to run this sampel code
@@ -31,7 +33,7 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = ""
+UniqueId = "reInvent"
 
 Sdk=None
 interval = 10
@@ -63,10 +65,10 @@ test_array_data = True  # Set to True to enable array data testing
 
 SdkOptions={
 	"certificate" : { 
-        # Certs
-        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
+        # Certs - update paths for your system if required
+        "SSLKeyPath"  : "c:/Users/ankit.sangani/Downloads/reInvent-certificates (2)/pk_reInvent demo.pem",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "c:/Users/ankit.sangani/Downloads/reInvent-certificates (2)/cert_reInvent demo.crt",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "c:/SW-AnkitSangani/AWS/sdk/AmazonrootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -80,10 +82,10 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "",
+    "cpid" : "mssql",
     "sId" : "",
-    "env" : "",
-    "pf"  : "",
+    "env" : "preqa",
+    "pf"  : "aws",
 
     #if device has video stream capability
     "CameraOptions" : {
@@ -258,7 +260,7 @@ def testFileUpload(sdk):
     print("Firmware :: ========== File Upload Test ==========")
 
     # Test 1: Upload image from file path (if test image exists)
-    test_image_path = "c:/Users/ankit.sangani/Pictures/Screenshots/mqttissues.png"
+    test_image_path = "C:/Users/ankit.sangani/Downloads/55D215B0-5D4C-4AC3-ADA1-0E929FAC2631.jpg"
     if os.path.exists(test_image_path):
         print("Firmware :: Test 1: UploadImage from file path")
         result = sdk.UploadImage(file_path=test_image_path)
@@ -295,57 +297,6 @@ def testFileUpload(sdk):
             print("Firmware :: Upload Failed: " + result["error"])
     else:
         print("Firmware :: Test 2 skipped: test_image.jpg not found")
-
-    # Test 3: Upload from byte stream (create a small test file in memory)
-    print("Firmware :: Test 3: UploadImage from byte stream")
-    try:
-        # Create a small test text file
-        test_content = b"Test file content - IoTConnect File Upload Test\n"
-        test_content += b"Timestamp: " + datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z").encode('utf-8')
-
-        result = sdk.UploadImage(
-            file_stream=test_content,
-            file_name="test_upload_" + str(file_upload_counter) + ".txt"
-        )
-
-        if result["success"]:
-            print("Firmware :: Upload Success!")
-            print("Firmware ::   S3 Key: " + result["s3_key"])
-            print("Firmware ::   URL: " + result["url"])
-        else:
-            print("Firmware :: Upload Failed: " + result["error"])
-    except Exception as ex:
-        print("Firmware :: Test 3 exception: " + str(ex))
-
-    # Test 4: Upload byte stream with classification
-    print("Firmware :: Test 4: UploadImageWithClassification from byte stream")
-    try:
-        # Simulate image classification result
-        classifications = ["defect", "good", "anomaly", "normal"]
-        current_class = classifications[file_upload_counter % len(classifications)]
-
-        test_content = b"Test classification image - Counter: " + str(file_upload_counter).encode('utf-8')
-
-        result = sdk.UploadImageWithClassification(
-            file_stream=test_content,
-            file_name="classified_" + str(file_upload_counter) + ".txt",
-            classification=current_class,
-            custom_attributes={
-                "confidence": random.uniform(0.80, 0.99),
-                "model_version": "1.0",
-                "test_number": file_upload_counter
-            }
-        )
-
-        if result["success"]:
-            print("Firmware :: Upload Success!")
-            print("Firmware ::   Classification: " + current_class)
-            print("Firmware ::   URL: " + result["url"])
-            print("Firmware ::   MQTT Published: " + str(result["mqtt_published"]))
-        else:
-            print("Firmware :: Upload Failed: " + result["error"])
-    except Exception as ex:
-        print("Firmware :: Test 4 exception: " + str(ex))
 
     print("Firmware :: ========== File Upload Test Complete ==========")
     print("")
@@ -392,29 +343,30 @@ def sendAudioDataWithArray(sdk):
     # Create audio data with nested object and array
     # Include "temperature" as a valid attribute so data goes to RPT
     # The audio data with array will be sent along with it
+    tech_words = [
+    "IoT", "AI", "MachineLearning", "DeepLearning", "NeuralNetwork", "API",
+    "Lambda", "S3", "Kubernetes", "Docker", "Azure", "AWS", "GCP", "EdgeComputing",
+    "Telemetry", "MQTT", "Blockchain", "Serverless", "Microservices", "BigData",
+    "DevOps", "CI/CD", "NoSQL", "PostgreSQL", "GraphQL", "REST", "TensorFlow",
+    "PyTorch", "CSharp", "NodeJS", "React", "FastAPI", "DataLake", "Analytics",
+    "Encryption", "JWT", "Kafka", "Redis", "ElasticSearch", "Flask", "Terraform"
+    ]
+
     audioData = {
-        "temperature": random.randint(20, 30),  # Valid attribute for RPT
-        "audio": {
-            "transcript": "Full Text Of Speech Approx 1 OR 2 min",
-            "words": [
-                {
-                    "word": "AWS",
-                    "weight": 10
-                },
-                {
-                    "word": "IOTCONNECT",
-                    "weight": 5
-                },
-                {
-                    "word": "Python",
-                    "weight": 8
-                },
-                {
-                    "word": "SDK",
-                    "weight": 7
-                }
-            ]
-        }
+    "dg": {
+        "ppl": random.randint(1, 10),
+        "fid": random.randint(1, 500)
+    },
+    "audio": {
+        "transcript": "Full Text Of Speech Approx 1 OR 2 min",
+        "words": [
+            {
+                "word": random.choice(tech_words),
+                "weight": random.randint(1, 30)
+            }
+            for _ in range(random.randint(4, 8))  # generate 4 to 8 random words
+        ]
+    }
     }
 
     # Prepare data object for SDK
@@ -437,7 +389,6 @@ def sendAudioDataWithArray(sdk):
 
     print("Firmware :: ========== Audio Data Array Test Complete ==========")
     print("")
-
 
 def main():
     global SdkOptions,Sdk,ACKdirect,device_list,CameraOptions,test_file_upload,file_upload_counter,test_array_data
@@ -490,6 +441,51 @@ def main():
 
 
 
+                # ======= NEW: optional local test to start KVS WebRTC MASTER from this firmware process =======
+                # To run: set environment variable KVS_TEST_CHANNEL_ARN to your channel ARN and AWS_CREDENTIAL_ENDPOINT to IoT credential endpoint.
+                # Example (Linux/macOS):
+                #   export KVS_TEST_CHANNEL_ARN="arn:aws:kinesisvideo:us-east-1:123456789012:channel/your-channel/..."
+                #   export AWS_CREDENTIAL_ENDPOINT="https://.../credentials"
+                # Then run this script. The device will call start_kvs_webrtc_from_devicecert in a thread.
+                kvs_test_channel = os.getenv("KVS_TEST_CHANNEL_ARN")
+                aws_credential_endpoint_env = os.getenv("AWS_CREDENTIAL_ENDPOINT")  # optional; if not provided, pass empty and function may fail
+                kvs_test_region = os.getenv("AWS_REGION", "us-east-1")
+
+                if kvs_test_channel:
+                    print(f"Firmware :: KVS test channel detected in env; starting KVS WebRTC MASTER on {kvs_test_channel}")
+                    # certificate paths used by this process (from SdkOptions). Use Sdk._property for runtime values.
+                    ca_path = None
+                    cert_path = None
+                    key_path = None
+                    try:
+                        # prefer runtime Sdk property if available
+                        if hasattr(Sdk, "_property") and Sdk._property and "certificate" in Sdk._property:
+                            certs = Sdk._property["certificate"]
+                        else:
+                            certs = SdkOptions.get("certificate", {})
+                        ca_path = certs.get("SSLCaPath")
+                        cert_path = certs.get("SSLCertPath")
+                        key_path = certs.get("SSLKeyPath")
+                    except Exception as e:
+                        print("Firmware :: Failed to resolve certificate paths:", e)
+
+                    # start in background thread so main loop continues
+                    threading.Thread(
+                        target=start_kvs_webrtc_from_devicecert,
+                        args=(
+                            kvs_test_channel,
+                            UniqueId,
+                            ca_path,
+                            cert_path,
+                            key_path,
+                            aws_credential_endpoint_env,
+                            SdkOptions.get("CameraOptions", {}),
+                            kvs_test_region
+                        ),
+                        daemon=True
+                    ).start()
+                # ======= END NEW CODE =======
+
                 # File Upload Test: Run once at startup if enabled
                 if test_file_upload == True:
                     print("Firmware :: Running file upload integration test...")
@@ -520,59 +516,7 @@ def main():
                     * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z"
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
-
-                    data = {
-                         "temperature":random.randint(50, 90)
-                    }
-
-                    dObj = [{
-                    "uniqueId": UniqueId,
-                    "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    "data": data
-                    }]
-
-                    # """
-                    # * Gateway device input data format Example:
-                    # """
-                    
-                    
-                    # dObj = [ {
-                    #              "uniqueId":"UniqueId",
-                    #              "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #              "data": {
-                    #                      "temperature":random.randint(30, 50)
-                    #                      }
-                    #              },
-                    #              {
-                    #                 "uniqueId":"childUniqueId",
-                    #                 "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #                 "data": {
-                    #                      "temperature":random.randint(30, 50)
-                    #                      }
-                    #                },
-                    #              {
-                    #                 "uniqueId":"childUniqueId",
-                    #                 "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #                 "data": {
-                    #                      "temperature":random.randint(30, 50)
-                    #                      }
-                    #                }
-                    #             ]
-
-                    #dataArray.append(dObj)
-                    #print (dObj)
-                    if(readyStatus == True):
-                        print("Firmware :: readyStatus == True")
-                        sendBackToSDK(Sdk, dObj)
-
-                        # Optional: Test file upload every 5 loops (every 50 seconds)
-                        # Uncomment to enable periodic file upload testing
-                        # if test_file_upload and loop_counter % 5 == 0:
-                        #     print("Firmware :: Running periodic file upload test...")
-                        #     testFileUpload(Sdk)
-                    else:
-                        print("Firmware :: readyStatus == False")
-
+                    sendAudioDataWithArray(Sdk)
                     time.sleep(10)
 
                 '''
