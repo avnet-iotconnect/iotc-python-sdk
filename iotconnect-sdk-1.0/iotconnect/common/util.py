@@ -258,5 +258,101 @@ class util:
             if isvalid == True and sslCaPath and util.is_not_blank(sslCaPath) and os.path.isfile(sslCaPath) == True:
                 if sslCaPath.lower().endswith(".pem") != True:
                     isvalid = False
-        
+
         return isvalid
+
+    @staticmethod
+    def der_hex_to_pem(der_hex, cert_type="CERTIFICATE"):
+        """
+        Convert DER hex string to PEM format
+
+        Args:
+            der_hex: Certificate or key in DER hex format
+            cert_type: Type of certificate - "CERTIFICATE", "RSA PRIVATE KEY", "PRIVATE KEY"
+
+        Returns:
+            PEM formatted string
+        """
+        try:
+            import base64
+
+            # Convert hex string to bytes
+            der_bytes = bytes.fromhex(der_hex)
+
+            # Convert to base64
+            base64_data = base64.b64encode(der_bytes).decode('utf-8')
+
+            # Split into 64-character lines
+            lines = [base64_data[i:i+64] for i in range(0, len(base64_data), 64)]
+
+            # Format as PEM
+            pem_data = "-----BEGIN {}-----\n".format(cert_type)
+            pem_data += "\n".join(lines)
+            pem_data += "\n-----END {}-----\n".format(cert_type)
+
+            return pem_data
+
+        except Exception as ex:
+            print("DER hex to PEM conversion failed: " + str(ex))
+            return None
+
+    @staticmethod
+    def save_pem_file(pem_data, file_path):
+        """
+        Save PEM data to a file
+
+        Args:
+            pem_data: PEM formatted string
+            file_path: Path to save the file
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Save with explicit encoding and newline handling
+            with open(file_path, 'w', encoding='utf-8', newline='\n') as f:
+                f.write(pem_data)
+            return True
+        except Exception as ex:
+            print("Failed to save PEM file: " + str(ex))
+            return False
+
+    @staticmethod
+    def convert_and_save_certificates(dc_hex, pk_hex, cert_path, key_path):
+        """
+        Convert DER hex certificates to PEM and save to files
+
+        Args:
+            dc_hex: Device certificate in DER hex format
+            pk_hex: Private key in DER hex format
+            cert_path: Path to save the certificate file
+            key_path: Path to save the key file
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Convert device certificate
+            cert_pem = util.der_hex_to_pem(dc_hex, "CERTIFICATE")
+            if not cert_pem:
+                return False
+
+            # Convert private key
+            key_pem = util.der_hex_to_pem(pk_hex, "PRIVATE KEY")
+            if not key_pem:
+                return False
+
+            # Save certificate
+            if not util.save_pem_file(cert_pem, cert_path):
+                return False
+
+            # Save private key
+            if not util.save_pem_file(key_pem, key_path):
+                return False
+
+            print("Certificates converted and saved successfully")
+            return True
+
+        except Exception as ex:
+            print("Certificate conversion and save failed: " + str(ex))
+            return False

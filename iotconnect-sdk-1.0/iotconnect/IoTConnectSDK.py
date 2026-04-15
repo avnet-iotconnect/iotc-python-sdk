@@ -126,6 +126,9 @@ class IoTConnectSDK:
     _validation = True
     _getattribute_callback = None
     _listner_direct_callback_list = {}
+    _listner_cert_callback = None
+    _auth_challenge_response = None
+    _pending_cert_rotation = None  # Store cert data until MQTT client is ready
 
     def get_config(self):
         try:
@@ -213,6 +216,135 @@ class IoTConnectSDK:
         except:
             return None
 
+    def call_auth_challenge(self):
+        try:
+            # Check if firmware has registered certificate callback
+            if not self._listner_cert_callback:
+                self.print_debuglog("Certificate rotation skipped - No onCertReceived callback registered in firmware", 1)
+                self.write_debuglog('[WARN_CE00] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Certificate rotation skipped - Firmware has not registered onCertReceived callback",1)
+                return None
+
+            # Get certificate path from config
+            if "certificate" not in self._config or not self._config["certificate"]:
+                self.print_debuglog("Certificate not found in config", 1)
+                return None
+
+            cert_path = self._config["certificate"]["SSLCertPath"]
+
+            # Read certificate and convert to DER Hex
+            cert_hex = self.convert_cert_to_der_hex(cert_path)
+            if not cert_hex:
+                self.print_debuglog("Failed to convert certificate to DER Hex", 1)
+                return None
+
+            # Extract companyGuid from base_url
+            # Base URL format: .../device-identity/cg/{companyGuid}/uid/{uid}
+            company_guid = None
+            if "/cg/" in self._base_url:
+                parts = self._base_url.split("/cg/")
+                if len(parts) > 1:
+                    # Extract guid between /cg/ and /uid/
+                    guid_part = parts[1].split("/uid/")[0]
+                    company_guid = guid_part
+
+            if not company_guid:
+                self.print_debuglog("Failed to extract companyGuid from base URL", 1)
+                return None
+
+            # Prepare auth challenge request - construct correct URL
+            # Extract protocol and host from base_url
+            # Example: https://awspocdi.iotconnect.io/api/2.1/agent/device-identity/cg/.../uid/...
+            # Need: https://awspocdi.iotconnect.io/api/2.1/agent/x509/auth
+            parsed_url = urlparse(self._base_url)
+            base_host = "{0}://{1}".format(parsed_url.scheme, parsed_url.netloc)
+            auth_url = base_host + "/api/2.1/agent/x509/auth"
+
+            self.print_debuglog("auth_url: " + auth_url , 0)
+            self.print_debuglog("companyGuid: " + company_guid , 0)
+
+            payload = {
+                "companyGuid": company_guid,
+                "cpId": self._property.get("cpid") or self._cpId,
+                "uniqueId": self._uniqueId,
+                "fmt": "hex",
+                "cert": cert_hex
+            }
+
+            # Make POST request to auth challenge endpoint
+            request = urllib.Request(
+                auth_url,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json-patch+json',
+                    'accept': '*/*'
+                }
+            )
+
+            response = urllib.urlopen(request)
+            response_data = json.loads(response.read().decode('utf-8'))
+
+            self.print_debuglog("Auth challenge response received", 0)
+            self.write_debuglog('[INFO_CE02] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Auth challenge response received",0)
+
+            # Parse response
+            if response_data and "d" in response_data and "cm" in response_data["d"]:
+                cm_data = response_data["d"]["cm"]
+                if "d" in cm_data:
+                    dc = cm_data["d"]["dc"]  # Device certificate in DER Hex
+                    pk = cm_data["d"]["pk"]  # Private key in DER Hex
+                    ack_url = cm_data["url"]
+                    ack_id = cm_data["ackId"]
+
+                    # Store auth challenge response for ACK
+                    self._auth_challenge_response = {
+                        "url": ack_url,
+                        "ackId": ack_id
+                    }
+
+                    # Store certificate data - callback will be executed after MQTT client is ready
+                    self._pending_cert_rotation = {
+                        "dc": dc,
+                        "pk": pk,
+                        "ackId": ack_id
+                    }
+                    self.print_debuglog("New certificates received, will process after MQTT client is ready", 0)
+                    self.write_debuglog('[INFO_CE02] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] New certificates received, pending callback execution",0)
+
+            return response_data
+
+        except Exception as ex:
+            self.print_debuglog("Auth challenge failed: " + str(ex), 1)
+            self.write_debuglog('[ERR_CE03] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Auth challenge failed: " + str(ex),1)
+            return None
+
+    def convert_cert_to_der_hex(self, cert_path):
+        try:
+            # Read certificate file
+            with open(cert_path, 'rb') as cert_file:
+                cert_data = cert_file.read()
+
+            # Check if it's PEM format (starts with -----BEGIN)
+            if cert_data.startswith(b'-----BEGIN'):
+                # Extract base64 data from PEM
+                cert_str = cert_data.decode('utf-8')
+                lines = cert_str.split('\n')
+                base64_data = ''.join([line for line in lines if not line.startswith('-----')])
+
+                # Decode base64 to get DER
+                import base64
+                der_data = base64.b64decode(base64_data)
+            else:
+                # Already in DER format
+                der_data = cert_data
+
+            # Convert DER to hex string
+            hex_str = der_data.hex().upper()
+            return hex_str
+
+        except Exception as ex:
+            self.print_debuglog("Certificate conversion failed: " + str(ex), 1)
+            return None
+
     def Dispose(self):
         try:
             if self._dispose == True:
@@ -277,6 +409,10 @@ class IoTConnectSDK:
     def onRuleChangeCommand(self,callback):
         if callback:
             self._listner_rulechng_callback = callback
+
+    def onCertReceived(self,callback):
+        if callback:
+            self._listner_cert_callback = callback
 
     def heartbeat_stop(self):
         if self._heartbeat_timer:
@@ -578,6 +714,15 @@ class IoTConnectSDK:
                         self._offlineflag = False
                     else:
                         raise(IoTConnectSDKException("03", response["message"]))
+
+                    # Check for certificate expiry
+                    if self.has_key(response, "meta") and self.has_key(response["meta"], "ce"):
+                        ce_status = response["meta"]["ce"]
+                        if ce_status > 0:
+                            self.print_debuglog("Certificate expiry detected (ce={}), calling auth challenge...".format(ce_status), 0)
+                            self.write_debuglog('[INFO_CE01] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Certificate expiry detected (ce={}), calling auth challenge".format(ce_status),0)
+                            self.call_auth_challenge()
+
                     if response["ec"] != ErorCode["OK"]:
                         isReChecking = True
                         self._time_s=60
@@ -615,6 +760,16 @@ class IoTConnectSDK:
                     self._is_process_started = False
                     self._data_json = response
                     self.init_protocol()
+
+                    # Execute pending certificate rotation callback now that MQTT client is ready
+                    if self._pending_cert_rotation and self._listner_cert_callback:
+                        self.print_debuglog("MQTT client ready, executing certificate rotation callback...", 0)
+                        self.write_debuglog('[INFO_CE02B] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Executing certificate rotation callback",0)
+                        cert_data = self._pending_cert_rotation.copy()
+                        cert_data["sdk"] = self  # Add SDK instance
+                        self._pending_cert_rotation = None  # Clear pending data
+                        self._listner_cert_callback(cert_data)
+
                     if self._pf == "aws":
                         data = { "_connectionStatus": "true" }
                         self._client.SendTwinData(data)
@@ -1061,7 +1216,123 @@ class IoTConnectSDK:
                 self.send_msg_to_broker("CMD_ACK", template)
         except Exception as ex:
             raise(ex)
-        
+
+    def reconnect_with_new_certificates(self, cert_path, key_path, timeout=30):
+        """
+        Disconnect and reconnect MQTT with new certificates
+
+        Args:
+            cert_path: Path to new certificate file
+            key_path: Path to new key file
+            timeout: Maximum time to wait for reconnection (seconds)
+
+        Returns:
+            True if reconnection successful, False otherwise
+        """
+        try:
+            if not self._client:
+                self.print_debuglog("No MQTT client available for reconnection", 1)
+                return False
+
+            self.print_debuglog("Disconnecting from MQTT broker...", 0)
+            self.write_debuglog('[INFO_CE06] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Disconnecting for certificate rotation",0)
+
+            # Disconnect current connection
+            if hasattr(self._client, 'Disconnect'):
+                self._client.Disconnect()
+
+            self.print_debuglog("Disconnected successfully", 0)
+            time.sleep(2)  # Wait for clean disconnect
+
+            # Update certificate paths in config
+            self._config["certificate"]["SSLCertPath"] = cert_path
+            self._config["certificate"]["SSLKeyPath"] = key_path
+
+            self.print_debuglog("Reinitializing MQTT client with new certificates...", 0)
+
+            # Reinitialize protocol with new certificates
+            self.init_protocol()
+
+            # Wait for connection with timeout
+            start_time = time.time()
+            while not self._is_process_started and (time.time() - start_time) < timeout:
+                time.sleep(1)
+
+            if self._is_process_started:
+                self.print_debuglog("Successfully reconnected with new certificates", 0)
+                self.write_debuglog('[INFO_CE07] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Successfully reconnected with new certificates",0)
+                return True
+            else:
+                self.print_debuglog("Failed to reconnect within timeout period", 1)
+                self.write_debuglog('[ERR_CE08] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Failed to reconnect with new certificates",1)
+                return False
+
+        except Exception as ex:
+            self.print_debuglog("Reconnection failed: " + str(ex), 1)
+            self.write_debuglog('[ERR_CE09] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Reconnection failed: " + str(ex),1)
+            return False
+
+    def certReceiveAck(self, ackId, status=True, msg="Certificate installed successfully"):
+        """
+        Send ACK to IoTConnect after certificate installation
+
+        Args:
+            ackId: The acknowledgment ID received from auth challenge
+            status: True if certificate installed successfully, False otherwise
+            msg: Status message
+        """
+        if self._dispose == True:
+            raise(IoTConnectSDKException("00", "you are not able to call this function"))
+
+        try:
+            if not self._auth_challenge_response:
+                self.print_debuglog("No auth challenge response found for ACK", 1)
+                return False
+
+            ack_url = self._auth_challenge_response["url"]
+
+            # Only send ACK if status is True (success)
+            # For failures, we should not acknowledge
+            if not status:
+                self.print_debuglog("Certificate installation failed - NOT sending ACK", 1)
+                self.write_debuglog('[WARN_CE05] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Certificate installation failed: " + msg + " - ACK not sent",1)
+                # Clear auth challenge response
+                self._auth_challenge_response = None
+                return False
+
+            payload = {
+                "version": "2.1"
+            }
+
+            # Make GET request with headers
+            request = urllib.Request(
+                ack_url,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={
+                    'Content-Type': 'application/json-patch+json',
+                    'accept': '*/*',
+                    'cid': ackId,
+                    'dip': self._uniqueId
+                }
+            )
+            request.get_method = lambda: 'GET'
+
+            response = urllib.urlopen(request)
+            response_data = json.loads(response.read().decode('utf-8'))
+
+            self.print_debuglog("Certificate ACK sent successfully (status=success)", 0)
+            self.write_debuglog('[INFO_CE04] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Certificate ACK sent: " + msg,0)
+
+            # Clear auth challenge response after ACK
+            self._auth_challenge_response = None
+
+            return True
+
+        except Exception as ex:
+            self.print_debuglog("Certificate ACK failed: " + str(ex), 1)
+            self.write_debuglog('[ERR_CE05] '+ self._time +'['+ str(self._sId)+'_'+ str(self._uniqueId) + "] Certificate ACK failed: " + str(ex),1)
+            return False
+
     def DirectMethodACK(self,msg,status,requestId):
         if self._dispose == True:
             self.write_debuglog('[ERR_TP02] '+ self._time +'['+ str(self._cpId)+'_'+ str(self._uniqueId) + "] Device is barred Updatetwin() method is not permitted",1)
@@ -1572,7 +1843,7 @@ class IoTConnectSDK:
         ts.tv_nsec=0 * 1000000
         librt.clock_settime(CLOCK_REALTIME,ctypes.byref(ts))
 
-    def __init__(self, uniqueId,sdkOptions=None,initCallback=None):
+    def __init__(self, uniqueId,sdkOptions=None,initCallback=None,certCallback=None):
         self._lock = threading.Lock()
 
 #        if sys.platform == 'win32':
@@ -1601,6 +1872,9 @@ class IoTConnectSDK:
 
         if initCallback:
             self._listner_callback=initCallback
+
+        if certCallback:
+            self._listner_cert_callback=certCallback
 
         self.get_config()
         if self._debug:
