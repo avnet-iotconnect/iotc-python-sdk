@@ -2,13 +2,13 @@
   ******************************************************************************
   * @file   : iotconnect-sdk-1.0-firmware-python_msg-2_1.py
   * @author : Softweb Solutions An Avnet Company
-  * @modify : 02-January-2023
-  * @brief  : Firmware part for Python SDK 1.0
+  * @modify : 07-03-2025
+  * @brief  : Firmware part for Python SDK 2.1
   ******************************************************************************
 """
 
 """
- * Hope you have installed the Python SDK v1.0 as guided in README.md file or from documentation portal. 
+ * Hope you have installed the Python SDK v2.1 as guided in README.md file or from documentation portal. 
  * Import the IoTConnect SDK package and other required packages
 """
 
@@ -18,8 +18,27 @@ import time
 import threading
 import random
 from iotconnect import IoTConnectSDK
-from datetime import datetime
+from datetime import datetime, timezone
 import os
+
+# Enable ANSI colors in Windows command prompt
+if sys.platform == 'win32':
+    import ctypes
+    kernel32 = ctypes.windll.kernel32
+    kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+
+# ANSI color codes for terminal output
+class Colors:
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+
 
 """
 * ## Prerequisite parameter to run this sampel code
@@ -30,13 +49,17 @@ import os
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "Your UniqueId"
+
+UniqueId = "Enter your Unique ID" 
 
 Sdk=None
-interval = 30
+interval = 10
+# add Direct Method
 directmethodlist={}
 ACKdirect=[]
 device_list=[]
+readyStatus = False
+
 """
 * sdkOptions is optional. Mandatory for "certificate" X.509 device authentication type
 * "certificate" : It indicated to define the path of the certificate file. Mandatory for X.509/SSL device CA signed or self-signed authentication type only.
@@ -56,11 +79,10 @@ device_list=[]
 
 SdkOptions={
 	"certificate" : { 
-        "SSLKeyPath"  : "",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : ""     #aws=root-CA.pem         ||   #az=rootCA.pem
- 
-        
+         # Certs
+        "SSLKeyPath"  : "Enter device KEY certificate",    #aws=pk_devicename.pem   ||   #az=device.key
+        "SSLCertPath" : "Enter device Certificate",    #aws=cert_devicename.crt ||   #az=device.pem
+        "SSLCaPath"   : "Enter AWS/AZ Cloud certificate"     #aws=root-CA.pem         ||   #az=rootCA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -69,16 +91,25 @@ SdkOptions={
         "keepalive":60
     },
     "skipValidation":False,
-    # "devicePrimaryKey":"<<DevicePrimaryKey>>",
+    # "devicePrimaryKey":"Enter Device Primary Key",
 	# As per your Environment(Azure or Azure EU or AWS) uncomment single URL and commnet("#") rest of URLs.
-    # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
-    # "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
-    "IsDebug": False,
-    "cpid" : "Your CPID ",
-    "sId" : "Your SID",
-    "env" : "Your env",
-    "pf"  : "Your pf"
-   
+    "discoveryUrl":"http://discovery.iotconnect.io",
+    "IsDebug": True,
+    "cpid" : "Enter CPID",
+    "sId" : "",
+    "env" : "Enter ENV",
+    "pf"  : "Enter PF", # az / aws
+
+      #if device has video stream capability
+    "CameraOptions" : {
+        "deviceport" : "/dev/video0",
+        "video" : {
+            "width" : "640",
+            "height" : "480",
+            "framerate" : "30/1"
+        }
+    }
+
 }
 
 
@@ -91,8 +122,8 @@ SdkOptions={
 
 def DeviceCallback(msg):
     global Sdk
-    print("\n--- Command Message Received in Firmware ---")
-    print(json.dumps(msg))
+    print("Firmware :: --- Command Message Received in Firmware ---")
+    print("Firmware :: " + json.dumps(msg))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if "ct"in msg else None
@@ -110,21 +141,19 @@ def DeviceCallback(msg):
         """
         data=msg
         if data != None:
-            #print(data)
-            if "id" in data:
-                if "ack" in data and data["ack"]:
-                    Sdk.sendAckCmd(data["ack"],7,"sucessfull",data["id"])  #fail=4,executed= 5,sucess=7,6=executedack
-            else:
-                if "ack" in data and data["ack"]:
-                    Sdk.sendAckCmd(data["ack"],7,"sucessfull") #fail=4,executed= 5,sucess=7,6=executedack
+            if "ack" in data and data["ack"]:
+                if "id" in data:
+                    Sdk.sendAckCmd(data["ack"],2,"sucessfull",data["id"])  #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
+                else:
+                    Sdk.sendAckCmd(data["ack"],2,"sucessfull") #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
     else:
-        print("rule command",msg)
+        print("Firmware :: rule command",msg)
 
     # Firmware Upgrade
 def DeviceFirmwareCallback(msg):
     global Sdk,device_list
-    print("\n--- firmware Command Message Received ---")
-    print(json.dumps(msg))
+    print("Firmware :: --- firmware Command Message Received ---")
+    print("Firmware :: " + json.dumps(msg))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
@@ -146,18 +175,18 @@ def DeviceFirmwareCallback(msg):
                     if "tg" in url_list:
                         for i in device_list:
                             if "tg" in i and (i["tg"] == url_list["tg"]):
-                                Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull",i["id"]) #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
+                                Sdk.sendOTAAckCmd(data["ack"],5,"sucessfull",i["id"]) #Success=5, Executed (Cloud Only)=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
                     else:
-                        Sdk.sendOTAAckCmd(data["ack"],0,"sucessfull") #Success=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
+                        Sdk.sendOTAAckCmd(data["ack"],5,"sucessfull") #Success=5, Executed (Cloud Only)=0, Failed = 1, Executed/DownloadingInProgress=2, Executed/DownloadDone=3, Failed/DownloadFailed=4
 
-def DeviceConectionCallback(msg):  
+def DeviceConectionCallback(msg):
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
     #connection status
     if cmdType == 116:
         #Device connection status e.g. data["command"] = true(connected) or false(disconnected)
-        print(json.dumps(msg))
+        print("Firmware :: " + json.dumps(msg))
 
 """
  * Type    : Public Method "UpdateTwin()"
@@ -178,8 +207,8 @@ def DeviceConectionCallback(msg):
 def TwinUpdateCallback(msg):
     global Sdk
     if msg:
-        print("--- Twin Message Received ---")
-        print(json.dumps(msg))
+        print("Firmware :: --- Twin Message Received ---")
+        print("Firmware :: " + json.dumps(msg))
         if ("desired" in msg) and ("reported" not in msg):
             for j in msg["desired"]:
                 if ("version" not in j) and ("uniqueId" not in j):
@@ -192,46 +221,225 @@ def TwinUpdateCallback(msg):
  * Output  : 
 """
 def sendBackToSDK(sdk, dataArray):
-    sdk.SendData(dataArray)
+    if(sdk.SendData(dataArray) == True):
+        print("Firmware :: Data Publish Success")
+    else:
+        print("Firmware :: Data Publish Fail")
     time.sleep(interval)
-
-def DirectMethodCallback1(msg,methodname,rId):
-    global Sdk,ACKdirect
-    print(msg)
-    print(methodname)
-    print(rId)
-    data={"data":"succed"}
-    #return data,200,rId
-    ACKdirect.append({"data":data,"status":200,"reqId":rId})
-    #Sdk.DirectMethodACK(data,200,rId)
 
 def DirectMethodCallback(msg,methodname,rId):
     global Sdk,ACKdirect
-    print(msg)
-    print(methodname)
-    print(rId)
-    data={"data":"fail"}
-    #return data,200,rId
-    ACKdirect.append({"data":data,"status":200,"reqId":rId})
-    #Sdk.DirectMethodACK(data,200,rId)
+    print("Firmware :: " + str(msg))
+    print("Firmware :: " +  str(methodname))
+    print("Firmware :: " +  str(rId))
+    # ACKdirect.append({"data":data,"status":200,"reqId":rId})
+    Sdk.DirectMethodACK(msg,200,rId)
 
 def DeviceChangCallback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
 
 def InitCallback(response):
-    print(response)
+    print("Firmware :: " + response)
 
 def delete_child_callback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
     
 def create_child_callback(msg):
-    print(msg)
+    print("Firmware :: " + msg)
 
 def attributeDetails(data):
-    print ("attribute received in firmware")
-    print (data)
-    
+    print("Firmware :: attribute received in firmware")
+    print("Firmware :: " + data)
 
+def onReady(data):
+    print("Firmware :: Attribute got Sync ::")
+    print("Firmware :: " + str(data))
+    global readyStatus
+    readyStatus = True
+
+def onCertReceivedCallback(cert_data):
+    """
+    Certificate Rotation Callback
+
+    This callback is triggered when new certificates are received from IoTConnect
+    during certificate rotation.
+
+    Args:
+        cert_data: Dictionary containing:
+            - dc: Device certificate in DER Hex format
+            - pk: Private key in DER Hex format
+            - ackId: Acknowledgment ID
+            - sdk: SDK instance to use for reconnection and ACK
+    """
+    global SdkOptions
+
+    print("\n" + Colors.CYAN + Colors.BOLD + "="*60 + Colors.RESET)
+    print(Colors.CYAN + Colors.BOLD + "Firmware :: Certificate Rotation - New certificates received" + Colors.RESET)
+    print(Colors.CYAN + Colors.BOLD + "="*60 + Colors.RESET)
+
+    try:
+        # Import utility for certificate conversion
+        from iotconnect.common.util import util
+
+        dc_hex = cert_data["dc"]
+        pk_hex = cert_data["pk"]
+        ack_id = cert_data["ackId"]
+        Sdk = cert_data["sdk"]  # Get SDK instance from callback data
+
+        print(Colors.GREEN + "Firmware :: Certificate data received" + Colors.RESET)
+        print(Colors.GREEN + "Firmware :: - Device Certificate Length: {} chars".format(len(dc_hex)) + Colors.RESET)
+        print(Colors.GREEN + "Firmware :: - Private Key Length: {} chars".format(len(pk_hex)) + Colors.RESET)
+        print(Colors.GREEN + "Firmware :: - ACK ID: {}".format(ack_id) + Colors.RESET)
+
+        # Define new certificate paths (backup old ones with timestamp)
+        import time
+        timestamp = int(time.time())
+
+        old_cert_path = SdkOptions["certificate"]["SSLCertPath"]
+        old_key_path = SdkOptions["certificate"]["SSLKeyPath"]
+
+        # Backup old certificates
+        backup_cert_path = old_cert_path + ".backup." + str(timestamp)
+        backup_key_path = old_key_path + ".backup." + str(timestamp)
+
+        print("\nFirmware :: Backing up old certificates...")
+        try:
+            import shutil
+            if os.path.isfile(old_cert_path):
+                shutil.copy2(old_cert_path, backup_cert_path)
+                print("Firmware :: - Old certificate backed up to: {}".format(backup_cert_path))
+            if os.path.isfile(old_key_path):
+                shutil.copy2(old_key_path, backup_key_path)
+                print("Firmware :: - Old key backed up to: {}".format(backup_key_path))
+        except Exception as backup_ex:
+            print("Firmware :: WARNING - Failed to backup old certificates: {}".format(str(backup_ex)))
+
+        # Convert DER hex to PEM and save
+        print("\nFirmware :: Converting certificates from DER hex to PEM format...")
+
+        cert_pem = util.der_hex_to_pem(dc_hex, "CERTIFICATE")
+
+        # Try RSA PRIVATE KEY format first (more common)
+        key_pem = util.der_hex_to_pem(pk_hex, "RSA PRIVATE KEY")
+
+        if not cert_pem or not key_pem:
+            raise Exception("Failed to convert certificates to PEM format")
+
+        print("Firmware :: - Certificates converted successfully")
+        print("Firmware :: - Certificate PEM preview: {}...".format(cert_pem[:80]))
+        print("Firmware :: - Key PEM preview: {}...".format(key_pem[:80]))
+
+        # Save new certificates
+        print("\nFirmware :: Saving new certificates...")
+
+        if not util.save_pem_file(cert_pem, old_cert_path):
+            raise Exception("Failed to save certificate file")
+        print("Firmware :: - Certificate saved to: {}".format(old_cert_path))
+
+        if not util.save_pem_file(key_pem, old_key_path):
+            raise Exception("Failed to save key file")
+        print("Firmware :: - Private key saved to: {}".format(old_key_path))
+
+        # Verify saved files can be read
+        print("\nFirmware :: Verifying saved certificates...")
+        try:
+            with open(old_cert_path, 'r') as f:
+                saved_cert = f.read()
+                print("Firmware :: - Certificate file readable: {} bytes".format(len(saved_cert)))
+            with open(old_key_path, 'r') as f:
+                saved_key = f.read()
+                print("Firmware :: - Key file readable: {} bytes".format(len(saved_key)))
+        except Exception as verify_ex:
+            raise Exception("Failed to verify saved certificates: " + str(verify_ex))
+
+        # Disconnect from current MQTT connection and reconnect with new certificates
+        print("\nFirmware :: Disconnecting from MQTT broker...")
+        print("Firmware :: This will temporarily interrupt the connection")
+
+        # Call SDK method to disconnect and reconnect with new certificates
+        print("\nFirmware :: Reconnecting with new certificates...")
+        print("Firmware :: - Certificate: {}".format(old_cert_path))
+        print("Firmware :: - Private Key: {}".format(old_key_path))
+
+        connectivity_ok = Sdk.reconnect_with_new_certificates(old_cert_path, old_key_path, timeout=30)
+
+        # If reconnection failed with RSA PRIVATE KEY, try with PRIVATE KEY format
+        if not connectivity_ok:
+            print(Colors.YELLOW + "\nFirmware :: Retrying with alternate key format (PRIVATE KEY)..." + Colors.RESET)
+
+            # Regenerate key with different format
+            key_pem_alt = util.der_hex_to_pem(pk_hex, "PRIVATE KEY")
+            if key_pem_alt and util.save_pem_file(key_pem_alt, old_key_path):
+                print("Firmware :: - Private key saved with alternate format")
+                connectivity_ok = Sdk.reconnect_with_new_certificates(old_cert_path, old_key_path, timeout=30)
+            else:
+                print(Colors.RED + "ERROR :: Failed to save alternate key format" + Colors.RESET)
+
+        if connectivity_ok:
+            print(Colors.GREEN + Colors.BOLD + "\n✓ Firmware :: Reconnection successful!" + Colors.RESET)
+            print(Colors.GREEN + Colors.BOLD + "✓ Firmware :: Device is now using new certificates" + Colors.RESET)
+            print(Colors.GREEN + Colors.BOLD + "✓ Firmware :: Device connectivity verified successfully" + Colors.RESET)
+
+            # Send ACK to IoTConnect
+            print(Colors.GREEN + "\nFirmware :: Sending certificate installation ACK..." + Colors.RESET)
+            if Sdk.certReceiveAck(ack_id, True, "Certificate installed and verified successfully"):
+                print(Colors.GREEN + "Firmware :: - ACK sent successfully" + Colors.RESET)
+                print(Colors.GREEN + Colors.BOLD + "\n" + "="*60 + Colors.RESET)
+                print(Colors.GREEN + Colors.BOLD + "Firmware :: Certificate Rotation Completed Successfully" + Colors.RESET)
+                print(Colors.GREEN + Colors.BOLD + "="*60 + "\n" + Colors.RESET)
+
+                # Clean up old backup certificates (optional)
+                print("Firmware :: Cleaning up backup certificates...")
+                try:
+                    if os.path.isfile(backup_cert_path):
+                        os.remove(backup_cert_path)
+                    if os.path.isfile(backup_key_path):
+                        os.remove(backup_key_path)
+                    print("Firmware :: - Backup certificates removed")
+                except:
+                    print("Firmware :: - Could not remove backup certificates (keeping for safety)")
+            else:
+                print(Colors.RED + Colors.BOLD + "ERROR :: Failed to send ACK" + Colors.RESET)
+        else:
+            print(Colors.RED + Colors.BOLD + "\n✗ Firmware :: Reconnection failed!" + Colors.RESET)
+            print(Colors.RED + Colors.BOLD + "ERROR :: Device connectivity check failed" + Colors.RESET)
+
+            # Restore old certificates
+            print("\nFirmware :: Rolling back to old certificates...")
+            try:
+                import shutil
+                if os.path.isfile(backup_cert_path):
+                    shutil.copy2(backup_cert_path, old_cert_path)
+                    print("Firmware :: - Old certificate restored")
+                if os.path.isfile(backup_key_path):
+                    shutil.copy2(backup_key_path, old_key_path)
+                    print("Firmware :: - Old key restored")
+
+                # Try to reconnect with old certificates
+                print("\nFirmware :: Attempting to reconnect with old certificates...")
+                if Sdk.reconnect_with_new_certificates(old_cert_path, old_key_path, timeout=30):
+                    print("Firmware :: - Successfully restored connection with old certificates")
+                else:
+                    print(Colors.RED + "Firmware :: - Failed to restore connection (device may require manual intervention)" + Colors.RESET)
+            except Exception as restore_ex:
+                print(Colors.RED + "ERROR :: Failed to restore old certificates: {}".format(str(restore_ex)) + Colors.RESET)
+
+            # Do NOT send ACK on failure (per IoTConnect protocol)
+            print(Colors.YELLOW + "\nFirmware :: NOT sending ACK (connection failed)" + Colors.RESET)
+            print(Colors.YELLOW + "Firmware :: IoTConnect will retry certificate rotation on next sync" + Colors.RESET)
+            Sdk.certReceiveAck(ack_id, False, "Certificate installation failed - reconnection failed")
+
+    except Exception as ex:
+        print(Colors.RED + Colors.BOLD + "\nERROR :: Certificate rotation failed: {}".format(str(ex)) + Colors.RESET)
+        print(Colors.RED + "="*60 + "\n" + Colors.RESET)
+
+        # Do NOT send ACK on exception (per IoTConnect protocol)
+        print(Colors.YELLOW + "\nFirmware :: NOT sending ACK (exception occurred)" + Colors.RESET)
+        print(Colors.YELLOW + "Firmware :: IoTConnect will retry certificate rotation on next sync" + Colors.RESET)
+        try:
+            Sdk.certReceiveAck(ack_id, False, "Certificate installation failed: " + str(ex))
+        except:
+            pass
 
 
 def main():
@@ -244,10 +452,10 @@ def main():
                 if os.path.isfile(SdkOptions["certificate"][prop]):
                     pass
                 else:
-                    print("please give proper path")
+                    print("Firmware :: please give proper path")
                     break
         else:
-            print("you are not use auth type CA sign or self CA sign ") 
+            print("Firmware :: you are not use auth type CA sign or self CA sign ") 
         """    
         """
         * Type    : Object Initialization "IoTConnectSDK()"
@@ -255,108 +463,131 @@ def main():
         * Input   : cpId, uniqueId, sdkOptions, env as explained above and DeviceCallback and TwinUpdateCallback is callback functions
         * Output  : Callback methods for device command and twin properties
         """
-        
-        with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback) as Sdk:
+
+        with IoTConnectSDK(UniqueId,SdkOptions,DeviceConectionCallback,onCertReceivedCallback) as Sdk:
             try:
                 """
                 * Type    : Public Method "GetAllTwins()"
                 * Usage   : Send request to get all the twin properties Desired and Reported
-                * Input   : 
-                * Output  : 
+                * Input   :
+                * Output  :
                 """
+
                 device_list=Sdk.Getdevice()
                 Sdk.onDeviceCommand(DeviceCallback)
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
                 Sdk.onOTACommand(DeviceFirmwareCallback)
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
                 Sdk.getTwins()
+                Sdk.onReady(onReady)
+
+                for method in directmethodlist:
+                    Sdk.regiter_directmethod_callback(method,DirectMethodCallback)
+
                 device_list=Sdk.Getdevice()
                 #Sdk.delete_child("childid",delete_child_callback)
                 #Sdk.createChildDevice("childid", "childtag", "childid", create_child_callback)
                 #Sdk.UpdateTwin("ss01","mmm")
                 #sdk.GetAllTwins()
                 # Sdk.GetAttributes(attributeDetails)
+
+
+
                 while True:
                     #Sdk.GetAttributes()
                     """
-                    * Non Gateway device input data format Example:
-					
-                    """
-
-                    
-                    #data = {
-                    #"temperature":random.randint(30, 50),
-                    #"long1":random.randint(6000, 9000),
-                    #"integer1": random.randint(100, 200),
-                    #"decimal1":random.uniform(10.5, 75.5),
-                    #"date1":datetime.utcnow().strftime("%Y-%m-%d"),
-                    #"time1":"11:55:22",
-                    #"bit1":1,
-                    #"string1":"red",
-                    #"datetime1":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #"gyro": {
-                    #    'bit1':0,
-                    #    'boolean1': True,
-                    #    'date1': datetime.utcnow().strftime("%Y-%m-%d"),
-                    #    "datetime1": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #    "decimal1":random.uniform(10.5, 75.5),
-                    #    "integer1":random.randint(60, 600),
-                    #    "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
-                    #    "long1":random.randint(60, 600000),
-                    #    "string1":"green",
-                    #    "time1":"11:44:22",
-                    #    "temperature":random.randint(50, 90)
-                    #    }
-                    #    }
-                    #dObj = [{
-                    #    "uniqueId": UniqueId,
-                    #    "time": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                    #    "data": data
-                    #}]
-                    #
-
-                    """
-                    * Gateway device input data format Example:
-                    """
-                    
-                    
-                    dObj = [ {
-                                 "uniqueId":UniqueId,
-                                 "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                 "data": {
-                                         "temperature":random.randint(30, 50)
-                                         }
-                                 },
-                                 {
-                                    "uniqueId":"NPP",
-                                    "time":datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                                    "data": {
-                                         "temperature":random.randint(30, 50)
-                                         }
-                                   }
-                                ]
-                                
-
-                    
-                    """
                     * Add your device attributes and respective value here as per standard format defined in sdk documentation
-                    * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z" 
+                    * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z"
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
+
+                    data = {
+                        "long1":random.randint(6000, 9000),
+                        "integer1": random.randint(100, 200),
+                        "decimal1":random.uniform(10.5, 75.5),
+                        "date1":datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                        "time1":"11:55:22",
+                        "bit1":1,
+                        "string1":"red",
+                        "datetime1":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        "gyroscope": {
+                            'bit1':0,
+                            'boolean1': True,
+                            'date1': datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                            "datetime1": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                            "decimal1":random.uniform(10.5, 75.5),
+                            "integer1":random.randint(60, 600),
+                            "latlong1":[random.uniform(10.5, 75.5),random.uniform(10.5, 75.5)],
+                            "long1":random.randint(60, 600000),
+                            "string1":"green",
+                            "time1":"11:44:22",
+                            "temperature":random.randint(50, 90)
+                            }
+                    }
+
+                    dObj = [{
+                    # "uniqueId": UniqueId,
+                    "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    "data": data
+                    }]
+
+                    
+
+                    # """
+                    # * Gateway device input data format Example:
+                    # """
+                    
+                    
+                    # dObj = [ {
+                    #              "uniqueId":"UniqueId",
+                    #              "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #              "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #              },
+                    #              {
+                    #                 "uniqueId":"childUniqueId",
+                    #                 "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                 "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #                },
+                    #              {
+                    #                 "uniqueId":"childUniqueId",
+                    #                 "time":datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                    #                 "data": {
+                    #                      "temperature":random.randint(30, 50)
+                    #                      }
+                    #                }
+                    #             ]
+
                     #dataArray.append(dObj)
                     #print (dObj)      
-                    sendBackToSDK(Sdk, dObj)
+                    if(readyStatus == True):
+                        print("Firmware :: readyStatus == True")
+                        sendBackToSDK(Sdk, dObj)
+                    else:
+                        print("Firmware :: readyStatus == False")
+
+                    time.sleep(10)
+
+                '''
+                Client Disconnect Method
+                '''
+                Sdk.Dispose()
+
+                time.sleep(10)
                     
             except KeyboardInterrupt:
                 print ("Keyboard Interrupt Exception")
                 # os.execl(sys.executable, sys.executable, *sys.argv)
-                os.abort()
-                # sys.exit(0)
+                # os.abort()
+                sys.exit(0)
                 
                 
     except Exception as ex:
-        # print(ex.message)
-        sys.exit(0)
+        print(ex)
+        # sys.exit(0)
 
 if __name__ == "__main__":
     main()
