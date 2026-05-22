@@ -13,6 +13,10 @@ from hashlib import sha256
 from hmac import HMAC
 import inspect
 
+# Enable ANSI color support on Windows
+if sys.platform == 'win32':
+    os.system('')
+
 if sys.version_info >= (3, 5):
     import http.client as httplib
     import urllib.request as urllib
@@ -138,6 +142,8 @@ class IoTConnectSDK:
     _kinesis_stream_status = False
     _file_upload_client = None
     _fs_config = None
+    _listner_cert_sign_callback = None
+    _company_guid = ""
 
     def get_config(self):
         try:
@@ -198,7 +204,14 @@ class IoTConnectSDK:
             base_url = self._property["discoveryUrl"] + base_url
             res = urllib.urlopen(base_url).read().decode("utf-8")
             data = json.loads(res)
+            self.print_debuglog("Discovery Response: " + json.dumps(data), 0)
             a = (data['d'].keys())
+            
+            # Extract company GUID from bu URL (format: .../cg/{guid})
+            bu_url = data['d'].get("bu", "")
+            if "/cg/" in bu_url:
+                self._company_guid = bu_url.split("/cg/")[-1].split("/")[0].split("?")[0]
+            
             if 'pf' in a:
                 return data['d']["bu"], data['d']["pf"]
             else:
@@ -578,6 +591,560 @@ class IoTConnectSDK:
     def onRuleChangeCommand(self,callback):
         if callback:
             self._listner_rulechng_callback = callback
+
+    def onCertSignedRequest(self, callback):
+        """
+        Register callback for CSR-based certificate renewal.
+        
+        The callback will be invoked when the SDK detects ce=1 in the sync response
+        and the Auth Challenge returns a random number (rn), indicating CSR-based renewal.
+        
+        Callback signature:
+            def callback(rn, device_id):
+                # rn: random number from auth challenge (used to generate signature)
+                # device_id: the device unique ID (to be used as CSR CN)
+                # Must return a dict with:
+                #   "csr": CSR in hex/DER format (string)
+                #   "sig": signature in hex format (string)
+                #   "fmt": format string, e.g. "hex" or "pem"
+                return {"csr": "...", "sig": "...", "fmt": "hex"}
+        """
+        if callback:
+            self._listner_cert_sign_callback = callback
+
+    def _get_device_cert_hex(self):
+        """Read the current device certificate and return it as hex-encoded DER."""
+        try:
+            cert_path = self._config.get("certificate", {}).get("SSLCertPath")
+            if not cert_path or not os.path.isfile(cert_path):
+                self.print_debuglog("Certificate file not found for auth challenge", 1)
+                return None
+            
+            # Try to read as PEM and convert to DER hex
+            with open(cert_path, 'rb') as f:
+                cert_data = f.read()
+            
+            # Check if it's PEM format
+            if b'-----BEGIN CERTIFICATE-----' in cert_data:
+                import base64
+                # Extract the base64 content between PEM headers
+                pem_lines = cert_data.decode('utf-8').strip().split('\n')
+                b64_content = ''
+                in_cert = False
+                for line in pem_lines:
+                    if '-----BEGIN CERTIFICATE-----' in line:
+                        in_cert = True
+                        continue
+                    if '-----END CERTIFICATE-----' in line:
+                        in_cert = False
+                        continue
+                    if in_cert:
+                        b64_content += line.strip()
+                der_bytes = base64.b64decode(b64_content)
+                return der_bytes.hex()
+            else:
+                # Already DER format
+                return cert_data.hex()
+        except Exception as ex:
+            self.print_debuglog("Error reading device certificate: " + str(ex), 1)
+            return None
+
+    def _call_auth_challenge(self):
+        """
+        Call the Auth Challenge API (x509/authRequest) to initiate certificate renewal.
+        Returns the response dict or None on failure.
+        """
+        try:
+            # Get company GUID from discovery response
+            company_guid = self._company_guid if self._company_guid else ""
+            
+            self.print_debuglog("Resolved companyGuid: " + str(company_guid), 0)
+            
+            cpid = self._cpId if self._cpId else ""
+            unique_id = self._uniqueId
+            
+            # Get device certificate in hex format
+            cert_hex = self._get_device_cert_hex()
+            if not cert_hex:
+                self.print_debuglog("Failed to get device certificate for auth challenge", 1)
+                return None
+            
+            # Build the auth request URL
+            # Extract identity URL base from _base_url (discovery bu response)
+            # _base_url is like: http://host:port/api/2.1/agent/device-identity/cg/...
+            identity_url = ""
+            
+            # Extract scheme+host+port from _base_url
+            if self._base_url:
+                parsed_base = urlparse(self._base_url)
+                if parsed_base.hostname:
+                    identity_url = parsed_base.scheme + "://" + parsed_base.hostname
+                    if parsed_base.port:
+                        identity_url += ":" + str(parsed_base.port)
+            
+            # Fallback: check sync response meta
+            if not identity_url and self._data_json and self.has_key(self._data_json, "meta"):
+                if self.has_key(self._data_json["meta"], "idu"):
+                    identity_url = self._data_json["meta"]["idu"]
+            
+            # Fallback: check SDK options
+            if not identity_url and self._property:
+                if "identityUrl" in self._property:
+                    identity_url = self._property["identityUrl"]
+            
+            if not identity_url:
+                self.print_debuglog("Identity URL could not be resolved for auth challenge.", 1)
+                return None
+            
+            auth_url = identity_url + "/api/2.1/agent/x509/auth"
+            
+            # Build request payload
+            payload = {
+                "companyGuid": company_guid,
+                "cpId": cpid,
+                "uniqueId": unique_id,
+                "fmt": "pem",
+                "cert": cert_hex
+            }
+            
+            self.print_debuglog("Calling Auth Challenge API: " + auth_url, 0)
+            self.print_debuglog("Auth Challenge Request: " + json.dumps(payload), 0)
+            
+            # Make HTTP POST request
+            parsed = urlparse(auth_url)
+            if parsed.scheme == "https":
+                conn = httplib.HTTPSConnection(parsed.hostname, parsed.port if parsed.port else 443)
+            else:
+                conn = httplib.HTTPConnection(parsed.hostname, parsed.port if parsed.port else 80)
+            
+            headers = {"Content-type": "application/json", "Accept": "application/json"}
+            conn.request("POST", parsed.path, json.dumps(payload), headers)
+            response = conn.getresponse()
+            response_data = response.read().decode("utf-8")
+            conn.close()
+            
+            result = json.loads(response_data)
+            self.print_debuglog("Auth Challenge Response: " + json.dumps(result), 0)
+            return result
+            
+        except Exception as ex:
+            self.print_debuglog("Auth Challenge API call failed: " + str(ex), 1)
+            return None
+
+    def _call_cert_sign(self, sign_url, csr, fmt, sig):
+        """
+        Call the Certificate Sign API (x509/cert/sign) with CSR and signature.
+        Returns the response dict or None on failure.
+        """
+        try:
+            # Build request payload
+            payload = {
+                "csr": csr,
+                "fmt": fmt,
+                "sig": sig
+            }
+            
+            self.print_debuglog("Calling Cert Sign API: " + sign_url, 0)
+            self.print_debuglog("Cert Sign Request: " + json.dumps(payload), 0)
+            
+            # Make HTTP POST request
+            parsed = urlparse(sign_url)
+            if parsed.scheme == "https":
+                conn = httplib.HTTPSConnection(parsed.hostname, parsed.port if parsed.port else 443)
+            else:
+                conn = httplib.HTTPConnection(parsed.hostname, parsed.port if parsed.port else 80)
+            
+            headers = {"Content-type": "application/json", "Accept": "application/json"}
+            conn.request("POST", parsed.path, json.dumps(payload), headers)
+            response = conn.getresponse()
+            response_data = response.read().decode("utf-8")
+            conn.close()
+            
+            result = json.loads(response_data)
+            self.print_debuglog("Cert Sign Response: " + json.dumps(result), 0)
+            return result
+            
+        except Exception as ex:
+            self.print_debuglog("Cert Sign API call failed: " + str(ex), 1)
+            return None
+
+    def _call_cert_ack(self, ack_url, ack_id):
+        """
+        Call the Certificate ACK API (x509/cert/ack) to confirm certificate installation.
+        Returns the response dict or None on failure.
+        """
+        try:
+            self.print_debuglog("Calling Cert ACK API: " + ack_url, 0)
+            
+            # Make HTTP GET request with cid, dip, ackId in headers
+            parsed = urlparse(ack_url)
+            if parsed.scheme == "https":
+                conn = httplib.HTTPSConnection(parsed.hostname, parsed.port if parsed.port else 443)
+            else:
+                conn = httplib.HTTPConnection(parsed.hostname, parsed.port if parsed.port else 80)
+            
+            # cid, dip and ackId go in headers
+            headers = {
+                "Content-type": "application/json",
+                "Accept": "application/json",
+                "cid": self._cpId,
+                "dip": self._uniqueId,
+                "ackId": ack_id
+            }
+            
+            self.print_debuglog("Cert ACK Request: GET | Headers: cid=" + self._cpId + ", dip=" + self._uniqueId + ", ackId=" + ack_id, 0)
+            conn.request("GET", parsed.path, None, headers)
+            response = conn.getresponse()
+            response_data = response.read().decode("utf-8")
+            conn.close()
+            
+            self.print_debuglog("Cert ACK Raw Response: " + response_data, 0)
+            
+            if response_data and response_data.strip():
+                result = json.loads(response_data)
+                self.print_debuglog("Cert ACK Response: " + json.dumps(result), 0)
+                return result
+            else:
+                self.print_debuglog("Cert ACK Response: empty (HTTP " + str(response.status) + ")", 0)
+                return {"status": response.status}
+            
+        except Exception as ex:
+            self.print_debuglog("Cert ACK API call failed: " + str(ex), 1)
+            return None
+
+    def _install_new_certificate(self, cert_hex):
+        """
+        Install the new certificate received from the Sign API response.
+        The dc field is hex-encoded - could be hex of PEM text or hex of DER binary.
+        Writes the certificate in PEM format to the certificate file.
+        Also renames the .new private key file to the actual key path.
+        Returns True on success, False on failure.
+        """
+        try:
+            cert_path = self._config.get("certificate", {}).get("SSLCertPath")
+            key_path = self._config.get("certificate", {}).get("SSLKeyPath")
+            if not cert_path:
+                self.print_debuglog("Certificate path not configured, cannot install new certificate", 1)
+                return False
+            
+            # Convert hex to bytes
+            cert_bytes = bytes.fromhex(cert_hex)
+            
+            # Check if it's hex-encoded PEM (starts with "-----BEGIN")
+            try:
+                cert_content = cert_bytes.decode('utf-8')
+                if '-----BEGIN CERTIFICATE-----' in cert_content:
+                    # It's PEM text encoded as hex - write as-is
+                    with open(cert_path, 'w') as f:
+                        f.write(cert_content)
+                    self.print_debuglog("New certificate (PEM from hex) installed at: " + cert_path, 0)
+                else:
+                    # UTF-8 decodable but not PEM - treat as DER, convert to PEM
+                    raise ValueError("Not PEM format")
+            except (UnicodeDecodeError, ValueError):
+                # It's DER binary encoded as hex - convert to PEM
+                import base64
+                b64_cert = base64.b64encode(cert_bytes).decode('ascii')
+                # Format as PEM with 64-char lines
+                pem_lines = ['-----BEGIN CERTIFICATE-----']
+                for i in range(0, len(b64_cert), 64):
+                    pem_lines.append(b64_cert[i:i+64])
+                pem_lines.append('-----END CERTIFICATE-----')
+                pem_content = '\n'.join(pem_lines) + '\n'
+                
+                with open(cert_path, 'w') as f:
+                    f.write(pem_content)
+                self.print_debuglog("New certificate (DER->PEM converted) installed at: " + cert_path, 0)
+            
+            # Rename the .new private key to the actual key path (if exists)
+            if key_path:
+                new_key_path = key_path + ".new"
+                if os.path.isfile(new_key_path):
+                    # Backup old key
+                    if os.path.isfile(key_path):
+                        backup_path = key_path + ".bak"
+                        try:
+                            if os.path.isfile(backup_path):
+                                os.remove(backup_path)
+                            os.rename(key_path, backup_path)
+                        except:
+                            pass
+                    os.rename(new_key_path, key_path)
+                    self.print_debuglog("New private key activated at: " + key_path, 0)
+            
+            return True
+            
+        except Exception as ex:
+            self.print_debuglog("Failed to install new certificate: " + str(ex), 1)
+            return False
+
+    def _install_new_private_key(self, pk_hex):
+        """
+        Install a new private key received from the Auth Challenge response (direct renewal with pk).
+        The pk field is hex-encoded - could be hex of PEM text or hex of DER binary.
+        Writes the private key in PEM format to the key file.
+        Returns True on success, False on failure.
+        """
+        try:
+            key_path = self._config.get("certificate", {}).get("SSLKeyPath")
+            if not key_path:
+                self.print_debuglog("Key path not configured, cannot install new private key", 1)
+                return False
+            
+            # Backup old key
+            if os.path.isfile(key_path):
+                backup_path = key_path + ".bak"
+                try:
+                    if os.path.isfile(backup_path):
+                        os.remove(backup_path)
+                    import shutil
+                    shutil.copy2(key_path, backup_path)
+                except:
+                    pass
+            
+            # Convert hex to bytes
+            pk_bytes = bytes.fromhex(pk_hex)
+            
+            # Check if it's hex-encoded PEM (starts with "-----BEGIN")
+            try:
+                pk_content = pk_bytes.decode('utf-8')
+                if '-----BEGIN' in pk_content:
+                    # It's PEM text encoded as hex - write as-is
+                    with open(key_path, 'w') as f:
+                        f.write(pk_content)
+                    self.print_debuglog("New private key (PEM from hex) installed at: " + key_path, 0)
+                else:
+                    raise ValueError("Not PEM format")
+            except (UnicodeDecodeError, ValueError):
+                # It's DER binary encoded as hex - convert to PEM
+                import base64
+                b64_key = base64.b64encode(pk_bytes).decode('ascii')
+                pem_lines = ['-----BEGIN RSA PRIVATE KEY-----']
+                for i in range(0, len(b64_key), 64):
+                    pem_lines.append(b64_key[i:i+64])
+                pem_lines.append('-----END RSA PRIVATE KEY-----')
+                pem_content = '\n'.join(pem_lines) + '\n'
+                
+                with open(key_path, 'w') as f:
+                    f.write(pem_content)
+                self.print_debuglog("New private key (DER->PEM converted) installed at: " + key_path, 0)
+            
+            return True
+            
+        except Exception as ex:
+            self.print_debuglog("Failed to install new private key: " + str(ex), 1)
+            return False
+
+    def _handle_cert_renewal_csr(self):
+        """
+        Handle certificate renewal flow:
+        - If rn is empty -> Direct renewal: install dc from auth response, reconnect, ACK
+        - If rn is not empty -> CSR-based: get CSR from firmware, call Sign API, install, reconnect, ACK
+        """
+        try:
+            self.print_debuglog("Starting certificate renewal process...", 0)
+            
+            # Step 1: Call Auth Challenge
+            auth_response = self._call_auth_challenge()
+            if not auth_response:
+                self.print_debuglog("Auth Challenge failed, aborting certificate renewal", 1)
+                return False
+            
+            # Check response status
+            if not self.has_key(auth_response, "d") or auth_response["d"] is None:
+                self.print_debuglog("Auth Challenge returned invalid response", 1)
+                return False
+            
+            auth_data = auth_response["d"]
+            if auth_data.get("ec") != 0:
+                self.print_debuglog("Auth Challenge returned error code: " + str(auth_data.get("ec")), 1)
+                return False
+            
+            # Extract challenge data
+            cm = auth_data.get("cm", {})
+            if not cm or not self.has_key(cm, "d"):
+                self.print_debuglog("Auth Challenge response missing challenge data", 1)
+                return False
+            
+            challenge_data = cm["d"]
+            rn = challenge_data.get("rn", "")
+            cId = challenge_data.get("cId", "")
+            sign_url = challenge_data.get("url", "")
+            
+            # Check if rn is null or empty -> direct certificate renewal
+            if not rn or rn.strip() == "":
+                self.print_debuglog("Auth Challenge returned empty rn - direct certificate renewal flow", 0)
+                
+                # Direct renewal: dc and optionally pk are in the auth challenge response
+                new_cert_hex = challenge_data.get("dc", "")
+                new_pk_hex = challenge_data.get("pk", "")
+                ack_url = cm.get("url", "")
+                ack_id = cm.get("ackId", "")
+                
+                if not new_cert_hex:
+                    self.print_debuglog("Direct renewal: no certificate (dc) in auth challenge response", 1)
+                    return False
+                
+                # Install new private key if provided (pk field)
+                if new_pk_hex:
+                    self.print_debuglog("Direct renewal: Private key (pk) found in response, installing...", 0)
+                    if not self._install_new_private_key(new_pk_hex):
+                        self.print_debuglog("Direct renewal: Failed to install new private key", 1)
+                        return False
+                
+                # Install new certificate
+                self.print_debuglog("Direct renewal: Installing new certificate...", 0)
+                if not self._install_new_certificate(new_cert_hex):
+                    self.print_debuglog("Direct renewal: Failed to install new certificate", 1)
+                    return False
+                
+                # Disconnect and reconnect with new certificate
+                self.print_debuglog("Direct renewal: Reconnecting device with new certificate...", 0)
+                if self._client and hasattr(self._client, 'Disconnect'):
+                    self._client.Disconnect()
+                
+                time.sleep(2)
+                self.init_protocol()
+                
+                # Wait for connection
+                retry_count = 0
+                while not self._client._isConnected and retry_count < 10:
+                    time.sleep(1)
+                    retry_count += 1
+                
+                if self._client._isConnected:
+                    self.print_debuglog("Direct renewal: Device reconnected successfully with new certificate", 0)
+                    
+                    # Call ACK API
+                    if ack_url and ack_id:
+                        self.print_debuglog("Direct renewal: Calling Certificate ACK API...", 0)
+                        ack_response = self._call_cert_ack(ack_url, ack_id)
+                        if ack_response:
+                            self.print_debuglog("Direct renewal: Certificate renewal ACK successful", 0)
+                        else:
+                            self.print_debuglog("Direct renewal: Certificate renewal ACK failed (non-critical)", 1)
+                    
+                    # Re-sync device
+                    self.print_debuglog("Direct renewal: Re-syncing device...", 0)
+                    if self.has_key(self._data_json, "has") and self._data_json["has"]["attr"]:
+                        self._hello_handsake({"mt":201})
+                    
+                    self.print_debuglog("Direct certificate renewal completed successfully!", 0)
+                    return True
+                else:
+                    self.print_debuglog("Direct renewal: Failed to reconnect with new certificate", 1)
+                    return False
+            
+            self.print_debuglog("Auth Challenge returned rn=" + rn + " - CSR-based certificate renewal", 0)
+            
+            # Wait for firmware to register the CSR callback (up to 30 seconds)
+            wait_count = 0
+            while not self._listner_cert_sign_callback and wait_count < 30:
+                time.sleep(1)
+                wait_count += 1
+            
+            if not self._listner_cert_sign_callback:
+                self.print_debuglog("No CSR callback registered (onCertSignedRequest) after waiting 30s. Cannot proceed.", 1)
+                return False
+            
+            # Call firmware callback to get CSR + signature
+            # device_id for CSR CN should be cpId-uniqueId
+            device_id = self._cpId + "-" + self._uniqueId
+            company_id = cId
+            self.print_debuglog("Calling firmware CSR callback with rn=" + rn + ", device_id=" + device_id + ", company_id=" + company_id, 0)
+            csr_result = self._listner_cert_sign_callback(rn, device_id, company_id)
+            
+            if not csr_result or not isinstance(csr_result, dict):
+                self.print_debuglog("Firmware CSR callback returned invalid result", 1)
+                return False
+            
+            csr = csr_result.get("csr", "")
+            sig = csr_result.get("sig", "")
+            fmt = csr_result.get("fmt", "hex")
+            
+            if not csr or not sig:
+                self.print_debuglog("Firmware CSR callback returned empty CSR or signature", 1)
+                return False
+            
+            self.print_debuglog("Firmware provided CSR and signature, calling Sign API...", 0)
+            
+            # Step 3: Call Sign API
+            sign_response = self._call_cert_sign(sign_url, csr, fmt, sig)
+            if not sign_response:
+                self.print_debuglog("Sign API call failed", 1)
+                return False
+            
+            # Check sign response
+            if not self.has_key(sign_response, "d") or sign_response["d"] is None:
+                self.print_debuglog("Sign API returned invalid response", 1)
+                return False
+            
+            sign_data = sign_response["d"]
+            if sign_data.get("ec") != 0:
+                self.print_debuglog("Sign API returned error code: " + str(sign_data.get("ec")), 1)
+                return False
+            
+            sign_cm = sign_data.get("cm", {})
+            if not sign_cm or not self.has_key(sign_cm, "d"):
+                self.print_debuglog("Sign API response missing certificate data", 1)
+                return False
+            
+            sign_cert_data = sign_cm["d"]
+            new_cert_hex = sign_cert_data.get("dc", "")
+            ack_url = sign_cm.get("url", "")
+            ack_id = sign_cm.get("ackId", "")
+            
+            if not new_cert_hex:
+                self.print_debuglog("Sign API response missing new certificate (dc)", 1)
+                return False
+            
+            # Step 4: Install new certificate
+            self.print_debuglog("Installing new certificate...", 0)
+            if not self._install_new_certificate(new_cert_hex):
+                self.print_debuglog("Failed to install new certificate", 1)
+                return False
+            
+            # Step 5: Disconnect and reconnect with new certificate
+            self.print_debuglog("Reconnecting device with new certificate...", 0)
+            if self._client and hasattr(self._client, 'Disconnect'):
+                self._client.Disconnect()
+            
+            # Re-initialize protocol (reconnect with new cert)
+            time.sleep(2)
+            self.init_protocol()
+            
+            # Wait for connection
+            retry_count = 0
+            while not self._client._isConnected and retry_count < 10:
+                time.sleep(1)
+                retry_count += 1
+            
+            if self._client._isConnected:
+                self.print_debuglog("Device reconnected successfully with new certificate", 0)
+                
+                # Step 6: Call ACK API
+                if ack_url and ack_id:
+                    self.print_debuglog("Calling Certificate ACK API...", 0)
+                    ack_response = self._call_cert_ack(ack_url, ack_id)
+                    if ack_response:
+                        self.print_debuglog("Certificate renewal ACK successful", 0)
+                    else:
+                        self.print_debuglog("Certificate renewal ACK failed (non-critical)", 1)
+                
+                # Re-request attributes to resume data publishing
+                self.print_debuglog("Re-syncing device after certificate renewal...", 0)
+                if self.has_key(self._data_json, "has") and self._data_json["has"]["attr"]:
+                    self._hello_handsake({"mt":201})
+                
+                self.print_debuglog("CSR-based certificate renewal completed successfully!", 0)
+                return True
+            else:
+                self.print_debuglog("Failed to reconnect with new certificate", 1)
+                return False
+            
+        except Exception as ex:
+            self.print_debuglog("CSR-based certificate renewal failed: " + str(ex), 1)
+            return False
 
     def heartbeat_stop(self):
         if self._heartbeat_timer:
@@ -999,6 +1566,21 @@ class IoTConnectSDK:
                 if option == "all":
                     self._is_process_started = False
                     self._data_json = response
+
+                    # Check for certificate expiry flag (ce=1) in sync response
+                    if self.has_key(response, "meta") and self.has_key(response["meta"], "ce"):
+                        if response["meta"]["ce"] == 1:
+                            self.print_debuglog("Certificate expiry detected (ce=1) in sync response. Initiating certificate renewal...", 0)
+                            _cert_thread = threading.Thread(target=self._handle_cert_renewal_csr)
+                            _cert_thread.daemon = True
+                            _cert_thread.start()
+                    elif self.has_key(response, "ce"):
+                        if response["ce"] == 1:
+                            self.print_debuglog("Certificate expiry detected (ce=1) in sync response. Initiating certificate renewal...", 0)
+                            _cert_thread = threading.Thread(target=self._handle_cert_renewal_csr)
+                            _cert_thread.daemon = True
+                            _cert_thread.start()
+
                     self.init_protocol()
                     if self._pf == "aws":
                         data = { "_connectionStatus": "true" }
@@ -1916,9 +2498,9 @@ class IoTConnectSDK:
     def print_debuglog(self,msg,is_error):
         if self._debug:
             if is_error:
-                print("ERROR : {}".format(msg))
+                print("\033[91mSDK_ERROR : {}\033[0m".format(msg))
             else:
-                print("SDK_INFO : {}".format(msg))
+                print("\033[92mSDK_INFO : {}\033[0m".format(msg))
 
     def win_user(self):
         import win32api

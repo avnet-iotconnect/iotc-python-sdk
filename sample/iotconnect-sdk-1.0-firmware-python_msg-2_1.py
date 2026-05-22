@@ -20,9 +20,30 @@ import random
 from iotconnect import IoTConnectSDK
 from datetime import datetime, timezone
 import os
+import subprocess
+import hashlib
+import binascii
+
+# Enable ANSI color support on Windows
+if sys.platform == 'win32':
+    os.system('')  # Enables ANSI escape sequences in Windows terminal
 
 # New import: helper to start KVS WebRTC MASTER on device (created earlier)
 from iotconnect.client.awskinesisclient import start_kvs_webrtc_from_devicecert
+
+# ANSI color codes for console output
+# Blue = Firmware logs, Red = Errors, Green = SDK logs (handled in SDK)
+BLUE = "\033[94m"
+RED = "\033[91m"
+RESET = "\033[0m"
+
+def fw_print(msg):
+    """Print firmware log in blue color"""
+    print(f"{BLUE}Firmware :: {msg}{RESET}")
+
+def fw_error(msg):
+    """Print firmware error in red color"""
+    print(f"{RED}Firmware :: ERROR :: {msg}{RESET}")
 
 """
 * ## Prerequisite parameter to run this sampel code
@@ -33,7 +54,7 @@ from iotconnect.client.awskinesisclient import start_kvs_webrtc_from_devicecert
 * sdkOptions   :: It helps to define the path of self signed and CA signed certificate as well as define the offlinne storage configuration.
 """
 
-UniqueId = "reInvent"
+UniqueId = "ankit-auto01"
 
 Sdk=None
 interval = 10
@@ -43,8 +64,8 @@ ACKdirect=[]
 device_list=[]
 readyStatus = False
 file_upload_counter = 0
-test_file_upload = True  # Set to True to enable file upload testing
-test_array_data = True  # Set to True to enable array data testing
+test_file_upload = False  # Set to True to enable file upload testing
+test_array_data = False  # Set to True to enable array data testing
 
 """
 * sdkOptions is optional. Mandatory for "certificate" X.509 device authentication type
@@ -66,9 +87,9 @@ test_array_data = True  # Set to True to enable array data testing
 SdkOptions={
 	"certificate" : { 
         # Certs - update paths for your system if required
-        "SSLKeyPath"  : "c:/Users/ankit.sangani/Downloads/reInvent-certificates (2)/pk_reInvent demo.pem",    #aws=pk_devicename.pem   ||   #az=device.key
-        "SSLCertPath" : "c:/Users/ankit.sangani/Downloads/reInvent-certificates (2)/cert_reInvent demo.crt",    #aws=cert_devicename.crt ||   #az=device.pem
-        "SSLCaPath"   : "c:/SW-AnkitSangani/AWS/sdk/AmazonrootCA.pem"     #aws=root-CA.pem         ||   #az=rootCA.pem
+        "SSLKeyPath"  : "c:/Users/ankit.sangani/Downloads/ankit-auto01-certificates/pk_ankit-auto01.pem",    #aws=pk_devicename.pem
+        "SSLCertPath" : "c:/Users/ankit.sangani/Downloads/ankit-auto01-certificates/cert_ankit-auto01.crt",  #aws=cert_devicename.crt
+        "SSLCaPath"   : "c:/SW-AnkitSangani/AWS/sdk/AmazonrootCA.pem"     #aws=root-CA.pem
 	},
     "offlineStorage":{
         "disabled": False,
@@ -82,11 +103,10 @@ SdkOptions={
     # "discoveryUrl":"https://eudiscovery.iotconnect.io" #Azure EU environment 
     "discoveryUrl":"https://discovery.iotconnect.io", #Azure All Environment 
     "IsDebug": True,
-    "cpid" : "mssql",
+    "cpid" : "gg08oct02",
     "sId" : "",
     "env" : "preqa",
     "pf"  : "aws",
-
     #if device has video stream capability
     "CameraOptions" : {
         "deviceport" : "/dev/video0",
@@ -112,8 +132,8 @@ SdkOptions={
 
 def DeviceCallback(msg):
     global Sdk
-    print("Firmware :: --- Command Message Received in Firmware ---")
-    print("Firmware :: " + json.dumps(msg))
+    fw_print("--- Command Message Received in Firmware ---")
+    fw_print(json.dumps(msg))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if "ct"in msg else None
@@ -137,13 +157,13 @@ def DeviceCallback(msg):
                 else:
                     Sdk.sendAckCmd(data["ack"],2,"sucessfull") #Executed (Cloud Only) = 0, 	Failed = 1, Executed Ack = 2
     else:
-        print("Firmware :: rule command",msg)
+        fw_print("rule command " + str(msg))
 
     # Firmware Upgrade
 def DeviceFirmwareCallback(msg):
     global Sdk,device_list
-    print("Firmware :: --- firmware Command Message Received ---")
-    print("Firmware :: " + json.dumps(msg))
+    fw_print("--- firmware Command Message Received ---")
+    fw_print(json.dumps(msg))
     cmdType = None
     if msg != None and len(msg.items()) != 0:
         cmdType = msg["ct"] if msg["ct"] != None else None
@@ -176,7 +196,7 @@ def DeviceConectionCallback(msg):
     #connection status
     if cmdType == 116:
         #Device connection status e.g. data["command"] = true(connected) or false(disconnected)
-        print("Firmware :: " + json.dumps(msg))
+        fw_print(json.dumps(msg))
 
 """
  * Type    : Public Method "UpdateTwin()"
@@ -197,8 +217,8 @@ def DeviceConectionCallback(msg):
 def TwinUpdateCallback(msg):
     global Sdk
     if msg:
-        print("Firmware :: --- Twin Message Received ---")
-        print("Firmware :: " + json.dumps(msg))
+        fw_print("--- Twin Message Received ---")
+        fw_print(json.dumps(msg))
         if ("desired" in msg) and ("reported" not in msg):
             for j in msg["desired"]:
                 if ("version" not in j) and ("uniqueId" not in j):
@@ -212,40 +232,244 @@ def TwinUpdateCallback(msg):
 """
 def sendBackToSDK(sdk, dataArray):
     if(sdk.SendData(dataArray) == True):
-        print("Firmware :: Data Publish Success")
+        fw_print("Data Publish Success")
     else:
-        print("Firmware :: Data Publish Fail")
+        fw_print("Data Publish Fail")
     time.sleep(interval)
 
 def DirectMethodCallback(msg,methodname,rId):
     global Sdk,ACKdirect
-    print("Firmware :: " + str(msg))
-    print("Firmware :: " +  str(methodname))
-    print("Firmware :: " +  str(rId))
+    fw_print(str(msg))
+    fw_print(str(methodname))
+    fw_print(str(rId))
     # ACKdirect.append({"data":data,"status":200,"reqId":rId})
     Sdk.DirectMethodACK(msg,200,rId)
 
 def DeviceChangCallback(msg):
-    print("Firmware :: " + msg)
+    fw_print(msg)
 
 def InitCallback(response):
-    print("Firmware :: " + response)
+    fw_print(response)
 
 def delete_child_callback(msg):
-    print("Firmware :: " + msg)
+    fw_print(msg)
     
 def create_child_callback(msg):
-    print("Firmware :: " + msg)
+    fw_print(msg)
 
 def attributeDetails(data):
-    print("Firmware :: attribute received in firmware")
-    print("Firmware :: " + data)
+    fw_print("attribute received in firmware")
+    fw_print(data)
 
 def onReady(data):
-    print("Firmware :: Attribute got Sync ::")
-    print("Firmware :: " + str(data))
+    fw_print("Attribute got Sync ::")
+    fw_print(str(data))
     global readyStatus
     readyStatus = True
+
+"""
+* Type    : Callback Function "OnCertSignedRequestCallback()"
+* Usage   : Called by SDK when CSR-based certificate renewal is needed (ce=1 in sync response and rn received from Auth Challenge).
+*           Firmware is responsible for generating a new CSR and signing it.
+* Input   : rn (random number from auth challenge), device_id (device unique ID for CSR CN)
+* Output  : Dict with "csr" (hex-encoded DER CSR), "sig" (hex-encoded signature), "fmt" (format string)
+"""
+def OnCertSignedRequestCallback(rn, device_id, company_id):
+    """
+    Generate a new CSR and signature for CSR-based certificate renewal.
+    
+    Based on the .NET reference implementation:
+    1. Generate CSR using the EXISTING device private key (same key, new CSR)
+    2. Sign data = (RN + CompanyID) bytes + CSR DER bytes using the device private key
+    3. Return CSR hex and signature hex
+    
+    Args:
+        rn: Random number string from Auth Challenge
+        device_id: cpId-uniqueId to use as CSR Common Name
+        company_id: Company GUID from discovery response
+        
+    Returns:
+        dict: {"csr": "<hex-encoded DER CSR>", "sig": "<hex-encoded signature>", "fmt": "hex"}
+        or None on failure
+    """
+    global SdkOptions
+    fw_print(f"--- CSR Certificate Renewal Request ---")
+    fw_print(f"Random Number (rn): {rn}")
+    fw_print(f"Device ID for CSR CN: {device_id}")
+    fw_print(f"Company ID: {company_id}")
+    
+    try:
+        # Get current key path from SDK options
+        key_path = SdkOptions.get("certificate", {}).get("SSLKeyPath", "")
+        cert_path = SdkOptions.get("certificate", {}).get("SSLCertPath", "")
+        
+        if not key_path or not os.path.isfile(key_path):
+            fw_error(f"Private key file not found: {key_path}")
+            return None
+        
+        from cryptography import x509
+        from cryptography.x509.oid import NameOID
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import padding
+        from cryptography.hazmat.backends import default_backend
+        
+        # Load the current device private key
+        with open(key_path, 'rb') as f:
+            private_key = serialization.load_pem_private_key(f.read(), password=None, backend=default_backend())
+        
+        fw_print(f"Private key loaded from: {key_path}")
+        
+        # Read the current certificate to extract subject info
+        subject_parts = [
+            x509.NameAttribute(NameOID.COUNTRY_NAME, u"GB"),
+            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"London"),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, u"London"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Global Security"),
+            x509.NameAttribute(NameOID.ORGANIZATIONAL_UNIT_NAME, u"IT Department"),
+            x509.NameAttribute(NameOID.COMMON_NAME, device_id),
+        ]
+        
+        # Try to read subject from existing cert (override CN with device_id)
+        if os.path.isfile(cert_path):
+            try:
+                with open(cert_path, 'rb') as f:
+                    cert_data = f.read()
+                if b'-----BEGIN CERTIFICATE-----' in cert_data:
+                    existing_cert = x509.load_pem_x509_certificate(cert_data, default_backend())
+                else:
+                    existing_cert = x509.load_der_x509_certificate(cert_data, default_backend())
+                
+                # Use existing subject but override CN with device_id
+                subject_parts = []
+                for attr in existing_cert.subject:
+                    if attr.oid == NameOID.COMMON_NAME:
+                        subject_parts.append(x509.NameAttribute(NameOID.COMMON_NAME, device_id))
+                    else:
+                        subject_parts.append(attr)
+            except Exception as cert_ex:
+                fw_print(f"Warning: Could not read existing cert subject: {cert_ex}, using defaults")
+        
+        # Step 1: Generate CSR using the SAME device private key
+        fw_print("Step 1: Generating CSR with existing device private key...")
+        csr_builder = x509.CertificateSigningRequestBuilder()
+        csr_builder = csr_builder.subject_name(x509.Name(subject_parts))
+        
+        # Sign CSR with the EXISTING private key (same as .NET: GenerateCSR uses deviceCert's key)
+        csr = csr_builder.sign(private_key, hashes.SHA256(), default_backend())
+        
+        # Get CSR in DER format
+        csr_der = csr.public_bytes(serialization.Encoding.DER)
+        csr_hex = csr_der.hex().upper()
+        
+        fw_print(f"CSR generated (CN={device_id}), DER bytes: {len(csr_der)}, hex length: {len(csr_hex)}")
+        
+        # Step 2: Generate signature
+        # Data to sign = (RN + CompanyID) UTF-8 bytes + CSR DER bytes
+        # This matches .NET: Combine(Encoding.UTF8.GetBytes(randomNumber + companyId), csrDerBytes)
+        fw_print("Step 2: Generating signature...")
+        rn_cid_bytes = (rn + company_id).encode('utf-8')
+        data_to_sign = rn_cid_bytes + csr_der
+        
+        fw_print(f"Data to sign: (RN+CID) bytes: {len(rn_cid_bytes)}, CSR bytes: {len(csr_der)}, total: {len(data_to_sign)}")
+        
+        # Sign with device private key using PKCS1v15 + SHA256
+        signature = private_key.sign(
+            data_to_sign,
+            padding.PKCS1v15(),
+            hashes.SHA256()
+        )
+        sig_hex = signature.hex().upper()
+        
+        fw_print(f"Signature generated, hex length: {len(sig_hex)}")
+        fw_print(f"--- CSR Certificate Renewal Request Complete ---")
+        
+        return {
+            "csr": csr_hex,
+            "sig": sig_hex,
+            "fmt": "hex"
+        }
+            
+    except Exception as ex:
+        fw_error(f"CSR generation failed: {ex}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def _generate_csr_openssl(rn, device_id, key_path, cert_path):
+    """
+    Fallback: Generate CSR using OpenSSL command-line tool.
+    Used when the 'cryptography' Python library is not available.
+    """
+    try:
+        import tempfile
+        
+        # Generate new private key
+        new_key_path = key_path + ".new"
+        subprocess.run(
+            ["openssl", "genrsa", "-out", new_key_path, "2048"],
+            check=True, capture_output=True
+        )
+        
+        # Generate CSR with CN = device_id
+        csr_pem_path = tempfile.mktemp(suffix=".csr")
+        subject = f"/C=GB/ST=London/L=London/O=Global Security/OU=IT Department/CN={device_id}"
+        subprocess.run(
+            ["openssl", "req", "-new", "-key", new_key_path, "-out", csr_pem_path, "-subj", subject],
+            check=True, capture_output=True
+        )
+        
+        # Convert CSR to DER and then to hex
+        csr_der_path = tempfile.mktemp(suffix=".der")
+        subprocess.run(
+            ["openssl", "req", "-in", csr_pem_path, "-out", csr_der_path, "-outform", "DER"],
+            check=True, capture_output=True
+        )
+        
+        with open(csr_der_path, 'rb') as f:
+            csr_der = f.read()
+        csr_hex = csr_der.hex()
+        
+        # Sign the random number with current private key
+        rn_file = tempfile.mktemp(suffix=".txt")
+        sig_file = tempfile.mktemp(suffix=".sig")
+        
+        with open(rn_file, 'w') as f:
+            f.write(rn)
+        
+        subprocess.run(
+            ["openssl", "dgst", "-sha256", "-sign", key_path, "-out", sig_file, rn_file],
+            check=True, capture_output=True
+        )
+        
+        with open(sig_file, 'rb') as f:
+            sig_bytes = f.read()
+        sig_hex = sig_bytes.hex().upper()
+        
+        # Keep new key as .new file (SDK will rename after cert install)
+        # new_key_path is already key_path + ".new" from openssl genrsa above
+        
+        # Cleanup temp files
+        for tmp in [csr_pem_path, csr_der_path, rn_file, sig_file]:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+        
+        fw_print(f"CSR generated via OpenSSL (CN={device_id})")
+        fw_print(f"CSR hex length: {len(csr_hex)}")
+        fw_print(f"Signature hex length: {len(sig_hex)}")
+        
+        return {
+            "csr": csr_hex,
+            "sig": sig_hex,
+            "fmt": "hex"
+        }
+        
+    except Exception as ex:
+        fw_error(f"OpenSSL CSR generation failed: {ex}")
+        # Cleanup
+        if os.path.exists(key_path + ".new"):
+            os.remove(key_path + ".new")
+        return None
 
 """
 * Type    : Test Function "testFileUpload()"
@@ -257,27 +481,27 @@ def testFileUpload(sdk):
     global file_upload_counter
     file_upload_counter += 1
 
-    print("Firmware :: ========== File Upload Test ==========")
+    fw_print("========== File Upload Test ==========")
 
     # Test 1: Upload image from file path (if test image exists)
     test_image_path = "C:/Users/ankit.sangani/Downloads/55D215B0-5D4C-4AC3-ADA1-0E929FAC2631.jpg"
     if os.path.exists(test_image_path):
-        print("Firmware :: Test 1: UploadImage from file path")
+        fw_print("Test 1: UploadImage from file path")
         result = sdk.UploadImage(file_path=test_image_path)
 
         if result["success"]:
-            print("Firmware :: Upload Success!")
-            print("Firmware ::   S3 Key: " + result["s3_key"])
-            print("Firmware ::   Bucket: " + result["bucket"])
-            print("Firmware ::   URL: " + result["url"])
+            fw_print("Upload Success!")
+            fw_print("  S3 Key: " + result["s3_key"])
+            fw_print("  Bucket: " + result["bucket"])
+            fw_print("  URL: " + result["url"])
         else:
-            print("Firmware :: Upload Failed: " + result["error"])
+            fw_error("Upload Failed: " + result["error"])
     else:
-        print("Firmware :: Test 1 skipped: test_image.jpg not found")
+        fw_print("Test 1 skipped: test_image.jpg not found")
 
     # Test 2: Upload with classification from file path
     if os.path.exists(test_image_path):
-        print("Firmware :: Test 2: UploadImageWithClassification from file path")
+        fw_print("Test 2: UploadImageWithClassification from file path")
         result = sdk.UploadImageWithClassification(
             file_path=test_image_path,
             classification="test_classification",
@@ -289,16 +513,16 @@ def testFileUpload(sdk):
         )
 
         if result["success"]:
-            print("Firmware :: Upload Success!")
-            print("Firmware ::   S3 Key: " + result["s3_key"])
-            print("Firmware ::   URL: " + result["url"])
-            print("Firmware ::   MQTT Published: " + str(result["mqtt_published"]))
+            fw_print("Upload Success!")
+            fw_print("  S3 Key: " + result["s3_key"])
+            fw_print("  URL: " + result["url"])
+            fw_print("  MQTT Published: " + str(result["mqtt_published"]))
         else:
-            print("Firmware :: Upload Failed: " + result["error"])
+            fw_error("Upload Failed: " + result["error"])
     else:
-        print("Firmware :: Test 2 skipped: test_image.jpg not found")
+        fw_print("Test 2 skipped: test_image.jpg not found")
 
-    print("Firmware :: ========== File Upload Test Complete ==========")
+    fw_print("========== File Upload Test Complete ==========")
     print("")
 
 """
@@ -308,27 +532,27 @@ def testFileUpload(sdk):
 * Output  : Display credentials information
 """
 def testGetCredentials(sdk):
-    print("Firmware :: ========== Get File Upload Credentials Test ==========")
+    fw_print("========== Get File Upload Credentials Test ==========")
 
     # Get credentials using device certificate
     result = sdk.GetCredentials()
 
     if result["success"]:
-        print("Firmware :: Successfully obtained file upload credentials!")
-        print("Firmware :: ")
-        print("Firmware :: Credentials Information:")
-        print("Firmware ::   Access Key ID: " + result["access_key_id"][:10] + "..." + result["access_key_id"][-4:])
-        print("Firmware ::   Secret Access Key: " + result["secret_access_key"][:10] + "..." + result["secret_access_key"][-4:])
+        fw_print("Successfully obtained file upload credentials!")
+        fw_print("")
+        fw_print("Credentials Information:")
+        fw_print("  Access Key ID: " + result["access_key_id"][:10] + "..." + result["access_key_id"][-4:])
+        fw_print("  Secret Access Key: " + result["secret_access_key"][:10] + "..." + result["secret_access_key"][-4:])
         if result["session_token"]:
-            print("Firmware ::   Session Token: " + result["session_token"][:20] + "..." + result["session_token"][-10:])
-        print("Firmware ::   Expiration: " + result["expiration"])
-        print("Firmware :: ")
-        print("Firmware :: Note: These are temporary credentials obtained via IoT Core credential provider")
-        print("Firmware ::       using your device certificate for authentication.")
+            fw_print("  Session Token: " + result["session_token"][:20] + "..." + result["session_token"][-10:])
+        fw_print("  Expiration: " + result["expiration"])
+        fw_print("")
+        fw_print("Note: These are temporary credentials obtained via IoT Core credential provider")
+        fw_print("      using your device certificate for authentication.")
     else:
-        print("Firmware :: Failed to get credentials: " + result["error"])
+        fw_error("Failed to get credentials: " + result["error"])
 
-    print("Firmware :: ========== Get Credentials Test Complete ==========")
+    fw_print("========== Get Credentials Test Complete ==========")
     print("")
 
 """
@@ -338,7 +562,7 @@ def testGetCredentials(sdk):
 * Output  : Send audio transcript data with word array
 """
 def sendAudioDataWithArray(sdk):
-    print("Firmware :: ========== Send Audio Data with Array Test ==========")
+    fw_print("========== Send Audio Data with Array Test ==========")
 
     # Create audio data with nested object and array
     # Include "temperature" as a valid attribute so data goes to RPT
@@ -376,18 +600,18 @@ def sendAudioDataWithArray(sdk):
         "data": audioData
     }]
 
-    print("Firmware :: Sending audio data with word array (RPT format)...")
-    print("Firmware :: Data structure:")
-    print("Firmware :: ", json.dumps(audioData, indent=2))
+    fw_print("Sending audio data with word array (RPT format)...")
+    fw_print("Data structure:")
+    fw_print(json.dumps(audioData, indent=2))
 
     # Send data
     if sdk.SendData(dObj):
-        print("Firmware :: Audio data with array sent successfully to RPT!")
-        print("Firmware :: Note: Data includes 'temperature' attribute for RPT routing")
+        fw_print("Audio data with array sent successfully to RPT!")
+        fw_print("Note: Data includes 'temperature' attribute for RPT routing")
     else:
-        print("Firmware :: Failed to send audio data")
+        fw_print("Failed to send audio data")
 
-    print("Firmware :: ========== Audio Data Array Test Complete ==========")
+    fw_print("========== Audio Data Array Test Complete ==========")
     print("")
 
 def main():
@@ -400,10 +624,10 @@ def main():
                 if os.path.isfile(SdkOptions["certificate"][prop]):
                     pass
                 else:
-                    print("Firmware :: please give proper path")
+                    fw_print("please give proper path")
                     break
         else:
-            print("Firmware :: you are not use auth type CA sign or self CA sign ") 
+            fw_print("you are not use auth type CA sign or self CA sign ") 
         """    
         """
         * Type    : Object Initialization "IoTConnectSDK()"
@@ -426,6 +650,7 @@ def main():
                 Sdk.onTwinChangeCommand(TwinUpdateCallback)
                 Sdk.onOTACommand(DeviceFirmwareCallback)
                 Sdk.onDeviceChangeCommand(DeviceChangCallback)
+                Sdk.onCertSignedRequest(OnCertSignedRequestCallback)
                 Sdk.getTwins()
                 Sdk.onReady(onReady)
 
@@ -452,7 +677,7 @@ def main():
                 kvs_test_region = os.getenv("AWS_REGION", "us-east-1")
 
                 if kvs_test_channel:
-                    print(f"Firmware :: KVS test channel detected in env; starting KVS WebRTC MASTER on {kvs_test_channel}")
+                    fw_print(f"KVS test channel detected in env; starting KVS WebRTC MASTER on {kvs_test_channel}")
                     # certificate paths used by this process (from SdkOptions). Use Sdk._property for runtime values.
                     ca_path = None
                     cert_path = None
@@ -467,7 +692,7 @@ def main():
                         cert_path = certs.get("SSLCertPath")
                         key_path = certs.get("SSLKeyPath")
                     except Exception as e:
-                        print("Firmware :: Failed to resolve certificate paths:", e)
+                        fw_error(f"Failed to resolve certificate paths: {e}")
 
                     # start in background thread so main loop continues
                     threading.Thread(
@@ -488,7 +713,7 @@ def main():
 
                 # File Upload Test: Run once at startup if enabled
                 if test_file_upload == True:
-                    print("Firmware :: Running file upload integration test...")
+                    fw_print("Running file upload integration test...")
                     time.sleep(2)  # Wait a bit for full initialization
 
                     # Test getting credentials using device certificate
@@ -496,15 +721,15 @@ def main():
 
                     # Test file upload
                     testFileUpload(Sdk)
-                    print("Firmware :: File upload test completed. Continuing with telemetry...")
+                    fw_print("File upload test completed. Continuing with telemetry...")
                     print("")
 
                 # Array Data Test: Run once at startup if enabled
                 if test_array_data == True:
-                    print("Firmware :: Running array data integration test...")
+                    fw_print("Running array data integration test...")
                     time.sleep(1)
                     sendAudioDataWithArray(Sdk)
-                    print("Firmware :: Array data test completed. Continuing with telemetry...")
+                    fw_print("Array data test completed. Continuing with telemetry...")
                     print("")
 
                 loop_counter = 0
@@ -516,8 +741,16 @@ def main():
                     * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z"
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
-                    sendAudioDataWithArray(Sdk)
-                    time.sleep(10)
+                    dObj = [{
+                        "uniqueId": UniqueId,
+                        "time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+                        "data": {
+                            "temperature": random.uniform(20.0, 35.0),
+                            "humidity": random.uniform(40.0, 80.0)
+                        }
+                    }]
+                    sendBackToSDK(Sdk, dObj)
+                    time.sleep(interval)
 
                 '''
                 Client Disconnect Method
