@@ -321,9 +321,9 @@ class mqttclient:
     def print_debuglog(self,msg,is_error):
         if self._isDebug:
             if is_error:
-                print("ERROR : {}".format(msg))
+                print("\033[91mMQTT_ERROR : {}\033[0m".format(msg))
             else:
-                print("SDK_MQTT_INFO : {}".format(msg))
+                print("\033[92mSDK_MQTT_INFO : {}\033[0m".format(msg))
     
     @property
     def isConnected(self):

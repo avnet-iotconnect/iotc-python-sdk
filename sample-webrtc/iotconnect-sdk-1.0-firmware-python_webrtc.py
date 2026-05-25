@@ -5,53 +5,41 @@
   * @modify : 2025
   * @brief  : Firmware sample demonstrating KVS WebRTC signaling channel support
   *
-  * Cloud command format to START WebRTC stream (ct=112):
-  *   {"v":"2.1","ct":112,"webrtc":true,"carn":"arn:aws:kinesisvideo:us-east-1:612324506361:channel/gg08oct-VS26061/1772098142292"}
+  * This firmware does NOT hardcode any channel ARN. Instead it relies on the
+  * SDK's device sync response which provides the video stream (VS) object:
   *
-  * Cloud command format to START GStreamer/PutMedia stream (ct=112):
-  *   {"v":"2.1","ct":112,"webrtc":false}
-  *   (or omit "webrtc" field entirely)
+  *   vs.as   = true/false   (auto-start flag)
+  *   vs.carn = "<ARN>"      (KVS signaling channel ARN)
+  *
+  * Behaviour:
+  *   - If vs.as=true and vs.carn is set  -> SDK auto-starts WebRTC MASTER
+  *   - If vs.as=true and vs.carn is empty -> SDK auto-starts GStreamer/PutMedia
+  *   - If vs.as=false -> SDK waits for ct=112 cloud command to start streaming
+  *
+  * Cloud command format to START WebRTC stream (ct=112):
+  *   {"v":"2.1","ct":112,"webrtc":true,"carn":"arn:aws:kinesisvideo:..."}
   *
   * Cloud command to STOP streaming (ct=113):
   *   {"v":"2.1","ct":113}
   *
-  * WebRTC flow:
-  *   1. Device receives ct=112 with webrtc=true and carn (channel ARN)
-  *   2. SDK calls get_kinesis_cer() to fetch temporary AWS credentials via IoT Core
-  *   3. Credentials are injected into a subprocess running kvsWebRTCClientMaster.py
-  *   4. kvsWebRTCClientMaster.py connects to the KVS signaling channel as MASTER
-  *   5. Viewer connects to the same channel and receives live video via WebRTC
-  *
-  * Device Identity Sync (VS object) auto-start behaviour:
-  *   vs.as=true, vs.carn="<ARN>"  -> auto-start WebRTC signaling channel on connect
-  *   vs.as=true, vs.carn=""       -> auto-start PutMedia (GStreamer/kvssink)
-  *   vs.as=false                  -> wait for ct=112 cloud command
-  *
-  * This file has CHANNEL_ARN and CREDENTIAL_ENDPOINT hardcoded for direct device testing.
-  * On startup it automatically starts WebRTC MASTER without needing a cloud command.
+  * The firmware developer only needs to:
+  *   1. Set the correct UniqueId (device identity)
+  *   2. Provide certificate paths
+  *   3. Configure CameraOptions for the device
+  *   4. The SDK handles everything else (credential fetch, WebRTC startup)
   ******************************************************************************
 """
 
 import sys
 import json
 import time
-import threading
 from iotconnect import IoTConnectSDK
 from datetime import datetime, timezone
-import os
-
-from iotconnect.client.awskinesisclient import start_kvs_webrtc_from_devicecert
-
-# ---------------------------------------------------------------------------
-# KVS WebRTC settings
-# ---------------------------------------------------------------------------
-CHANNEL_ARN         = "arn:aws:kinesisvideo:us-east-1:612324506361:channel/gg08oct-T160314WebRTC/1773745827647"
-CREDENTIAL_ENDPOINT = "https://c1x1ly2rjmzjow.credentials.iot.us-east-1.amazonaws.com/role-aliases/kinesisvideoalias/credentials"
 
 # ---------------------------------------------------------------------------
 # Device identity - update for your device
 # ---------------------------------------------------------------------------
-UniqueId = "reInvent"
+UniqueId = "WebRTC-D01"
 
 Sdk = None
 interval = 10
@@ -65,10 +53,9 @@ readyStatus = False
 # ---------------------------------------------------------------------------
 SdkOptions = {
     "certificate": {
-        # Update these paths to where your device certificates are stored
-        "SSLKeyPath"  : "/home/softweb/Ankit/webrtc/pk_VS26061.pem",       # device private key
-        "SSLCertPath" : "/home/softweb/Ankit/webrtc/cert_VS26061.crt",      # device certificate
-        "SSLCaPath"   : "/home/softweb/Ankit/AmazonrootCA.pem"             # Amazon Root CA
+        "SSLKeyPath"  : "C:/Users/ankit.sangani/Downloads/WebRTC-D01-certificates/pk_WebRTC-D01.pem",
+        "SSLCertPath" : "c:/Users/ankit.sangani/Downloads/WebRTC-D01-certificates/cert_WebRTC-D01.crt",
+        "SSLCaPath"   : "c:/SW-AnkitSangani/AWS/sdk/AmazonrootCA.pem"
     },
     "offlineStorage": {
         "disabled": False,
@@ -79,12 +66,12 @@ SdkOptions = {
     "skipValidation": False,
     "discoveryUrl": "https://discovery.iotconnect.io",
     "IsDebug": True,
-    "cpid": "mssql",
+    "cpid": "97FF86E8728645E9B89F7B07977E4B15",
     "sId": "",
-    "env": "preqa",
+    "env": "awspoc",
     "pf": "aws",
 
-    # Camera settings used when ct=112 triggers a stream
+    # Camera settings used when streaming is triggered
     "CameraOptions": {
         "deviceport": "/dev/video0",
         "video": {
@@ -104,7 +91,7 @@ def DeviceCallback(msg):
     """
     Receives device commands (ct=0) from the cloud.
     ct=112 (stream_start) and ct=113 (stream_stop) are handled internally
-    by the SDK - you do not need to handle them here.
+    by the SDK — you do NOT need to handle them here.
     """
     global Sdk
     print("Firmware :: --- Device Command Received ---")
@@ -194,52 +181,6 @@ def sendTelemetry(sdk):
 
 
 # ---------------------------------------------------------------------------
-# WebRTC startup helper
-#   Starts KVS WebRTC MASTER immediately on boot using the hardcoded
-#   CHANNEL_ARN and CREDENTIAL_ENDPOINT above.
-#   This is equivalent to the SDK receiving:
-#     {"v":"2.1","ct":112,"webrtc":true,"carn":"<CHANNEL_ARN>"}
-#   Or via device identity sync with vs.as=true and vs.carn=<CHANNEL_ARN>
-# ---------------------------------------------------------------------------
-
-def start_webrtc():
-    """Start KVS WebRTC MASTER using the hardcoded channel ARN and credential endpoint."""
-    certs = SdkOptions.get("certificate", {})
-    ca_path   = certs.get("SSLCaPath")
-    cert_path = certs.get("SSLCertPath")
-    key_path  = certs.get("SSLKeyPath")
-
-    # Extract thing name (uid) from the channel ARN.
-    # ARN format: arn:aws:kinesisvideo:{region}:{account}:channel/{channel-name}/{timestamp}
-    # e.g. arn:aws:kinesisvideo:us-east-1:612324506361:channel/gg08oct-T160314WebRTC/1773745827647
-    #      -> uid = "gg08oct-T160314WebRTC"
-    uid = CHANNEL_ARN.split('/')[-2]
-
-    print("Firmware :: -----------------------------------------------")
-    print("Firmware :: Starting KVS WebRTC MASTER")
-    print(f"Firmware ::   Channel ARN : {CHANNEL_ARN}")
-    print(f"Firmware ::   Cred EP     : {CREDENTIAL_ENDPOINT}")
-    print(f"Firmware ::   Thing name  : {uid}")
-    print(f"Firmware ::   Device cert : {cert_path}")
-    print("Firmware :: -----------------------------------------------")
-
-    threading.Thread(
-        target=start_kvs_webrtc_from_devicecert,
-        args=(
-            CHANNEL_ARN,
-            uid,
-            ca_path,
-            cert_path,
-            key_path,
-            CREDENTIAL_ENDPOINT,
-            SdkOptions.get("CameraOptions", {})
-            # region is auto-extracted from CHANNEL_ARN (us-east-1)
-        ),
-        daemon=True
-    ).start()
-
-
-# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -262,22 +203,24 @@ def main():
 
                 device_list = Sdk.Getdevice()
 
-                # Give SDK a moment to finish initialisation
-                time.sleep(2)
+                # No manual WebRTC start needed!
+                # The SDK automatically reads vs.carn from the device sync response
+                # and starts the WebRTC MASTER if vs.as=true and vs.carn is set.
+                #
+                # If vs.as=false, the SDK waits for a ct=112 cloud command.
+                # Either way, the firmware doesn't need to do anything for streaming.
 
-                # Start KVS WebRTC MASTER immediately using hardcoded channel ARN
-                start_webrtc()
-
-                # Main telemetry loop - also responds to ct=112/113 from the cloud
                 print("Firmware :: Entering telemetry loop...")
+                print("Firmware :: WebRTC will auto-start from device sync (vs.as + vs.carn)")
+                print("Firmware :: Or wait for ct=112 cloud command")
+
                 while True:
                     sendTelemetry(Sdk)
                     time.sleep(interval)
 
-                Sdk.Dispose()
-
             except KeyboardInterrupt:
                 print("Firmware :: Interrupted")
+                Sdk.Dispose()
                 sys.exit(0)
 
     except Exception as ex:
