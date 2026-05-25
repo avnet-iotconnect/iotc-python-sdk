@@ -33,29 +33,54 @@ KEY_FILE = f"{script_output_path}/{os.getenv('KEY_FILE')}"
 ROOT_CA = f"{script_output_path}/{os.getenv('ROOT_CA')}"
 AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION')
 
-class MediaTrackManager:
-    def __init__(self, file_path=None):
-        self.file_path = file_path
 
-    def create_media_track(self):
-        relay = MediaRelay()
-        options = {'framerate': '30', 'video_size': '1280x720'}
+class MediaTrackManager:
+    """
+    Manages a single media source (camera or file) and uses MediaRelay to
+    provide independent track subscriptions for each viewer.
+    Each viewer gets its own relay subscription so they don't interfere.
+    """
+    def __init__(self, file_path=None, video_width='640', video_height='480', framerate='15'):
+        self.file_path = file_path
+        self.video_width = video_width
+        self.video_height = video_height
+        self.framerate = framerate
+        self._relay = MediaRelay()
+        self._media = None
+        self._started = False
+
+    def _start_media(self):
+        """Start the media source once."""
+        if self._started:
+            return
+
+        options = {'framerate': self.framerate, 'video_size': f'{self.video_width}x{self.video_height}'}
         system = platform.system()
 
         if self.file_path and not os.path.exists(self.file_path):
             raise FileNotFoundError(f"The file {self.file_path} does not exist.")
 
         if system == 'Darwin':
-            media = MediaPlayer('default:default', format='avfoundation', options=options) if not self.file_path else MediaPlayer(self.file_path)
+            self._media = MediaPlayer('default:default', format='avfoundation', options=options) if not self.file_path else MediaPlayer(self.file_path)
         elif system == 'Windows':
-            media = MediaPlayer('video=Integrated Camera', format='dshow', options=options)
+            self._media = MediaPlayer('video=Integrated Camera', format='dshow', options=options)
         elif system == 'Linux':
-            media = MediaPlayer('/dev/video0', format='v4l2', options=options) if not self.file_path else MediaPlayer(self.file_path)
+            self._media = MediaPlayer('/dev/video0', format='v4l2', options=options) if not self.file_path else MediaPlayer(self.file_path)
         else:
             raise NotImplementedError(f"Unsupported platform: {system}")
 
-        audio_track = relay.subscribe(media.audio) if media.audio else None
-        video_track = relay.subscribe(media.video) if media.video else None
+        self._started = True
+        print(f"MediaTrackManager: Media source started ({self.video_width}x{self.video_height} @ {self.framerate}fps)")
+
+    def get_tracks_for_viewer(self):
+        """
+        Returns a fresh pair of (audio_track, video_track) relay subscriptions
+        for a new viewer. Each viewer gets independent tracks from the same source.
+        """
+        self._start_media()
+
+        audio_track = self._relay.subscribe(self._media.audio) if self._media.audio else None
+        video_track = self._relay.subscribe(self._media.video) if self._media.video else None
 
         if audio_track is None and video_track is None:
             raise ValueError("Neither audio nor video track could be created from the source.")
@@ -64,12 +89,18 @@ class MediaTrackManager:
 
 
 class KinesisVideoClient:
-    def __init__(self, client_id, region, channel_arn, credentials, file_path=None):
+    def __init__(self, client_id, region, channel_arn, credentials, file_path=None,
+                 video_width='640', video_height='480', framerate='15'):
         self.client_id = client_id
         self.region = region
         self.channel_arn = channel_arn
         self.credentials = credentials
-        self.media_manager = MediaTrackManager(file_path)
+        self.media_manager = MediaTrackManager(
+            file_path=file_path,
+            video_width=video_width,
+            video_height=video_height,
+            framerate=framerate
+        )
         if self.credentials:
             self.kinesisvideo = boto3.client('kinesisvideo',
                                              region_name=self.region,
@@ -82,12 +113,11 @@ class KinesisVideoClient:
         self.endpoints = None
         self.endpoint_https = None
         self.endpoint_wss = None
-        self.ice_servers = None
         self.PCMap = {}
         self.DCMap = {}
 
     def get_signaling_channel_endpoint(self):
-        if self.endpoints is None:  # Check if endpoints are already fetched
+        if self.endpoints is None:
             endpoints = self.kinesisvideo.get_signaling_channel_endpoint(
                 ChannelARN=self.channel_arn,
                 SingleMasterChannelEndpointConfiguration={'Protocols': ['HTTPS', 'WSS'], 'Role': 'MASTER'}
@@ -100,34 +130,45 @@ class KinesisVideoClient:
             self.endpoint_wss = self.endpoints['WSS']
         return self.endpoints
 
-    def prepare_ice_servers(self):
-        if self.credentials:
-            kinesis_video_signaling = boto3.client('kinesis-video-signaling',
-                                                   endpoint_url=self.endpoint_https,
-                                                   region_name=self.region,
-                                                   aws_access_key_id=self.credentials['accessKeyId'],
-                                                   aws_secret_access_key=self.credentials['secretAccessKey'],
-                                                   aws_session_token=self.credentials['sessionToken']
-                                                   )
-        else:
-            kinesis_video_signaling = boto3.client('kinesis-video-signaling',
-                                                   endpoint_url=self.endpoint_https,
-                                                   region_name=self.region)
-        ice_server_config = kinesis_video_signaling.get_ice_server_config(
-            ChannelARN=self.channel_arn,
-            ClientId='MASTER'
-        )
+    def fetch_fresh_ice_servers(self):
+        """
+        Fetch fresh ICE/TURN server credentials from KVS for each new viewer.
+        TURN credentials are session-bound, so each viewer needs its own set.
+        """
+        try:
+            if self.credentials:
+                kinesis_video_signaling = boto3.client('kinesis-video-signaling',
+                                                       endpoint_url=self.endpoint_https,
+                                                       region_name=self.region,
+                                                       aws_access_key_id=self.credentials['accessKeyId'],
+                                                       aws_secret_access_key=self.credentials['secretAccessKey'],
+                                                       aws_session_token=self.credentials['sessionToken']
+                                                       )
+            else:
+                kinesis_video_signaling = boto3.client('kinesis-video-signaling',
+                                                       endpoint_url=self.endpoint_https,
+                                                       region_name=self.region)
 
-        iceServers = [RTCIceServer(urls=f'stun:stun.kinesisvideo.{self.region}.amazonaws.com:443')]
-        for iceServer in ice_server_config['IceServerList']:
-            iceServers.append(RTCIceServer(
-                urls=iceServer['Uris'],
-                username=iceServer['Username'],
-                credential=iceServer['Password']
-            ))
-        self.ice_servers = iceServers
+            ice_server_config = kinesis_video_signaling.get_ice_server_config(
+                ChannelARN=self.channel_arn,
+                ClientId='MASTER'
+            )
 
-        return self.ice_servers
+            iceServers = [RTCIceServer(urls=f'stun:stun.kinesisvideo.{self.region}.amazonaws.com:443')]
+            for iceServer in ice_server_config['IceServerList']:
+                iceServers.append(RTCIceServer(
+                    urls=iceServer['Uris'],
+                    username=iceServer['Username'],
+                    credential=iceServer['Password']
+                ))
+
+            print(f"Fetched fresh ICE servers: {len(iceServers)} servers (1 STUN + {len(iceServers)-1} TURN)")
+            return iceServers
+
+        except Exception as e:
+            print(f"Error fetching ICE servers: {e}")
+            # Fallback to STUN only
+            return [RTCIceServer(urls=f'stun:stun.kinesisvideo.{self.region}.amazonaws.com:443')]
 
     def create_wss_url(self):
         if self.credentials:
@@ -165,8 +206,32 @@ class KinesisVideoClient:
             'recipientClientId': client_id,
         })
 
-    async def handle_sdp_offer(self, payload, client_id, audio_track, video_track, websocket):
-        iceServers = self.prepare_ice_servers()
+    async def cleanup_peer(self, client_id):
+        """Clean up a disconnected peer's resources."""
+        if client_id in self.PCMap:
+            try:
+                await self.PCMap[client_id].close()
+            except Exception:
+                pass
+            del self.PCMap[client_id]
+        if client_id in self.DCMap:
+            del self.DCMap[client_id]
+        print(f"[{client_id}] Peer cleaned up. Active viewers: {len(self.PCMap)}")
+
+    async def handle_sdp_offer(self, payload, client_id, websocket):
+        """
+        Handle an SDP offer from a viewer.
+        - Fetches FRESH ICE servers for this specific viewer
+        - Creates a new relay subscription for media tracks
+        - Cleans up any existing connection for this client_id
+        """
+        # Clean up existing connection for this viewer (reconnect scenario)
+        if client_id in self.PCMap:
+            print(f"[{client_id}] Viewer reconnecting, cleaning up old connection...")
+            await self.cleanup_peer(client_id)
+
+        # Fetch fresh ICE/TURN credentials for this viewer
+        iceServers = self.fetch_fresh_ice_servers()
         configuration = RTCConfiguration(iceServers=iceServers)
         pc = RTCPeerConnection(configuration=configuration)
         self.DCMap[client_id] = pc.createDataChannel('kvsDataChannel')
@@ -175,12 +240,20 @@ class KinesisVideoClient:
         @pc.on('connectionstatechange')
         async def on_connectionstatechange():
             if client_id in self.PCMap:
-                print(f'[{client_id}] connectionState: {self.PCMap[client_id].connectionState}')
+                state = self.PCMap[client_id].connectionState
+                print(f'[{client_id}] connectionState: {state}')
+                # Auto-cleanup on disconnect/failure
+                if state in ('failed', 'closed'):
+                    await self.cleanup_peer(client_id)
 
         @pc.on('iceconnectionstatechange')
         async def on_iceconnectionstatechange():
             if client_id in self.PCMap:
-                print(f'[{client_id}] iceConnectionState: {self.PCMap[client_id].iceConnectionState}')
+                state = self.PCMap[client_id].iceConnectionState
+                print(f'[{client_id}] iceConnectionState: {state}')
+                # Cleanup on ICE failure/disconnect
+                if state in ('failed', 'disconnected', 'closed'):
+                    await self.cleanup_peer(client_id)
 
         @pc.on('icegatheringstatechange')
         async def on_icegatheringstatechange():
@@ -200,27 +273,29 @@ class KinesisVideoClient:
         async def on_datachannel(channel):
             @channel.on('message')
             def on_message(dc_message):
-                for i in self.PCMap:
-                    if self.DCMap[i].readyState == 'open':
+                for i in list(self.PCMap.keys()):
+                    if i in self.DCMap and self.DCMap[i].readyState == 'open':
                         try:
                             self.DCMap[i].send(f'broadcast: {dc_message}')
                         except Exception as e:
-                            print(f"Error sending message: {e}")
-                    else:
-                        print(f"Data channel {i} is not open. Current state: {self.DCMap[i].readyState}")
+                            print(f"Error sending message to {i}: {e}")
                 print(f'[{channel.label}] datachannel_message: {dc_message}')
 
-        if audio_track:
-            self.PCMap[client_id].addTrack(audio_track)
-        if video_track:
-            self.PCMap[client_id].addTrack(video_track)
+        # Get fresh relay-subscribed tracks for this viewer
+        audio_track, video_track = self.media_manager.get_tracks_for_viewer()
 
-        await self.PCMap[client_id].setRemoteDescription(RTCSessionDescription(
+        if audio_track:
+            pc.addTrack(audio_track)
+        if video_track:
+            pc.addTrack(video_track)
+
+        await pc.setRemoteDescription(RTCSessionDescription(
             sdp=payload['sdp'],
             type=payload['type']
         ))
-        await self.PCMap[client_id].setLocalDescription(await self.PCMap[client_id].createAnswer())
-        await websocket.send(self.encode_msg('SDP_ANSWER', self.PCMap[client_id].localDescription, client_id))
+        await pc.setLocalDescription(await pc.createAnswer())
+        await websocket.send(self.encode_msg('SDP_ANSWER', pc.localDescription, client_id))
+        print(f"[{client_id}] SDP answer sent. Active viewers: {len(self.PCMap)}")
 
     async def handle_ice_candidate(self, payload, client_id):
         if client_id in self.PCMap:
@@ -230,7 +305,6 @@ class KinesisVideoClient:
             await self.PCMap[client_id].addIceCandidate(candidate)
 
     async def signaling_client(self):
-        audio_track, video_track = self.media_manager.create_media_track()
         self.get_signaling_channel_endpoint()
         wss_url = self.create_wss_url()
 
@@ -238,14 +312,26 @@ class KinesisVideoClient:
             try:
                 async with websockets.connect(wss_url) as websocket:
                     print('Signaling Server Connected!')
+                    print(f'Channel: {self.channel_arn}')
+                    print(f'Region: {self.region}')
                     async for message in websocket:
                         msg_type, payload, client_id = self.decode_msg(message)
                         if msg_type == 'SDP_OFFER':
-                            await self.handle_sdp_offer(payload, client_id, audio_track, video_track, websocket)
+                            await self.handle_sdp_offer(payload, client_id, websocket)
                         elif msg_type == 'ICE_CANDIDATE':
                             await self.handle_ice_candidate(payload, client_id)
             except websockets.ConnectionClosed:
                 print('Connection closed, reconnecting...')
+                # Clean up all peers on disconnect
+                for cid in list(self.PCMap.keys()):
+                    await self.cleanup_peer(cid)
+                wss_url = self.create_wss_url()
+                continue
+            except Exception as e:
+                print(f'Signaling error: {e}, reconnecting in 3s...')
+                await asyncio.sleep(3)
+                for cid in list(self.PCMap.keys()):
+                    await self.cleanup_peer(cid)
                 wss_url = self.create_wss_url()
                 continue
 
@@ -271,7 +357,7 @@ class IoTCredentialProvider:
                 headers=headers,
                 cert=(self.cert_path, self.key_path),
                 verify=self.root_ca_path,
-                timeout=(10, 20)  # 10 seconds for connecting, 20 seconds for reading
+                timeout=(10, 20)
             )
 
             if response.status_code == 200:
@@ -296,6 +382,9 @@ async def main():
     parser.add_argument('--channel-arn', type=str, required=True, help='the ARN of the signaling channel')
     parser.add_argument('--file-path', type=str, help='the path to video file to play (optional)')
     parser.add_argument('--use-device-certs', action='store_true', help='Use system certificates')
+    parser.add_argument('--width', type=str, default='640', help='Video width (default: 640)')
+    parser.add_argument('--height', type=str, default='480', help='Video height (default: 480)')
+    parser.add_argument('--framerate', type=str, default='15', help='Video framerate (default: 15)')
     args = parser.parse_args()
 
     if not AWS_DEFAULT_REGION:
@@ -318,11 +407,14 @@ async def main():
         credentials = None
 
     client = KinesisVideoClient(
-        client_id= "MASTER",
+        client_id="MASTER",
         region=AWS_DEFAULT_REGION,
         channel_arn=args.channel_arn,
         credentials=credentials,
-        file_path=args.file_path
+        file_path=args.file_path,
+        video_width=args.width,
+        video_height=args.height,
+        framerate=args.framerate
     )
 
     await run_client(client)
