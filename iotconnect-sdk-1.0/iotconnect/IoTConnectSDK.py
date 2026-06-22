@@ -1097,7 +1097,7 @@ class IoTConnectSDK:
         except Exception as ex:
             raise(ex)
 
-    def sendAckCmd(self,ackGuid, status, msg,childId=None):
+    def sendAckCmd(self, ackGuid, status, msg, childId=None):
         if self._dispose == True:
             raise(IoTConnectSDKException("00", "you are not able to call this function"))
         if self._is_process_started == False:
@@ -1375,7 +1375,7 @@ class IoTConnectSDK:
             self.print_debuglog("Get Attributes Error",1)
             return None
 
-    def createChildDevice(self, deviceId, deviceTag, displayName, callback=None):
+    def createChildDevice(self, deviceId, deviceTag, displayName, customProperties=None, callback=None):
         try:
             if type(deviceId) != str and type(deviceTag) != str and type(displayName) != str:
                 raise(IoTConnectSDKException("00", "Child Device deviceId|deviceTag|displayName all should be string"))
@@ -1390,6 +1390,8 @@ class IoTConnectSDK:
             template["d"]["dn"]=displayName
             template["d"]["id"]=deviceId
             template["d"]["tg"]=deviceTag
+            if customProperties != None and type(customProperties) == list:
+                template["d"]["p"] = customProperties
             if callback:
                 self._listner_creatchild_callback=callback
             if self._client:
