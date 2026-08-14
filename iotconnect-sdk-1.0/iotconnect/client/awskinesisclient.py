@@ -197,7 +197,7 @@ def start_gstreamer(stream_name, access_key, secret_key, session_token, CameraOp
             f"session-token={session_token} aws-region={region}"
         )
 
-    print(f"GStreamer command:\n{gst_command}")
+    print(f"GStreamer command: gst-launch-1.0 -v executed")
 
     try:
         streampro = subprocess.Popen(
@@ -338,7 +338,6 @@ def start_kvs_webrtc_from_devicecert(channel_arn, uid, cacert_path, devicecert_p
         # re-fetch its own credentials via the cert/role-alias env vars above instead of
         # using the ones already fetched and injected by this function.
         cmd = [sys.executable, KVS_MASTER_SCRIPT, "--channel-arn", channel_arn]
-        print(f"Using KVS Python sample script: {KVS_MASTER_SCRIPT}")
     else:
         print("❌ No KVS master client found. Set KVS_MASTER_CLIENT_EXE or place kvsWebRTCClientMaster.py in this folder.")
         return
@@ -361,8 +360,8 @@ def start_kvs_webrtc_from_devicecert(channel_arn, uid, cacert_path, devicecert_p
         # "30/1" would raise ValueError, so take the numerator only.
         env["CAMERA_FRAMERATE"] = str(video["framerate"]).split("/")[0]
 
-    print("Starting KVS WebRTC MASTER client (env creds injected):")
-    print(" ".join(cmd))
+    print("Starting KVS WebRTC client")
+    # print(" ".join(cmd))
 
     try:
         streampro = subprocess.Popen(
@@ -390,7 +389,7 @@ def start_kvs_webrtc_from_devicecert(channel_arn, uid, cacert_path, devicecert_p
     except FileNotFoundError:
         print("❌ KVS WebRTC master client binary/script not found.")
     except Exception as err:
-        print(f"Error while starting KVS WebRTC master client: {err}")
+        print(f"Error while starting KVS WebRTC client: {err}")
 
     return streampro
 

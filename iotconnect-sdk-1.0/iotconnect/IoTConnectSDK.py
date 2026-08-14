@@ -728,7 +728,7 @@ class IoTConnectSDK:
                             else:
                                 # webrtc=false or absent -> start existing GStreamer kvssink pipeline
                                 try:
-                                    access_key_id, stream_key, sessionToken = get_kinesis_cer(
+                                    access_key_id, stream_key, sessionToken, _expiration = get_kinesis_cer(
                                         self._data_json["p"]["id"],
                                         self._property["certificate"]["SSLCaPath"],
                                         self._property["certificate"]["SSLCertPath"],
@@ -1068,7 +1068,7 @@ class IoTConnectSDK:
                             else:
                                 # carn is empty -> auto-start PutMedia (GStreamer/kvssink)
                                 print("Video_Stream_Task : Auto Streaming ON (PutMedia)")
-                                access_key_id, stream_key, sessionToken = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
+                                access_key_id, stream_key, sessionToken, _expiration = get_kinesis_cer(self._data_json["p"]["id"], self._property["certificate"]["SSLCaPath"], self._property["certificate"]["SSLCertPath"], self._property["certificate"]["SSLKeyPath"], self._aws_credential_endpoint_URL)
                                 print("Video_Stream_Task : Kinesis video stream credentials received")
 
                                 stream_id_concat = self._data_json["p"]["id"]
