@@ -4,7 +4,13 @@ import boto3
 import json
 import platform
 import websockets
-from aiortc import RTCConfiguration, RTCIceServer, RTCPeerConnection, RTCSessionDescription
+from aiortc import (
+    RTCConfiguration,
+    RTCIceServer,
+    RTCPeerConnection,
+    RTCSessionDescription,
+    MediaStreamTrack,
+)
 from aiortc.contrib.media import MediaBlackhole, MediaPlayer, MediaRelay
 from aiortc.sdp import candidate_from_sdp
 from base64 import b64decode, b64encode
@@ -17,68 +23,168 @@ import sys
 import logging
 import requests
 from typing import Dict, Optional
-from dotenv import load_dotenv
+from datetime import datetime, timedelta, timezone
+
+import aioice.ice
+
+# aioice's RFC 7675 consent-freshness check sends a STUN request every ~5s with
+# zero retransmissions and tears the connection down after 6 consecutive failures
+# (~30s) - too little slack for a device whose event loop briefly stalls under
+# encoding load. Raise the failure budget so a transient stall doesn't kill an
+# otherwise-healthy connection. See aiortc/aioice#58.
+aioice.ice.CONSENT_FAILURES = int(os.getenv('CONSENT_FAILURES', '60'))
 
 logging.basicConfig(level=logging.INFO, stream=sys.stdout)
 
-# Construct script_output_path
-script_output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../infra/script-output')
+print("### CUSTOM KVS WEBRTC CODE LOADED ..........")
 
-load_dotenv(dotenv_path=f"{script_output_path}/.env")  # take environment variables from .env.
-IOT_CREDENTIAL_PROVIDER = os.getenv('IOT_CREDENTIAL_PROVIDER')
-THING_NAME = os.getenv('THING_NAME')
-ROLE_ALIAS = os.getenv('ROLE_ALIAS')
-CERT_FILE = f"{script_output_path}/{os.getenv('CERT_FILE')}"
-KEY_FILE = f"{script_output_path}/{os.getenv('KEY_FILE')}"
-ROOT_CA = f"{script_output_path}/{os.getenv('ROOT_CA')}"
-AWS_DEFAULT_REGION = os.getenv('AWS_DEFAULT_REGION')
+class DebugVideoTrack(MediaStreamTrack):
+    """
+    Thin wrapper around a video track that tells us whether
+    frames are still flowing through a particular point.
+    """
+
+    kind = "video"
+
+    def __init__(self, track, name):
+        super().__init__()
+        self.track = track
+        self.name = name
+        self.frame_count = 0
+        self.last_log = 0
+
+    async def recv(self):
+        frame = await self.track.recv()
+
+        self.frame_count += 1
+
+        # Log every 30 frames (~1 second at 30 FPS)
+        if self.frame_count - self.last_log >= 30:
+            self.last_log = self.frame_count
+
+            print(
+                f"[VIDEO_DEBUG] {self.name}: "
+                f"frame={self.frame_count}, "
+                f"pts={frame.pts}, "
+                f"time_base={frame.time_base}"
+            )
+
+        return frame
 
 class MediaTrackManager:
     def __init__(self, file_path=None):
         self.file_path = file_path
+        self.device = os.getenv('CAMERA_DEVICE')
+        self.width = int(os.getenv('CAMERA_WIDTH', '1280'))
+        self.height = int(os.getenv('CAMERA_HEIGHT', '720'))
+        self.framerate = int(os.getenv('CAMERA_FRAMERATE', '30'))
+        self.input_format = os.getenv('CAMERA_INPUT_FORMAT', 'mjpeg')
+        self.relay = MediaRelay()
+        self.media = None
 
-    def create_media_track(self):
-        relay = MediaRelay()
-        options = {'framerate': '30', 'video_size': '1280x720'}
+    def _create_media_source(self):
+        options = {
+            'framerate': str(self.framerate),
+            'video_size': f'{self.width}x{self.height}',
+            'input_format': self.input_format,
+        }
         system = platform.system()
 
         if self.file_path and not os.path.exists(self.file_path):
             raise FileNotFoundError(f"The file {self.file_path} does not exist.")
 
         if system == 'Darwin':
-            media = MediaPlayer('default:default', format='avfoundation', options=options) if not self.file_path else MediaPlayer(self.file_path)
+            self.media = (
+                MediaPlayer('default:default', format='avfoundation', options=options)
+                if not self.file_path
+                else MediaPlayer(self.file_path)
+            )
         elif system == 'Windows':
-            media = MediaPlayer('video=Integrated Camera', format='dshow', options=options)
+            self.media = MediaPlayer(
+                self.device or 'video=Integrated Camera',
+                format='dshow',
+                options=options
+            )
         elif system == 'Linux':
-            media = MediaPlayer('/dev/video0', format='v4l2', options=options) if not self.file_path else MediaPlayer(self.file_path)
+            self.media = (
+            MediaPlayer(self.device or '/dev/video0', format='v4l2', options=options)
+            if not self.file_path
+            else MediaPlayer(self.file_path)
+        )
+
+      
         else:
             raise NotImplementedError(f"Unsupported platform: {system}")
 
-        audio_track = relay.subscribe(media.audio) if media.audio else None
-        video_track = relay.subscribe(media.video) if media.video else None
+        if self.media.audio is None and self.media.video is None:
+            raise ValueError(
+                "Neither audio nor video track could be created from the source."
+            )
+
+        print(
+            f"Media source created: audio={self.media.audio is not None}, "
+            f"video={self.media.video is not None}"
+        )
+
+    def create_media_track_for_viewer(self):
+
+        if self.media is None:
+            self._create_media_source()
+
+        audio_track = (
+            self.relay.subscribe(self.media.audio)
+            if self.media.audio
+            else None
+        )
+
+        source_video = self.media.video
+
+        if source_video:
+            source_video = DebugVideoTrack(
+                source_video,
+                "SOURCE"
+            )
+
+        video_track = (
+            self.relay.subscribe(source_video)
+            if source_video
+            else None
+        )
+
+        if video_track:
+            video_track = DebugVideoTrack(
+                video_track,
+                "RELAY_TO_WEBRTC"
+            )
 
         if audio_track is None and video_track is None:
-            raise ValueError("Neither audio nor video track could be created from the source.")
+            raise ValueError(
+                "Neither audio nor video track could be created "
+                "from the source."
+            )
+
+        print(
+            f"Created media relay proxy for viewer: "
+            f"audio={audio_track is not None}, "
+            f"video={video_track is not None}"
+        )
 
         return audio_track, video_track
 
 
 class KinesisVideoClient:
-    def __init__(self, client_id, region, channel_arn, credentials, file_path=None):
+    def __init__(self, client_id, region, channel_arn, credentials, file_path=None, credential_provider=None):
         self.client_id = client_id
         self.region = region
         self.channel_arn = channel_arn
         self.credentials = credentials
+        self.credential_provider = credential_provider
+        self.credentials_expiration = None
+        if credentials and credentials.get('expiration'):
+            self.credentials_expiration = datetime.fromisoformat(
+                credentials['expiration'].replace('Z', '+00:00')
+            )
         self.media_manager = MediaTrackManager(file_path)
-        if self.credentials:
-            self.kinesisvideo = boto3.client('kinesisvideo',
-                                             region_name=self.region,
-                                             aws_access_key_id=self.credentials['accessKeyId'],
-                                             aws_secret_access_key=self.credentials['secretAccessKey'],
-                                             aws_session_token=self.credentials['sessionToken']
-                                             )
-        else:
-            self.kinesisvideo = boto3.client('kinesisvideo', region_name=self.region)
         self.endpoints = None
         self.endpoint_https = None
         self.endpoint_wss = None
@@ -86,9 +192,38 @@ class KinesisVideoClient:
         self.PCMap = {}
         self.DCMap = {}
 
+    def _refresh_credentials_if_needed(self):
+        # IoT role-alias temporary credentials expire (typically ~1hr). Without
+        # this, a long-running Master starts failing every API call and every
+        # reconnect once the initial credentials go stale.
+        if not self.credential_provider:
+            return
+        buffer = timedelta(seconds=int(os.getenv('CRED_REFRESH_BUFFER_SECONDS', '300')))
+        if self.credentials_expiration is None or datetime.now(timezone.utc) >= (self.credentials_expiration - buffer):
+            new_credentials = self.credential_provider.get_temporary_credentials()
+            if new_credentials:
+                self.credentials = new_credentials
+                self.credentials_expiration = datetime.fromisoformat(
+                    self.credentials['expiration'].replace('Z', '+00:00')
+                )
+            else:
+                print("Warning: failed to refresh IoT credentials, continuing with existing credentials")
+
+    def _client_kwargs(self):
+        self._refresh_credentials_if_needed()
+        if self.credentials:
+            return {
+                'region_name': self.region,
+                'aws_access_key_id': self.credentials['accessKeyId'],
+                'aws_secret_access_key': self.credentials['secretAccessKey'],
+                'aws_session_token': self.credentials['sessionToken'],
+            }
+        return {'region_name': self.region}
+
     def get_signaling_channel_endpoint(self):
         if self.endpoints is None:  # Check if endpoints are already fetched
-            endpoints = self.kinesisvideo.get_signaling_channel_endpoint(
+            kinesisvideo = boto3.client('kinesisvideo', **self._client_kwargs())
+            endpoints = kinesisvideo.get_signaling_channel_endpoint(
                 ChannelARN=self.channel_arn,
                 SingleMasterChannelEndpointConfiguration={'Protocols': ['HTTPS', 'WSS'], 'Role': 'MASTER'}
             )
@@ -101,18 +236,9 @@ class KinesisVideoClient:
         return self.endpoints
 
     def prepare_ice_servers(self):
-        if self.credentials:
-            kinesis_video_signaling = boto3.client('kinesis-video-signaling',
-                                                   endpoint_url=self.endpoint_https,
-                                                   region_name=self.region,
-                                                   aws_access_key_id=self.credentials['accessKeyId'],
-                                                   aws_secret_access_key=self.credentials['secretAccessKey'],
-                                                   aws_session_token=self.credentials['sessionToken']
-                                                   )
-        else:
-            kinesis_video_signaling = boto3.client('kinesis-video-signaling',
-                                                   endpoint_url=self.endpoint_https,
-                                                   region_name=self.region)
+        kinesis_video_signaling = boto3.client('kinesis-video-signaling',
+                                               endpoint_url=self.endpoint_https,
+                                               **self._client_kwargs())
         ice_server_config = kinesis_video_signaling.get_ice_server_config(
             ChannelARN=self.channel_arn,
             ClientId='MASTER'
@@ -130,6 +256,7 @@ class KinesisVideoClient:
         return self.ice_servers
 
     def create_wss_url(self):
+        self._refresh_credentials_if_needed()
         if self.credentials:
             auth_credentials = Credentials(
                 access_key=self.credentials['accessKeyId'],
@@ -165,7 +292,11 @@ class KinesisVideoClient:
             'recipientClientId': client_id,
         })
 
-    async def handle_sdp_offer(self, payload, client_id, audio_track, video_track, websocket):
+    async def handle_sdp_offer(self, payload, client_id, websocket):
+        # Create a separate MediaRelay proxy for this viewer while sharing
+        # the same underlying MediaPlayer/camera source.
+        audio_track, video_track = self.media_manager.create_media_track_for_viewer()
+
         iceServers = self.prepare_ice_servers()
         configuration = RTCConfiguration(iceServers=iceServers)
         pc = RTCPeerConnection(configuration=configuration)
@@ -174,13 +305,20 @@ class KinesisVideoClient:
 
         @pc.on('connectionstatechange')
         async def on_connectionstatechange():
-            if client_id in self.PCMap:
-                print(f'[{client_id}] connectionState: {self.PCMap[client_id].connectionState}')
+            #if client_id in self.PCMap:
+                #print(f'[{client_id}] connectionState: {self.PCMap[client_id].connectionState}')
+            print("on connection state change event...")
+            print(
+                f"[{client_id}] "
+                f"connectionState={pc.connectionState}, "
+                f"iceConnectionState={pc.iceConnectionState}, "
+                f"signalingState={pc.signalingState}"
+            )
 
         @pc.on('iceconnectionstatechange')
         async def on_iceconnectionstatechange():
-            if client_id in self.PCMap:
-                print(f'[{client_id}] iceConnectionState: {self.PCMap[client_id].iceConnectionState}')
+            print(f"[{client_id}] ICE={pc.iceConnectionState}")
+
 
         @pc.on('icegatheringstatechange')
         async def on_icegatheringstatechange():
@@ -230,7 +368,6 @@ class KinesisVideoClient:
             await self.PCMap[client_id].addIceCandidate(candidate)
 
     async def signaling_client(self):
-        audio_track, video_track = self.media_manager.create_media_track()
         self.get_signaling_channel_endpoint()
         wss_url = self.create_wss_url()
 
@@ -241,7 +378,7 @@ class KinesisVideoClient:
                     async for message in websocket:
                         msg_type, payload, client_id = self.decode_msg(message)
                         if msg_type == 'SDP_OFFER':
-                            await self.handle_sdp_offer(payload, client_id, audio_track, video_track, websocket)
+                            await self.handle_sdp_offer(payload, client_id, websocket)
                         elif msg_type == 'ICE_CANDIDATE':
                             await self.handle_ice_candidate(payload, client_id)
             except websockets.ConnectionClosed:
@@ -295,34 +432,63 @@ async def main():
     parser = argparse.ArgumentParser(description='Kinesis Video Streams WebRTC Client')
     parser.add_argument('--channel-arn', type=str, required=True, help='the ARN of the signaling channel')
     parser.add_argument('--file-path', type=str, help='the path to video file to play (optional)')
-    parser.add_argument('--use-device-certs', action='store_true', help='Use system certificates')
+    parser.add_argument('--aws-region', type=str, default=os.getenv('AWS_DEFAULT_REGION'),
+                         help='AWS region (or set AWS_DEFAULT_REGION)')
+    parser.add_argument('--use-device-certs', action='store_true',
+                         help='Fetch temporary credentials via AWS IoT cert + Role Alias instead of the default AWS credential chain')
+    parser.add_argument('--iot-credential-provider', type=str, default=os.getenv('IOT_CREDENTIAL_PROVIDER'),
+                         help='AWS IoT credentials-provider endpoint host (or set IOT_CREDENTIAL_PROVIDER)')
+    parser.add_argument('--thing-name', type=str, default=os.getenv('THING_NAME'),
+                         help='AWS IoT Thing name (or set THING_NAME)')
+    parser.add_argument('--role-alias', type=str, default=os.getenv('ROLE_ALIAS'),
+                         help='AWS IoT Role Alias name (or set ROLE_ALIAS)')
+    parser.add_argument('--cert-file', type=str, default=os.getenv('CERT_FILE'),
+                         help='Path to the device certificate (or set CERT_FILE)')
+    parser.add_argument('--key-file', type=str, default=os.getenv('KEY_FILE'),
+                         help='Path to the device private key (or set KEY_FILE)')
+    parser.add_argument('--root-ca', type=str, default=os.getenv('ROOT_CA'),
+                         help='Path to the Amazon Root CA certificate (or set ROOT_CA)')
     args = parser.parse_args()
 
-    if not AWS_DEFAULT_REGION:
-        raise Exception("AWS_DEFAULT_REGION environment variable should be configured.\ni.e. export AWS_DEFAULT_REGION=us-west-2")
+    if not args.aws_region:
+        raise SystemExit("--aws-region is required (or set AWS_DEFAULT_REGION).")
 
     if args.use_device_certs:
+        required = {
+            "--iot-credential-provider": args.iot_credential_provider,
+            "--thing-name": args.thing_name,
+            "--role-alias": args.role_alias,
+            "--cert-file": args.cert_file,
+            "--key-file": args.key_file,
+            "--root-ca": args.root_ca,
+        }
+        missing = [name for name, value in required.items() if not value]
+        if missing:
+            raise SystemExit(f"Missing required values for --use-device-certs: {', '.join(missing)}")
+
         provider = IoTCredentialProvider(
-            endpoint=IOT_CREDENTIAL_PROVIDER,
-            region=AWS_DEFAULT_REGION,
-            thing_name=THING_NAME,
-            role_alias=ROLE_ALIAS,
-            cert_path=CERT_FILE,
-            key_path=KEY_FILE,
-            root_ca_path=ROOT_CA
+            endpoint=args.iot_credential_provider,
+            region=args.aws_region,
+            thing_name=args.thing_name,
+            role_alias=args.role_alias,
+            cert_path=args.cert_file,
+            key_path=args.key_file,
+            root_ca_path=args.root_ca
         )
         credentials = provider.get_temporary_credentials()
         if not credentials:
             raise Exception("Failed to obtain temporary credentials")
     else:
+        provider = None
         credentials = None
 
     client = KinesisVideoClient(
         client_id= "MASTER",
-        region=AWS_DEFAULT_REGION,
+        region=args.aws_region,
         channel_arn=args.channel_arn,
         credentials=credentials,
-        file_path=args.file_path
+        file_path=args.file_path,
+        credential_provider=provider,
     )
 
     await run_client(client)
