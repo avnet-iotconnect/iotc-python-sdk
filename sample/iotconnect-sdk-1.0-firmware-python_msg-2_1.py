@@ -43,8 +43,8 @@ ACKdirect=[]
 device_list=[]
 readyStatus = False
 file_upload_counter = 0
-test_file_upload = True  # Set to True to enable file upload testing
-test_array_data = True  # Set to True to enable array data testing
+test_file_upload = False  # Set to True to enable file upload testing
+test_array_data = False  # Set to True to enable array data testing
 
 """
 * sdkOptions is optional. Mandatory for "certificate" X.509 device authentication type
@@ -516,7 +516,8 @@ def main():
                     * "time" : Date format should be as defined //"2021-01-24T10:06:17.857Z"
                     * "data" : JSON data type format // {"temperature": 15.55, "gyroscope" : { 'x' : -1.2 }}
                     """
-                    sendAudioDataWithArray(Sdk)
+                    if test_array_data:
+                        sendAudioDataWithArray(Sdk)
                     time.sleep(10)
 
                 '''
