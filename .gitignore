@@ -10,3 +10,4 @@ iotconnect-sdk-1.0/dist
 iotconnect-sdk-1.0/iotconnect_sdk.egg-info
 iotconnect-sdk-1.0/*/__pycache__
 iotconnect-sdk-1.0/*/*/__pycache__
+tests/*

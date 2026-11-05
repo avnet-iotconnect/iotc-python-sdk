@@ -1,0 +1,36 @@
+{
+    "_comment": "Constructed example, not exported from a live platform. Follows the export format of the other templates in this folder plus the per-attribute and per-command 'tag' fields of the platform's gateway template format. One gateway template covers the gateway and all its children; children inherit it and use the attributes of their tag.",
+    "code": "PUMPGW01",
+    "name": "PumpStationGateway",
+    "authType": 2,
+    "tag": "gw",
+    "attributes": [
+        {"name": "uptime", "type": "INTEGER", "tag": "gw", "description": "seconds since boot", "unit": "s", "aggregateTypes": []},
+        {"name": "cpu", "type": "DECIMAL", "tag": "gw", "description": "", "unit": "%", "aggregateTypes": []},
+        {"name": "flow", "type": "DECIMAL", "tag": "pump", "description": "", "unit": "l/min", "aggregateTypes": []},
+        {"name": "running", "type": "BIT", "tag": "pump", "description": "", "unit": "", "aggregateTypes": []},
+        {"name": "motor", "type": "OBJECT", "tag": "pump", "description": "",
+         "childs": [
+             {"name": "rpm", "type": "INTEGER", "description": "", "unit": "rpm"},
+             {"name": "temp", "type": "DECIMAL", "description": "", "unit": "C"}
+         ],
+         "aggregateTypes": []},
+        {"name": "level", "type": "INTEGER", "tag": "tank", "dataValidation": "0to100", "description": "", "unit": "%", "aggregateTypes": []},
+        {"name": "alarm", "type": "BOOLEAN", "tag": "tank", "description": "", "unit": "", "aggregateTypes": []}
+    ],
+    "settings": [
+        {"name": "ReportInterval", "type": "INTEGER", "localName": "report_interval", "defaultValue": "60", "isReadOnly": false}
+    ],
+    "commands": [
+        {"name": "Reboot", "command": "reboot", "requiredParam": false, "requiredAck": true, "isOTACommand": false, "tag": "gw"},
+        {"name": "PumpOn", "command": "pump_on", "requiredParam": true, "requiredAck": true, "isOTACommand": false, "tag": "pump"},
+        {"name": "Firmware", "command": "ota", "requiredParam": false, "requiredAck": true, "isOTACommand": true, "tag": "gw"}
+    ],
+    "messageVersion": "2.1",
+    "properties": {
+        "description": "Gateway with pump and tank children",
+        "dataFrequency": "60",
+        "fileSupport": false
+    },
+    "_meta": {"version": "2.0"}
+}
